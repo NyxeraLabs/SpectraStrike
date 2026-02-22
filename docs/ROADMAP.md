@@ -35,8 +35,8 @@
 - [x] Implement telemetry ingestion
 - [x] Implement logging & audit trails
 - [x] Implement AAA enforcement at engine level
-- [ ] Unit tests for orchestrator
-- [ ] Commit orchestrator code
+- [x] Unit tests for orchestrator
+- [x] Commit orchestrator code
 
 ### Sprint 3 (Week 5-6): Orchestrator QA
 - [ ] QA: run functional tests
