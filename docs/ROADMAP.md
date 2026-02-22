@@ -66,14 +66,14 @@
 - [x] QA: confirm telemetry reaches VectorVue
 
 ### Sprint 6 (Week 11-12): Nmap Wrapper Development
-- [ ] Create Python wrapper module (Nmap)
-- [ ] Implement TCP SYN scan (Nmap)
-- [ ] Implement UDP scan (Nmap)
-- [ ] Implement OS detection (Nmap)
-- [ ] Parse XML/JSON output (Nmap)
-- [ ] Send scan results to orchestrator (Nmap)
-- [ ] Integrate logging & telemetry (Nmap)
-- [ ] Unit tests for wrapper (Nmap)
+- [x] Create Python wrapper module (Nmap)
+- [x] Implement TCP SYN scan (Nmap)
+- [x] Implement UDP scan (Nmap)
+- [x] Implement OS detection (Nmap)
+- [x] Parse XML/JSON output (Nmap)
+- [x] Send scan results to orchestrator (Nmap)
+- [x] Integrate logging & telemetry (Nmap)
+- [x] Unit tests for wrapper (Nmap)
 - [ ] Commit wrapper (Nmap)
 
 ### Sprint 7 (Week 13-14): Nmap QA
