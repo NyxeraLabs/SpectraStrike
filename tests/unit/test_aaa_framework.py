@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from pkg.security.aaa_framework import AAAService, AuthenticationError, AuthorizationError
+from pkg.security.aaa_framework import (
+    AAAService,
+    AuthenticationError,
+    AuthorizationError,
+)
 
 
 def test_authenticate_success() -> None:
@@ -27,8 +31,12 @@ def test_authorize_and_account() -> None:
     service = AAAService(users={"alice": "pw"}, role_bindings={"alice": {"admin"}})
     principal = service.authenticate("alice", "pw")
 
-    service.authorize(principal, required_role="admin", action="run_scan", target="nmap")
-    record = service.account(principal, action="run_scan", target="nmap", status="success", job_id="job-1")
+    service.authorize(
+        principal, required_role="admin", action="run_scan", target="nmap"
+    )
+    record = service.account(
+        principal, action="run_scan", target="nmap", status="success", job_id="job-1"
+    )
 
     assert record.action == "run_scan"
     assert record.status == "success"
@@ -41,4 +49,6 @@ def test_authorize_failure() -> None:
     principal = service.authenticate("alice", "pw")
 
     with pytest.raises(AuthorizationError):
-        service.authorize(principal, required_role="admin", action="run_scan", target="nmap")
+        service.authorize(
+            principal, required_role="admin", action="run_scan", target="nmap"
+        )

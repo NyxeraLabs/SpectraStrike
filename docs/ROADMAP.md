@@ -15,10 +15,14 @@
 - [x] Configure AAA framework (AuthN/AuthZ/Accounting)
 
 ### Deliverables:
-- [ ] Baseline repo structure committed
-- [ ] Working dev environment with Docker & IDE ready
-- [ ] CI/CD pipeline skeleton
-- [ ] Logging & AAA framework in place
+- [x] Baseline repo structure committed
+- [x] Working dev environment with Docker & IDE ready
+- [x] CI/CD pipeline skeleton
+- [x] Logging & AAA framework in place
+
+### Phase 1 QA (Baseline)
+- [x] QA: validate environment consistency
+- [x] QA: run linter & unit test baseline
 
 ---
 

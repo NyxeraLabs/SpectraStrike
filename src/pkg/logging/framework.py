@@ -39,7 +39,9 @@ def get_audit_logger() -> Logger:
     return logging.getLogger(_AUDIT_LOGGER_NAME)
 
 
-def emit_audit_event(action: str, actor: str, target: str, status: str, **metadata: Any) -> None:
+def emit_audit_event(
+    action: str, actor: str, target: str, status: str, **metadata: Any
+) -> None:
     """Emit a structured audit event for sensitive operations."""
     event = {
         "timestamp": datetime.now(UTC).isoformat(),

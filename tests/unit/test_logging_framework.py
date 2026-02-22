@@ -5,7 +5,12 @@ from __future__ import annotations
 import json
 import logging
 
-from pkg.logging.framework import emit_audit_event, get_audit_logger, get_logger, setup_logging
+from pkg.logging.framework import (
+    emit_audit_event,
+    get_audit_logger,
+    get_logger,
+    setup_logging,
+)
 
 
 def test_setup_logging_adds_handler() -> None:

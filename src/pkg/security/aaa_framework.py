@@ -43,7 +43,9 @@ class AccountingRecord:
 class AAAService:
     """In-memory AAA service with structured audit logging."""
 
-    def __init__(self, users: dict[str, str], role_bindings: dict[str, set[str]]) -> None:
+    def __init__(
+        self, users: dict[str, str], role_bindings: dict[str, set[str]]
+    ) -> None:
         self._users = users
         self._role_bindings = role_bindings
         self._records: list[AccountingRecord] = []
@@ -74,7 +76,9 @@ class AAAService:
         )
         return principal
 
-    def authorize(self, principal: Principal, required_role: str, action: str, target: str) -> None:
+    def authorize(
+        self, principal: Principal, required_role: str, action: str, target: str
+    ) -> None:
         """Authorize a principal for an action based on required role."""
         if required_role not in principal.roles:
             emit_audit_event(
@@ -96,7 +100,14 @@ class AAAService:
             attempted_action=action,
         )
 
-    def account(self, principal: Principal, action: str, target: str, status: str, **details: Any) -> AccountingRecord:
+    def account(
+        self,
+        principal: Principal,
+        action: str,
+        target: str,
+        status: str,
+        **details: Any,
+    ) -> AccountingRecord:
         """Create and persist accounting records for privileged operations."""
         record = AccountingRecord(
             principal_id=principal.principal_id,
