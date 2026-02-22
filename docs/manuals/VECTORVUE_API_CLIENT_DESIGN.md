@@ -144,6 +144,11 @@ Never log raw token, password, or signature material.
 - smoke script for login + single event + single finding + status poll
 - TLS verification mode test (`verify=True` / controlled local cert mode)
 
+Implemented QA hooks:
+- Live smoke module: `src/pkg/integration/vectorvue/qa_smoke.py`
+- QA test suite entry: `tests/qa/test_vectorvue_api_qa.py`
+- Live mode toggle: `VECTORVUE_QA_LIVE=1`
+
 ## Compatibility
 - Python 3.12+
 - `requests`-based sync client initially

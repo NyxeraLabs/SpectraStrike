@@ -61,9 +61,9 @@
 - [x] Commit integration code
 
 ### Sprint 5 (Week 9-10): API QA
-- [ ] QA: test API endpoints
-- [ ] QA: validate encrypted communication
-- [ ] QA: confirm telemetry reaches VectorVue
+- [x] QA: test API endpoints
+- [x] QA: validate encrypted communication
+- [x] QA: confirm telemetry reaches VectorVue
 
 ### Sprint 6 (Week 11-12): Nmap Wrapper Development
 - [ ] Create Python wrapper module (Nmap)
