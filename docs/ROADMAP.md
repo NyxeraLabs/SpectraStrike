@@ -6,7 +6,7 @@
 - [x] Initialize Git repo – Commit initial setup
 - [x] Setup Python virtual environment
 - [x] Install core dependencies (requests, asyncio, logging)
-- [ ] Setup Docker dev containers
+- [x] Setup Docker dev containers
 - [x] Setup IDE configuration
 - [x] Configure pre-commit hooks
 - [x] Setup Git branching strategy

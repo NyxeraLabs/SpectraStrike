@@ -1,0 +1,17 @@
+services:
+  dev-app:
+    image: python:3.12-slim
+    container_name: spectrastrike_dev_app
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    command: ["sh", "-c", "python --version && sleep infinity"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "print('ok')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
