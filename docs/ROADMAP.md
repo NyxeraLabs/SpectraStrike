@@ -89,11 +89,11 @@
 - [x] Logging & telemetry (Metasploit)
 - [x] Retry/error handling (Metasploit)
 - [x] Unit tests (Metasploit)
-- [ ] Commit wrapper (Metasploit)
+- [x] Commit wrapper (Metasploit)
 
 ### Sprint 9 (Week 17-18): Metasploit QA
-- [ ] QA: validate exploit runs (Metasploit)
-- [ ] QA: check telemetry delivery (Metasploit)
+- [x] QA: validate exploit runs (Metasploit)
+- [x] QA: check telemetry delivery (Metasploit)
 
 ---
 
