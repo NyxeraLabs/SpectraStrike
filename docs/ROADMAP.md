@@ -31,7 +31,7 @@
 ### Sprint 2 (Week 3-4): Orchestrator Architecture
 - [x] Design orchestrator architecture
 - [x] Implement async event loop
-- [ ] Implement task scheduler
+- [x] Implement task scheduler
 - [ ] Implement telemetry ingestion
 - [ ] Implement logging & audit trails
 - [ ] Implement AAA enforcement at engine level
