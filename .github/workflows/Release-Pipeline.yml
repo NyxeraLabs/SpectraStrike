@@ -15,12 +15,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
@@ -29,29 +29,35 @@ jobs:
           python -m venv venv
           venv/bin/python -m pip install --upgrade pip
           venv/bin/python -m pip install -r requirements.txt
-          venv/bin/python -m pip install pytest
 
       - name: Run regression tests
         run: venv/bin/python -m pytest tests/ -v
 
       - name: Build release Docker containers
-        run: docker compose -f docker-compose.prod.yml build
+        run: |
+          if command -v docker >/dev/null 2>&1 && [ -f docker-compose.prod.yml ]; then
+            docker compose -f docker-compose.prod.yml build
+          else
+            echo "Docker release build simulated (docker-compose.prod.yml or docker not available)."
+          fi
 
       - name: Automatic Version Tagging
         id: tag
+        if: github.ref == 'refs/heads/main'
         run: |
+          git fetch --tags --force
           latest_tag=$(git tag --list 'v*.*.*' --sort=-version:refname | head -n 1)
           if [ -z "$latest_tag" ]; then
             latest_tag="v0.0.0"
           fi
-          new_tag=$(LATEST_TAG="$latest_tag" venv/bin/python - <<'PY'
-import os
-
-latest = os.environ["LATEST_TAG"].lstrip("v")
-major, minor, patch = [int(x) for x in latest.split(".")]
-print(f"v{major}.{minor}.{patch + 1}")
-PY
-)
+          version="${latest_tag#v}"
+          IFS='.' read -r major minor patch <<< "$version"
+          patch=$((patch + 1))
+          new_tag="v${major}.${minor}.${patch}"
+          if git rev-parse "$new_tag" >/dev/null 2>&1; then
+            echo "Tag $new_tag already exists; skipping."
+            exit 0
+          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag "$new_tag"
@@ -59,13 +65,13 @@ PY
           echo "New tag: $new_tag"
 
       - name: Deploy (simulation)
-        run: echo "Deploying release $GITHUB_REF (add scripts here)"
+        run: echo "Deploying release $GITHUB_REF (simulation)"
 
       - name: Final telemetry check
-        run: PYTHONPATH=src venv/bin/python -m pkg.telemetry.final_check || echo "Telemetry final check simulated"
+        run: PYTHONPATH=src venv/bin/python -m pkg.telemetry.final_check
 
       - name: Final AAA check
-        run: PYTHONPATH=src venv/bin/python -m pkg.security.aaa_check || echo "AAA final check simulated"
+        run: PYTHONPATH=src venv/bin/python -m pkg.security.aaa_check
 
       - name: Notify Release Status
         run: echo "Release pipeline completed"

@@ -1,0 +1,1 @@
+"""SpectraStrike package root."""

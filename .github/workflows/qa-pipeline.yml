@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
@@ -25,16 +25,15 @@ jobs:
           python -m venv venv
           venv/bin/python -m pip install --upgrade pip
           venv/bin/python -m pip install -r requirements.txt
-          venv/bin/python -m pip install pytest
 
       - name: Run full end-to-end QA tests
-        run: venv/bin/python -m pytest tests/qa/ -v
+        run: venv/bin/python -m pytest tests/qa -v
 
       - name: Run orchestrator simulations
         run: PYTHONPATH=src venv/bin/python -m pkg.orchestrator.run_simulations --test
 
       - name: Verify telemetry delivery
-        run: PYTHONPATH=src venv/bin/python -m pkg.telemetry.verify_delivery || echo "Telemetry verification simulated"
+        run: PYTHONPATH=src venv/bin/python -m pkg.telemetry.verify_delivery
 
       - name: Notify QA Status
         run: echo "QA pipeline completed"
