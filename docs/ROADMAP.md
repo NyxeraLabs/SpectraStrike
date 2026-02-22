@@ -32,7 +32,7 @@
 - [x] Design orchestrator architecture
 - [x] Implement async event loop
 - [x] Implement task scheduler
-- [ ] Implement telemetry ingestion
+- [x] Implement telemetry ingestion
 - [ ] Implement logging & audit trails
 - [ ] Implement AAA enforcement at engine level
 - [ ] Unit tests for orchestrator
