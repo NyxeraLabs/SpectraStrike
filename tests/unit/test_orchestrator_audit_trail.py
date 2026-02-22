@@ -5,11 +5,15 @@ from __future__ import annotations
 import json
 import logging
 
+from _pytest.logging import LogCaptureFixture
+
 from pkg.logging.framework import setup_logging
 from pkg.orchestrator.audit_trail import OrchestratorAuditTrail
 
 
-def test_task_lifecycle_records_and_audit_logs(caplog) -> None:  # type: ignore[no-untyped-def]
+def test_task_lifecycle_records_and_audit_logs(
+    caplog: LogCaptureFixture,
+) -> None:
     setup_logging()
     trail = OrchestratorAuditTrail()
 
