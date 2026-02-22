@@ -1,5 +1,10 @@
 # SpectraStrike
 
+![Lint/Test](https://github.com/<your-org>/<repo>/actions/workflows/lint-test.yml/badge.svg)
+![Dev Pipeline](https://github.com/<your-org>/<repo>/actions/workflows/dev-pipeline.yml/badge.svg)
+![QA Pipeline](https://github.com/<your-org>/<repo>/actions/workflows/qa-pipeline.yml/badge.svg)
+![Release Pipeline](https://github.com/<your-org>/<repo>/actions/workflows/release-pipeline.yml/badge.svg)
+
 **Author:** José María Micoli  
 **Intellectual Property Holder:** Nyxera Labs  
 **License:** Business Source License 1.1 (BSL 1.1)

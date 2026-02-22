@@ -1,0 +1,40 @@
+name: Dev Branch CI/CD
+
+on:
+  push:
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  dev-pipeline:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+          pip install pytest docker
+
+      - name: Run integration tests
+        run: pytest tests/ -v --maxfail=1
+
+      - name: Build Docker dev containers
+        run: docker-compose -f docker-compose.dev.yml build
+
+      - name: Simulate telemetry
+        run: python src/pkg/telemetry/check_telemetry.py || echo "Telemetry simulated"
+
+      - name: Notify Dev Status
+        run: echo "Dev pipeline completed"

@@ -7,10 +7,10 @@
 - [x] Setup Python virtual environment
 - [x] Install core dependencies (requests, asyncio, logging)
 - [ ] Setup Docker dev containers
-- [ ] Setup IDE configuration
-- [ ] Configure pre-commit hooks
-- [ ] Setup Git branching strategy
-- [ ] Implement initial CI/CD pipeline (GitHub Actions / GitLab CI)
+- [x] Setup IDE configuration
+- [x] Configure pre-commit hooks
+- [x] Setup Git branching strategy
+- [x] Implement initial CI/CD pipeline (GitHub Actions / GitLab CI)
 - [ ] Setup logging framework
 - [ ] Configure AAA framework (AuthN/AuthZ/Accounting)
 
