@@ -11,7 +11,7 @@
 - [x] Configure pre-commit hooks
 - [x] Setup Git branching strategy
 - [x] Implement initial CI/CD pipeline (GitHub Actions / GitLab CI)
-- [ ] Setup logging framework
+- [x] Setup logging framework
 - [ ] Configure AAA framework (AuthN/AuthZ/Accounting)
 
 ### Deliverables:
