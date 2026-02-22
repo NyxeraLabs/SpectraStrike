@@ -58,7 +58,7 @@
 - [x] Implement retries / backoff
 - [x] Implement event batching
 - [x] Implement message signing for integrity
-- [ ] Commit integration code
+- [x] Commit integration code
 
 ### Sprint 5 (Week 9-10): API QA
 - [ ] QA: test API endpoints
