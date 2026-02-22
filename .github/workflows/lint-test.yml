@@ -18,26 +18,26 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.12
+          python-version: '3.12'
 
-      - name: Install dependencies
+      - name: Create venv and install dependencies
         run: |
           python -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
-          pip install black flake8 isort bandit pytest
+          venv/bin/python -m pip install --upgrade pip
+          venv/bin/python -m pip install -r requirements.txt
+          venv/bin/python -m pip install black flake8 isort bandit pytest
 
       - name: Run linters
         run: |
-          black --check .
-          isort --check-only .
-          flake8 .
+          venv/bin/python -m black --check .
+          venv/bin/python -m isort --check-only .
+          venv/bin/python -m flake8 .
 
       - name: Run security scan
-        run: bandit -r src/
+        run: venv/bin/python -m bandit -r src/
 
       - name: Run unit tests
-        run: pytest -v
+        run: venv/bin/python -m pytest -v
 
       - name: Notify (Optional - Email/Slack)
         run: echo "Lint and tests completed"

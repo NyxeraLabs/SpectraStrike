@@ -7,44 +7,65 @@ on:
     tags:
       - 'v*.*.*'
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.12
+          python-version: '3.12'
 
-      - name: Install dependencies
+      - name: Create venv and install dependencies
         run: |
           python -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
-          pip install pytest docker semver
+          venv/bin/python -m pip install --upgrade pip
+          venv/bin/python -m pip install -r requirements.txt
+          venv/bin/python -m pip install pytest
 
       - name: Run regression tests
-        run: pytest tests/ -v
+        run: venv/bin/python -m pytest tests/ -v
 
       - name: Build release Docker containers
-        run: docker-compose -f docker-compose.prod.yml build
+        run: docker compose -f docker-compose.prod.yml build
 
       - name: Automatic Version Tagging
         id: tag
         run: |
-          NEW_TAG=v$(python -c "import semver; print(semver.bump_patch('0.1.0'))")
-          git tag $NEW_TAG
-          git push origin $NEW_TAG
-          echo "New tag: $NEW_TAG"
+          latest_tag=$(git tag --list 'v*.*.*' --sort=-version:refname | head -n 1)
+          if [ -z "$latest_tag" ]; then
+            latest_tag="v0.0.0"
+          fi
+          new_tag=$(LATEST_TAG="$latest_tag" venv/bin/python - <<'PY'
+import os
+
+latest = os.environ["LATEST_TAG"].lstrip("v")
+major, minor, patch = [int(x) for x in latest.split(".")]
+print(f"v{major}.{minor}.{patch + 1}")
+PY
+)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$new_tag"
+          git push origin "$new_tag"
+          echo "New tag: $new_tag"
 
       - name: Deploy (simulation)
         run: echo "Deploying release $GITHUB_REF (add scripts here)"
 
-      - name: Final telemetry & AAA check
-        run: python src/pkg/telemetry/final_check.py || echo "Telemetry final check simulated"
+      - name: Final telemetry check
+        run: PYTHONPATH=src venv/bin/python -m pkg.telemetry.final_check || echo "Telemetry final check simulated"
+
+      - name: Final AAA check
+        run: PYTHONPATH=src venv/bin/python -m pkg.security.aaa_check || echo "AAA final check simulated"
 
       - name: Notify Release Status
         run: echo "Release pipeline completed"

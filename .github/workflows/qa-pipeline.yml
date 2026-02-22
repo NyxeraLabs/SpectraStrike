@@ -18,23 +18,23 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.12
+          python-version: '3.12'
 
-      - name: Install dependencies
+      - name: Create venv and install dependencies
         run: |
           python -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
-          pip install pytest docker
+          venv/bin/python -m pip install --upgrade pip
+          venv/bin/python -m pip install -r requirements.txt
+          venv/bin/python -m pip install pytest
 
       - name: Run full end-to-end QA tests
-        run: pytest tests/qa/ -v
+        run: venv/bin/python -m pytest tests/qa/ -v
 
       - name: Run orchestrator simulations
-        run: python src/pkg/orchestrator/run_simulations.py --test
+        run: PYTHONPATH=src venv/bin/python -m pkg.orchestrator.run_simulations --test
 
       - name: Verify telemetry delivery
-        run: python src/pkg/telemetry/verify_delivery.py || echo "Telemetry verification simulated"
+        run: PYTHONPATH=src venv/bin/python -m pkg.telemetry.verify_delivery || echo "Telemetry verification simulated"
 
       - name: Notify QA Status
         run: echo "QA pipeline completed"

@@ -18,23 +18,26 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.12
+          python-version: '3.12'
 
-      - name: Install dependencies
+      - name: Create venv and install dependencies
         run: |
           python -m venv venv
-          source venv/bin/activate
-          pip install -r requirements.txt
-          pip install pytest docker
+          venv/bin/python -m pip install --upgrade pip
+          venv/bin/python -m pip install -r requirements.txt
+          venv/bin/python -m pip install pytest
+
+      - name: Run unit tests
+        run: venv/bin/python -m pytest tests/unit -v
 
       - name: Run integration tests
-        run: pytest tests/ -v --maxfail=1
+        run: venv/bin/python -m pytest tests/integration -v --maxfail=1
 
       - name: Build Docker dev containers
-        run: docker-compose -f docker-compose.dev.yml build
+        run: docker compose -f docker-compose.dev.yml build
 
       - name: Simulate telemetry
-        run: python src/pkg/telemetry/check_telemetry.py || echo "Telemetry simulated"
+        run: PYTHONPATH=src venv/bin/python -m pkg.telemetry.check_telemetry || echo "Telemetry simulated"
 
       - name: Notify Dev Status
         run: echo "Dev pipeline completed"
