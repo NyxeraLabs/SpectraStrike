@@ -5,7 +5,7 @@
 ### Sprint 1 (Week 1-2): Repository & Dev Environment
 - [x] Initialize Git repo – Commit initial setup
 - [x] Setup Python virtual environment
-- [ ] Install core dependencies (requests, asyncio, logging)
+- [x] Install core dependencies (requests, asyncio, logging)
 - [ ] Setup Docker dev containers
 - [ ] Setup IDE configuration
 - [ ] Configure pre-commit hooks
