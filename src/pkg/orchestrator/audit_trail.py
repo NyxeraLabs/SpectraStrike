@@ -32,7 +32,9 @@ class OrchestratorAuditTrail:
         self._records: list[AuditTrailRecord] = []
         self._lock = Lock()
 
-    def task_received(self, task_id: str, actor: str, target: str, **details: Any) -> AuditTrailRecord:
+    def task_received(
+        self, task_id: str, actor: str, target: str, **details: Any
+    ) -> AuditTrailRecord:
         """Record task acceptance into orchestrator."""
         return self._record(
             task_id=task_id,
@@ -43,7 +45,9 @@ class OrchestratorAuditTrail:
             **details,
         )
 
-    def task_started(self, task_id: str, actor: str, target: str, **details: Any) -> AuditTrailRecord:
+    def task_started(
+        self, task_id: str, actor: str, target: str, **details: Any
+    ) -> AuditTrailRecord:
         """Record task execution start."""
         return self._record(
             task_id=task_id,
@@ -54,7 +58,9 @@ class OrchestratorAuditTrail:
             **details,
         )
 
-    def task_completed(self, task_id: str, actor: str, target: str, **details: Any) -> AuditTrailRecord:
+    def task_completed(
+        self, task_id: str, actor: str, target: str, **details: Any
+    ) -> AuditTrailRecord:
         """Record successful task completion."""
         return self._record(
             task_id=task_id,
@@ -65,7 +71,9 @@ class OrchestratorAuditTrail:
             **details,
         )
 
-    def task_failed(self, task_id: str, actor: str, target: str, **details: Any) -> AuditTrailRecord:
+    def task_failed(
+        self, task_id: str, actor: str, target: str, **details: Any
+    ) -> AuditTrailRecord:
         """Record failed task completion."""
         return self._record(
             task_id=task_id,
@@ -76,7 +84,15 @@ class OrchestratorAuditTrail:
             **details,
         )
 
-    def _record(self, task_id: str, action: str, actor: str, target: str, status: str, **details: Any) -> AuditTrailRecord:
+    def _record(
+        self,
+        task_id: str,
+        action: str,
+        actor: str,
+        target: str,
+        status: str,
+        **details: Any,
+    ) -> AuditTrailRecord:
         record = AuditTrailRecord(
             task_id=task_id,
             action=action,
