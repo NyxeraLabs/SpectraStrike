@@ -81,14 +81,14 @@
 - [x] QA: AAA enforcement (Nmap)
 
 ### Sprint 8 (Week 15-16): Metasploit Integration
-- [ ] Connect to Metasploit RPC
-- [ ] Implement module loader (Metasploit)
-- [ ] Execute exploits (Metasploit)
-- [ ] Capture session output (Metasploit)
-- [ ] Send results to orchestrator (Metasploit)
-- [ ] Logging & telemetry (Metasploit)
-- [ ] Retry/error handling (Metasploit)
-- [ ] Unit tests (Metasploit)
+- [x] Connect to Metasploit RPC
+- [x] Implement module loader (Metasploit)
+- [x] Execute exploits (Metasploit)
+- [x] Capture session output (Metasploit)
+- [x] Send results to orchestrator (Metasploit)
+- [x] Logging & telemetry (Metasploit)
+- [x] Retry/error handling (Metasploit)
+- [x] Unit tests (Metasploit)
 - [ ] Commit wrapper (Metasploit)
 
 ### Sprint 9 (Week 17-18): Metasploit QA
