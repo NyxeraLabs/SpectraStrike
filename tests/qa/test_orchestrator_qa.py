@@ -8,10 +8,16 @@ from pkg.orchestrator.audit_trail import OrchestratorAuditTrail
 from pkg.orchestrator.engine import OrchestratorEngine, TaskSubmissionRequest
 from pkg.orchestrator.task_scheduler import TaskScheduler
 from pkg.orchestrator.telemetry_ingestion import TelemetryIngestionPipeline
-from pkg.security.aaa_framework import AAAService, AuthenticationError, AuthorizationError
+from pkg.security.aaa_framework import (
+    AAAService,
+    AuthenticationError,
+    AuthorizationError,
+)
 
 
-def _build_engine(role: str = "operator") -> tuple[OrchestratorEngine, TelemetryIngestionPipeline]:
+def _build_engine(
+    role: str = "operator",
+) -> tuple[OrchestratorEngine, TelemetryIngestionPipeline]:
     aaa = AAAService(users={"alice": "pw"}, role_bindings={"alice": {role}})
     scheduler = TaskScheduler()
     telemetry = TelemetryIngestionPipeline(batch_size=1)
