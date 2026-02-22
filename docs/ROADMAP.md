@@ -74,11 +74,11 @@
 - [x] Send scan results to orchestrator (Nmap)
 - [x] Integrate logging & telemetry (Nmap)
 - [x] Unit tests for wrapper (Nmap)
-- [ ] Commit wrapper (Nmap)
+- [x] Commit wrapper (Nmap)
 
 ### Sprint 7 (Week 13-14): Nmap QA
-- [ ] QA: validate scan accuracy (Nmap)
-- [ ] QA: AAA enforcement (Nmap)
+- [x] QA: validate scan accuracy (Nmap)
+- [x] QA: AAA enforcement (Nmap)
 
 ### Sprint 8 (Week 15-16): Metasploit Integration
 - [ ] Connect to Metasploit RPC
