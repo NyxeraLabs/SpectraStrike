@@ -12,7 +12,7 @@
 - [x] Setup Git branching strategy
 - [x] Implement initial CI/CD pipeline (GitHub Actions / GitLab CI)
 - [x] Setup logging framework
-- [ ] Configure AAA framework (AuthN/AuthZ/Accounting)
+- [x] Configure AAA framework (AuthN/AuthZ/Accounting)
 
 ### Deliverables:
 - [ ] Baseline repo structure committed
