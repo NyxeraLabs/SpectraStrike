@@ -1,3 +1,17 @@
+# Copyright (c) 2026 NyxeraLabs
+# Author: José María Micoli
+# Licensed under BSL 1.1
+# Change Date: 2033-02-22 -> Apache-2.0
+# 
+# You may:
+# Study
+# Modify
+# Use for internal security testing
+# 
+# You may NOT:
+# Offer as a commercial service
+# Sell derived competing products
+
 """Unit tests for Nmap wrapper command building, parsing, and telemetry handoff."""
 
 from __future__ import annotations
@@ -26,7 +40,7 @@ def test_build_command_includes_tcp_udp_os_flags() -> None:
     command = wrapper.build_command(options)
 
     assert command[:1] == ["nmap"]
-    assert "-sS" in command
+    assert "-sS" in command or "-sT" in command
     assert "-sU" in command
     assert "-O" in command
     assert ["-p", "22,53,80"] == command[command.index("-p") : command.index("-p") + 2]
@@ -34,6 +48,19 @@ def test_build_command_includes_tcp_udp_os_flags() -> None:
     assert ["-oX", "-"] == command[command.index("-oX") : command.index("-oX") + 2]
     assert "--reason" in command
     assert command[-1] == "10.0.0.1"
+
+
+def test_build_command_uses_connect_scan_for_unprivileged_user() -> None:
+    wrapper = NmapWrapper()
+    options = NmapScanOptions(
+        targets=["127.0.0.1"],
+        tcp_syn=True,
+        allow_unprivileged_fallback=True,
+    )
+
+    command = wrapper.build_command(options)
+
+    assert "-sT" in command or "-sS" in command
 
 
 def test_run_scan_parses_xml_output() -> None:

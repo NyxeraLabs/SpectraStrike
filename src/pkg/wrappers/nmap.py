@@ -1,8 +1,23 @@
+# Copyright (c) 2026 NyxeraLabs
+# Author: José María Micoli
+# Licensed under BSL 1.1
+# Change Date: 2033-02-22 -> Apache-2.0
+# 
+# You may:
+# Study
+# Modify
+# Use for internal security testing
+# 
+# You may NOT:
+# Offer as a commercial service
+# Sell derived competing products
+
 """Nmap wrapper module for orchestrated scan execution and parsing."""
 
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
@@ -30,6 +45,7 @@ class NmapScanOptions:
     timing_template: int | None = None
     additional_args: list[str] = field(default_factory=list)
     output_format: Literal["xml", "json"] = "xml"
+    allow_unprivileged_fallback: bool = True
 
     def __post_init__(self) -> None:
         if not self.targets:
@@ -76,7 +92,10 @@ class NmapWrapper:
         command = ["nmap"]
 
         if options.tcp_syn:
-            command.append("-sS")
+            if options.allow_unprivileged_fallback and os.geteuid() != 0:
+                command.append("-sT")
+            else:
+                command.append("-sS")
         if options.udp_scan:
             command.append("-sU")
         if options.os_detection:

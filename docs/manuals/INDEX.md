@@ -1,3 +1,19 @@
+<!--
+Copyright (c) 2026 NyxeraLabs
+Author: José María Micoli
+Licensed under BSL 1.1
+Change Date: 2033-02-22 -> Apache-2.0
+
+You may:
+Study
+Modify
+Use for internal security testing
+
+You may NOT:
+Offer as a commercial service
+Sell derived competing products
+-->
+
 # SpectraStrike Documentation Index
 
 **Author:** José María Micoli  
@@ -128,6 +144,7 @@
 ---
 
 ### 11. User & Developer Guides
+- [User Guide (Current Implementation)](docs/manuals/USER_GUIDE.md)
 - [User Guide – Basic Operations](docs/guides/user_guide.md)
 - [Developer Guide – Modules & API](docs/guides/developer_guide.md)
 - [Troubleshooting & FAQ](docs/guides/troubleshooting.md)

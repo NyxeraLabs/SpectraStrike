@@ -1,3 +1,17 @@
+# Copyright (c) 2026 NyxeraLabs
+# Author: José María Micoli
+# Licensed under BSL 1.1
+# Change Date: 2033-02-22 -> Apache-2.0
+# 
+# You may:
+# Study
+# Modify
+# Use for internal security testing
+# 
+# You may NOT:
+# Offer as a commercial service
+# Sell derived competing products
+
 Name,Description,List,Labels,Checklist
 Initialize Git repo,Setup repository for SpectraStrike,Backlog,Dev,
 Setup Python virtual environment,Setup Python venv and dependencies,Backlog,Dev,
@@ -54,6 +68,19 @@ Unit tests (Metasploit),Test Metasploit wrapper,Backlog,Dev,
 Commit wrapper (Metasploit),Commit Metasploit code,Backlog,Dev,
 QA: validate exploit runs (Metasploit),Check exploit execution,Backlog,QA,
 QA: check telemetry delivery (Metasploit),Confirm telemetry received,Backlog,QA,
+Add unprivileged Nmap execution fallback (-sS to -sT),Allow operator/local runs without root for Nmap scans,Backlog,Dev,
+Validate real Nmap execution path and telemetry handoff,Confirm live scan and pipeline delivery behavior,Backlog,QA,
+Implement manual Metasploit ingestion connector (sessions + session-events),Ingest operator-driven Metasploit activity from data APIs,Backlog,Integration,
+Add checkpoint-based deduplication for Metasploit manual ingestion,Prevent duplicate ingestion across sync runs,Backlog,Integration,
+Add CLI sync entrypoint for operator-driven Metasploit ingestion,Provide repeatable manual sync command for operators,Backlog,DevOps,
+Add tests for manual Metasploit ingestion flow,Validate parsing deduplication and sync behavior,Backlog,QA,
+Commit end-to-end stabilization updates (Nmap + Metasploit manual),Commit hardening and manual-ingestion baseline,Backlog,Dev,
+Select broker standard (Kafka or RabbitMQ),Choose messaging backbone for async telemetry,Backlog,Architecture,
+Implement telemetry publisher abstraction (TelemetryPublisher),Create broker-agnostic publisher interface,Backlog,Dev,
+Add broker-backed async telemetry delivery,Publish orchestrator telemetry to queue/topic,Backlog,Dev,
+Add retry/dead-letter/idempotency for broker delivery,Harden async telemetry delivery path,Backlog,Dev,
+Integration tests for broker publish/consume flow,Validate queue/topic end-to-end behavior,Backlog,QA,
+Commit messaging backbone,Commit messaging implementation,Backlog,Dev,
 Connect to Cobalt Strike API,Cobalt Strike beacon automation,Backlog,Dev,
 Deploy beacon simulation (Cobalt Strike),Simulate attack beacon,Backlog,Dev,
 Capture command output (Cobalt Strike),Capture commands,Backlog,Dev,
@@ -73,6 +100,31 @@ Unit tests (Burp),Test Burp integration,Backlog,Dev,
 Commit wrapper (Burp),Commit Burp code,Backlog,Dev,
 QA: validate scan coverage (Burp),Ensure all targets scanned,Backlog,QA,
 QA: ensure AAA applied (Burp),Verify access control,Backlog,QA,
+Define UI architecture and API contracts,Plan UI interaction model and backend contracts before Cobalt Strike implementation,Backlog,Architecture,
+Implement Web UI foundation with Next.js + Tailwind CSS,Build initial web frontend baseline before Cobalt Strike implementation,Backlog,Frontend,
+Implement auth views and operator dashboard shell (Web UI),Create login and operator landing experience,Backlog,Frontend,
+Implement telemetry feed view (Nmap/Metasploit/Manual ingestion) (Web UI),Display live operational telemetry in web UI,Backlog,Frontend,
+Implement findings and evidence navigation screens (Web UI),Expose findings and evidence browsing in web UI,Backlog,Frontend,
+Wire Web UI actions to orchestrator and integration endpoints,Connect frontend workflows to SpectraStrike APIs,Backlog,Frontend,
+Add Web UI tests (component/unit + basic E2E),Validate web UI behavior and core user flows,Backlog,QA,
+Implement Interactive Terminal UI (Admin TUI) for operational control,Provide keyboard-first admin operations interface before Cobalt Strike implementation,Backlog,DevOps,
+Add Admin TUI command workflows (task submission; telemetry watch; integration sync),Enable admin runtime operations from terminal UI,Backlog,DevOps,
+Add Admin TUI tests and command-level QA checks,Validate admin TUI commands and interaction behavior,Backlog,QA,
+Commit UI foundation (Web UI + Admin TUI),Commit frontend and terminal UI baseline,Backlog,Frontend,
+Implement Dockerized runtime stack for all components,Containerize SpectraStrike services for consistent deployments before Cobalt Strike implementation,Backlog,DevOps,
+Add Nginx reverse proxy container (TLS termination; routing; rate limits),Front proxy and edge security for all HTTP traffic,Backlog,Security,
+Add PostgreSQL container for persistent operational data,Persist orchestrator and integration state in relational DB,Backlog,DevOps,
+Add Redis container for cache and near-real-time log/event stream,Support low-latency caching and event/log buffering,Backlog,DevOps,
+Add secure internal Docker network segmentation between services,Isolate service-to-service traffic with explicit network policy,Backlog,Security,
+Add secrets/config management for credentials and API keys,Protect sensitive runtime configuration and tokens,Backlog,Security,
+Add centralized log pipeline and retention policy in containers,Collect and retain application and security logs,Backlog,Observability,
+Add health checks startup ordering and restart policies for all services,Improve service reliability and self-healing behavior,Backlog,DevOps,
+Add backup/restore workflow for PostgreSQL and Redis state,Guarantee recoverability for operational data,Backlog,DevOps,
+Add container security baseline (non-root minimal images pinned versions),Reduce container attack surface and supply-chain risk,Backlog,Security,
+Add infrastructure integration tests and security QA checks,Validate runtime stack and hardening controls end-to-end,Backlog,QA,
+Add project Makefile for easy test easy deploy and easy QA operations,Create one-command developer and operator workflows,Backlog,DevOps,
+Add QA runbook and full-regression command targets,Standardize complete QA execution for local and CI usage,Backlog,QA,
+Commit security/container platform baseline,Commit hardened infrastructure baseline,Backlog,DevOps,
 Implement wrapper module (Gobuster / DirBuster),Directory brute-force scanning,Backlog,Dev,
 Configure wordlists (Gobuster / DirBuster),Set up wordlists,Backlog,Dev,
 Automate directory scan (Gobuster / DirBuster),Run directory scans,Backlog,Dev,
@@ -128,6 +180,7 @@ QA: telemetry delivery (Red Team),Confirm telemetry sent,Backlog,QA,
 Design manual input API,Manual pentester input ingestion,Backlog,Dev,
 Implement authentication & authorization (Manual),AAA enforcement for manual tests,Backlog,Dev,
 Implement audit logging (Manual),Audit manual submissions,Backlog,Dev,
+Implement Metasploit manual-ingestion connector (pull sessions/events),Ingest manual Metasploit execution results,Backlog,Integration,
 Integrate manual results into orchestrator,Push manual results to engine,Backlog,Dev,
 Unit tests (Manual),Test manual input API,Backlog,Dev,
 Commit code (Manual),Commit code,Backlog,Dev,

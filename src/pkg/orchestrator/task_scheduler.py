@@ -1,3 +1,17 @@
+# Copyright (c) 2026 NyxeraLabs
+# Author: José María Micoli
+# Licensed under BSL 1.1
+# Change Date: 2033-02-22 -> Apache-2.0
+# 
+# You may:
+# Study
+# Modify
+# Use for internal security testing
+# 
+# You may NOT:
+# Offer as a commercial service
+# Sell derived competing products
+
 """Priority task scheduler for orchestrator execution planning."""
 
 from __future__ import annotations

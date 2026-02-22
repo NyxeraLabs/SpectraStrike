@@ -1,3 +1,19 @@
+<!--
+Copyright (c) 2026 NyxeraLabs
+Author: José María Micoli
+Licensed under BSL 1.1
+Change Date: 2033-02-22 -> Apache-2.0
+
+You may:
+Study
+Modify
+Use for internal security testing
+
+You may NOT:
+Offer as a commercial service
+Sell derived competing products
+-->
+
 # SpectraStrike Roadmap – Phases, Sprints, and Commits
 
 ## Phase 1: Setup & Environment Initialization (Sprint 1-2)
@@ -91,9 +107,55 @@
 - [x] Unit tests (Metasploit)
 - [x] Commit wrapper (Metasploit)
 
+### Sprint 8.5 (Week 16-17): Nmap + Metasploit End-to-End Stabilization
+- [x] Add unprivileged Nmap execution fallback (`-sS` -> `-sT`) for local/operator runs
+- [x] Validate real Nmap scan execution path and telemetry handoff
+- [x] Implement manual Metasploit ingestion connector (sessions + session-events pull)
+- [x] Add checkpoint-based deduplication for Metasploit manual ingestion
+- [x] Add CLI sync entrypoint for operator-driven Metasploit ingestion
+- [x] Add unit/integration tests for manual ingestion flow
+- [x] Commit end-to-end stabilization updates
+
 ### Sprint 9 (Week 17-18): Metasploit QA
 - [x] QA: validate exploit runs (Metasploit)
 - [x] QA: check telemetry delivery (Metasploit)
+
+### Sprint 9.5 (Week 18): Messaging Backbone (Kafka/RabbitMQ)
+- [ ] Select broker standard (Kafka or RabbitMQ) and define topic/queue model
+- [ ] Implement telemetry publisher abstraction (`TelemetryPublisher`)
+- [ ] Add broker-backed async delivery path for orchestrator telemetry
+- [ ] Add retry, dead-letter, and idempotency handling for broker delivery
+- [ ] Add integration tests for publish/consume flow
+- [ ] Commit messaging backbone
+
+### Sprint 9.6 (Week 18-19): User Interface Foundation (Before Cobalt Strike)
+- [ ] Define UI architecture and API contracts
+- [ ] Implement Web UI foundation with Next.js (App Router) + Tailwind CSS
+- [ ] Implement auth views and operator dashboard shell (Web UI)
+- [ ] Implement telemetry feed view (Nmap/Metasploit/Manual ingestion) (Web UI)
+- [ ] Implement findings and evidence navigation screens (Web UI)
+- [ ] Wire Web UI actions to orchestrator and integration endpoints
+- [ ] Add Web UI tests (component/unit + basic E2E)
+- [ ] Implement Interactive Terminal UI (Admin TUI) for operational control
+- [ ] Add Admin TUI command workflows (task submission, telemetry watch, integration sync)
+- [ ] Add Admin TUI tests and command-level QA checks
+- [ ] Commit UI foundation (Web UI + Admin TUI)
+
+### Sprint 9.7 (Week 19): Security & Container Platform Hardening (Before Cobalt Strike)
+- [ ] Implement Dockerized runtime stack for all components
+- [ ] Add Nginx reverse proxy container (TLS termination, routing, rate limits)
+- [ ] Add PostgreSQL container for persistent operational data
+- [ ] Add Redis container for cache, buffering, and near-real-time log/event stream
+- [ ] Add secure internal Docker network segmentation between services
+- [ ] Add secrets/config management for credentials, tokens, and API keys
+- [ ] Add centralized log pipeline and retention policy in containers
+- [ ] Add health checks, startup ordering, and restart policies for all services
+- [ ] Add backup/restore workflow for PostgreSQL and Redis state
+- [ ] Add container security baseline (non-root, minimal images, pinned versions)
+- [ ] Add infrastructure integration tests and security QA checks
+- [ ] Add project Makefile for easy test, easy deploy, and easy QA operations
+- [ ] Add QA runbook and full-regression command targets (local and CI-aligned)
+- [ ] Commit security/container platform baseline
 
 ---
 
@@ -218,6 +280,7 @@
 - [ ] Design manual input API
 - [ ] Implement authentication & authorization
 - [ ] Implement audit logging
+- [ ] Implement Metasploit manual-ingestion connector (pull sessions/events)
 - [ ] Integrate manual results into orchestrator
 - [ ] Unit tests
 - [ ] Commit code
