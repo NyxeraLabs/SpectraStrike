@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import heapq
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-import heapq
 from itertools import count
 from threading import Lock
 from typing import Any
