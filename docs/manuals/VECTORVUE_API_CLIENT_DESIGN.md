@@ -1,66 +1,150 @@
 # VectorVue API Client Design (Sprint 4)
 
 ## Goal
-Define a secure, testable, and extensible Python API client for delivering SpectraStrike orchestrator telemetry and findings to VectorVue.
+Define a secure, testable, and extensible Python API client for delivering SpectraStrike telemetry and findings to VectorVue client and integration APIs.
 
-## Client Responsibilities
-1. Manage authenticated HTTP communication to VectorVue.
-2. Normalize orchestrator outputs into VectorVue payload schemas.
-3. Provide resilient delivery primitives (retry, batching, integrity hooks).
-4. Emit local logs/audit events for outbound operations.
+## Scope (Roadmap Alignment)
+This design maps to `docs/ROADMAP.md` Phase 3:
+- Sprint 4:
+  - Implement encrypted data transfer (TLS)
+  - Implement retries/backoff
+  - Implement event batching
+  - Implement message signing for integrity
+- Sprint 5:
+  - QA test API endpoints
+  - Validate encrypted communication
+  - Confirm telemetry reaches VectorVue
+
+## API Surface (VectorVue)
+Base URL (local default): `https://127.0.0.1`
+
+Authentication:
+- `POST /api/v1/client/auth/login`
+- Bearer token required on all follow-up calls
+- JWT must include `tenant_id`
+
+Primary integration endpoints:
+- `POST /api/v1/integrations/spectrastrike/events`
+- `POST /api/v1/integrations/spectrastrike/events/batch`
+- `POST /api/v1/integrations/spectrastrike/findings`
+- `POST /api/v1/integrations/spectrastrike/findings/batch`
+- `GET /api/v1/integrations/spectrastrike/ingest/status/{request_id}`
+
+Optional client telemetry endpoint:
+- `POST /api/v1/client/events`
+
+## Response Contract
+All SpectraStrike integration endpoints return an envelope with:
+- `request_id`
+- `status` (`accepted | partial | failed | replayed`)
+- `data`
+- `errors[]`
+- optional `signature`
 
 ## Proposed Package Layout
+- `src/pkg/integration/vectorvue/__init__.py`
 - `src/pkg/integration/vectorvue/client.py`
-- `src/pkg/integration/vectorvue/models.py`
 - `src/pkg/integration/vectorvue/config.py`
+- `src/pkg/integration/vectorvue/models.py`
 - `src/pkg/integration/vectorvue/exceptions.py`
 
 ## Primary Interfaces
-1. `VectorVueClient`
-- `health_check() -> bool`
-- `send_event(event: dict[str, Any]) -> ResponseEnvelope`
-- `send_batch(events: list[dict[str, Any]]) -> ResponseEnvelope`
-
-2. `VectorVueConfig`
-- `base_url: str`
-- `api_key_env: str`
-- `timeout_seconds: float`
+1. `VectorVueConfig`
+- `base_url: str = "https://127.0.0.1"`
+- `username: str | None`
+- `password: str | None`
+- `tenant_id: str | None`
+- `token: str | None` (optional pre-provisioned token)
+- `timeout_seconds: float = 10.0`
 - `verify_tls: bool = True`
-- `max_retries: int`
-- `batch_size: int`
+- `max_retries: int = 3`
+- `backoff_seconds: float = 0.5`
+- `max_batch_size: int = 100`
+- `signature_secret: str | None`
+- `require_https: bool = True`
+
+2. `VectorVueClient`
+- `login() -> str`
+- `send_event(event: dict[str, Any], idempotency_key: str | None = None) -> ResponseEnvelope`
+- `send_events_batch(events: list[dict[str, Any]]) -> ResponseEnvelope`
+- `send_finding(finding: dict[str, Any]) -> ResponseEnvelope`
+- `send_findings_batch(findings: list[dict[str, Any]]) -> ResponseEnvelope`
+- `get_ingest_status(request_id: str) -> ResponseEnvelope`
 
 3. `ResponseEnvelope`
-- `success: bool`
-- `status_code: int`
 - `request_id: str | None`
-- `error: str | None`
+- `status: str`
+- `data: dict[str, Any] | list[Any] | None`
+- `errors: list[dict[str, Any]]`
+- `signature: str | None`
+- `http_status: int`
+- `headers: dict[str, str]`
 
-## Request Flow
-1. Validate config and required credential source.
-2. Build request headers (`Authorization`, `Content-Type`, optional signature headers).
-3. Serialize payload deterministically.
-4. Send over HTTPS with timeout.
-5. Parse response and map into `ResponseEnvelope`.
-6. Log and audit success/failure metadata.
+## Security and Integrity Requirements
+1. Enforce HTTPS base URL when `require_https=True`.
+2. Use Bearer JWT for all integration/status calls.
+3. Support optional HMAC request signing when `signature_secret` is configured:
+- `X-Timestamp`
+- `X-Signature`
+4. Redact credentials/tokens/signatures in logs.
+5. Preserve tenant isolation guarantees (treat `404` on status lookup as possible cross-tenant protection behavior).
 
-## Security Requirements
-1. Enforce HTTPS-only base URL.
-2. Never hardcode API keys; load from environment/secret provider.
-3. Redact secrets in logs and errors.
-4. Support request integrity extension point (HMAC/signature hook).
+## Idempotency and Replay Handling
+For `POST /events`:
+- Include `Idempotency-Key` when provided by caller.
+- Same key + same payload: handle replay response (`status=replayed` or header `X-Idempotent-Replay: true`).
+- Same key + different payload: map `409` to typed `idempotency_conflict` error.
 
-## Error Handling Model
-- `VectorVueConfigError`: invalid/missing configuration.
-- `VectorVueTransportError`: connection/timeout/TLS failure.
-- `VectorVueAPIError`: non-2xx API responses.
-- `VectorVueSerializationError`: invalid payload encoding.
+## Transport and Retry Model
+- Use `requests.Session` for connection pooling.
+- Retry with bounded exponential backoff for transient failures:
+  - connection errors
+  - timeouts
+  - HTTP `429`, `502`, `503`, `504`
+- Do not retry hard validation/auth errors (`400`, `401`, `403`, `404`, `409`, `422`).
+
+## Validation Model
+Client-side validation before submit:
+- Ensure batch size <= `max_batch_size`.
+- Ensure payload JSON-serializable.
+- Preserve endpoint-specific required fields as pass-through (server remains source of truth).
+
+Server error model expected:
+- `validation_failed`
+- `batch_too_large`
+- `idempotency_conflict`
+- auth guard errors (`401`)
+
+## Logging and Observability
+Emit local logs for each outbound request with:
+- endpoint
+- request_id (when available)
+- tenant_id (if configured)
+- outcome status
+- retry count
+
+Never log raw token, password, or signature material.
 
 ## Test Strategy
-1. Unit test config validation and HTTPS enforcement.
-2. Unit test response mapping and exception paths.
-3. Unit test retry/backoff decision behavior.
-4. Contract test payload schemas against fixture samples.
+1. Unit tests:
+- config validation (`https`, auth inputs)
+- signing header generation
+- response envelope parsing
+- retry/non-retry matrix
+- idempotency replay/conflict behavior
+- batch-size guard
 
-## Compatibility Notes
+2. Integration-style tests (mock transport):
+- success for each endpoint
+- partial failure batch handling
+- ingest status polling parse
+- auth failure and validation failure mapping
+
+3. QA hooks (Roadmap Sprint 5):
+- smoke script for login + single event + single finding + status poll
+- TLS verification mode test (`verify=True` / controlled local cert mode)
+
+## Compatibility
 - Python 3.12+
-- `requests` session-based client initially; can upgrade to async client later.
+- `requests`-based sync client initially
+- interface keeps room for async transport later

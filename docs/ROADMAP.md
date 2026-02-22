@@ -54,10 +54,10 @@
 
 ### Sprint 4 (Week 7-8): API Integration
 - [x] Design API client for VectorVue
-- [ ] Implement encrypted data transfer (TLS)
-- [ ] Implement retries / backoff
-- [ ] Implement event batching
-- [ ] Implement message signing for integrity
+- [x] Implement encrypted data transfer (TLS)
+- [x] Implement retries / backoff
+- [x] Implement event batching
+- [x] Implement message signing for integrity
 - [ ] Commit integration code
 
 ### Sprint 5 (Week 9-10): API QA
