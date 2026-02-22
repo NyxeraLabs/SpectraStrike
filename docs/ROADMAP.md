@@ -39,9 +39,9 @@
 - [x] Commit orchestrator code
 
 ### Sprint 3 (Week 5-6): Orchestrator QA
-- [ ] QA: run functional tests
-- [ ] QA: validate telemetry output
-- [ ] QA: AAA access verification
+- [x] QA: run functional tests
+- [x] QA: validate telemetry output
+- [x] QA: AAA access verification
 
 ### Deliverables:
 - [ ] Core orchestrator engine implemented
