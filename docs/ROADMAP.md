@@ -3,8 +3,8 @@
 ## Phase 1: Setup & Environment Initialization (Sprint 1-2)
 
 ### Sprint 1 (Week 1-2): Repository & Dev Environment
-- [ ] Initialize Git repo – Commit initial setup
-- [ ] Setup Python virtual environment
+- [x] Initialize Git repo – Commit initial setup
+- [x] Setup Python virtual environment
 - [ ] Install core dependencies (requests, asyncio, logging)
 - [ ] Setup Docker dev containers
 - [ ] Setup IDE configuration
