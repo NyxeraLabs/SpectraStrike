@@ -29,9 +29,9 @@ jobs:
 
       - name: Run linters
         run: |
-          venv/bin/python -m black --check .
-          venv/bin/python -m isort --check-only .
-          venv/bin/python -m flake8 .
+          venv/bin/python -m black --check src tests
+          venv/bin/python -m isort --check-only src tests
+          venv/bin/python -m flake8 --jobs=1 src tests
 
       - name: Run security scan
         run: venv/bin/python -m bandit -r src/
