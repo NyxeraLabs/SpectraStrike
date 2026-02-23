@@ -23,6 +23,9 @@ This index tracks the current, maintained manual set for the implemented codebas
 - `docs/manuals/QA_RUNBOOK.md`
   - Full regression command matrix and release gating workflow.
 
+- `docs/manuals/UI_ARCHITECTURE_API_CONTRACTS.md`
+  - Sprint 9.6 UI architecture baseline and internal API contract definitions.
+
 ## Program Tracking
 
 - `docs/ROADMAP.md`
