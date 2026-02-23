@@ -157,6 +157,12 @@ make test-ui
 make test-ui-e2e
 ```
 
+Admin TUI:
+
+```bash
+make ui-admin-shell
+```
+
 ## Pre-commit License Header Enforcement
 
 ```bash

@@ -112,6 +112,38 @@ services:
     networks:
       - core_net
 
+  ui-admin:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: spectrastrike/ui-admin:0.9.6-local
+    container_name: spectrastrike_ui_admin_prod
+    init: true
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONPATH=/app/src
+      - UI_ADMIN_API_BASE_URL=http://ui-web:3000/ui/api
+    command: ["python", "-m", "pkg.ui_admin.shell", "--base-url", "http://ui-web:3000/ui/api"]
+    depends_on:
+      ui-web:
+        condition: service_healthy
+    profiles: ["admin"]
+    stdin_open: true
+    tty: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - core_net
+
   rabbitmq:
     image: rabbitmq:3.13.7-management
     container_name: spectrastrike_rabbitmq_prod

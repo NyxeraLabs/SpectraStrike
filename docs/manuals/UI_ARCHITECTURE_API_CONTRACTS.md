@@ -43,6 +43,7 @@ Security model:
 - Task submission.
 - Telemetry watch.
 - Manual integration sync triggers.
+- Session-oriented terminal operations (`health`, `login`, `demo`, `logout`, `task`, `sync`, `telemetry`, `findings`).
 
 `app` (orchestrator/API) responsibilities:
 - Authentication and session/token validation.

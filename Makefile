@@ -12,7 +12,7 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-.PHONY: help build ui-build secrets-init pki-ensure tls-ensure up up-all ui-up ui-down ui-open down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all security-check license-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
+.PHONY: help build ui-build secrets-init pki-ensure tls-ensure up up-all ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all security-check license-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
 
 COMPOSE_DEV = docker compose -f docker-compose.dev.yml
 COMPOSE_PROD = docker compose -f docker-compose.prod.yml
@@ -26,6 +26,9 @@ help:
 	@echo "  up                Start dev dockerized stack"
 	@echo "  up-all            Start dev stack + dockerized tool profile"
 	@echo "  ui-up             Start dockerized web UI foundation only"
+	@echo "  ui-admin-shell    Run interactive Admin TUI shell container"
+	@echo "  ui-admin-up       Start Admin TUI service in background (admin profile)"
+	@echo "  ui-admin-logs     Tail Admin TUI service logs"
 	@echo "  ui-open           Open Web UI in default browser (or print URL)"
 	@echo "  down              Stop dev stack"
 	@echo "  ui-down           Stop dockerized web UI foundation"
@@ -105,6 +108,15 @@ up-all: secrets-init pki-ensure tls-ensure
 
 ui-up:
 	$(COMPOSE_DEV) up -d ui-web
+
+ui-admin-shell:
+	$(COMPOSE_DEV) --profile admin run --rm ui-admin
+
+ui-admin-up:
+	$(COMPOSE_DEV) --profile admin up -d ui-admin
+
+ui-admin-logs:
+	$(COMPOSE_DEV) --profile admin logs -f --tail=100 ui-admin
 
 ui-open:
 	@URL="https://localhost:$${HOST_PROXY_TLS_PORT:-18443}/ui"; \
