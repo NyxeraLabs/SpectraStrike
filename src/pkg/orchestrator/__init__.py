@@ -17,6 +17,18 @@
 from .audit_trail import AuditTrailRecord, OrchestratorAuditTrail
 from .engine import OrchestratorEngine, TaskSubmissionRequest
 from .event_loop import AsyncEventLoop
+from .messaging import (
+    BrokerEnvelope,
+    InMemoryRabbitBroker,
+    PikaRabbitMQTelemetryPublisher,
+    PublishAttemptResult,
+    PublishStatus,
+    RabbitMQConnectionConfig,
+    RabbitMQTelemetryPublisher,
+    RabbitRoutingModel,
+    TelemetryPublishResult,
+    TelemetryPublisher,
+)
 from .task_scheduler import OrchestratorTask, TaskScheduler
 from .telemetry_ingestion import TelemetryEvent, TelemetryIngestionPipeline
 
@@ -30,4 +42,14 @@ __all__ = [
     "OrchestratorAuditTrail",
     "OrchestratorEngine",
     "TaskSubmissionRequest",
+    "TelemetryPublisher",
+    "TelemetryPublishResult",
+    "PublishAttemptResult",
+    "PublishStatus",
+    "BrokerEnvelope",
+    "RabbitRoutingModel",
+    "RabbitMQConnectionConfig",
+    "InMemoryRabbitBroker",
+    "RabbitMQTelemetryPublisher",
+    "PikaRabbitMQTelemetryPublisher",
 ]

@@ -23,6 +23,12 @@ from typing import Any
 from uuid import uuid4
 
 from pkg.logging.framework import emit_audit_event, get_logger
+from pkg.orchestrator.messaging import (
+    BrokerEnvelope,
+    PublishStatus,
+    TelemetryPublishResult,
+    TelemetryPublisher,
+)
 
 logger = get_logger("spectrastrike.orchestrator.telemetry")
 
@@ -43,12 +49,17 @@ class TelemetryEvent:
 class TelemetryIngestionPipeline:
     """Thread-safe telemetry ingestion with buffered batch flushing."""
 
-    def __init__(self, batch_size: int = 50) -> None:
+    def __init__(
+        self,
+        batch_size: int = 50,
+        publisher: TelemetryPublisher | None = None,
+    ) -> None:
         if batch_size <= 0:
             raise ValueError("batch_size must be greater than zero")
         self._batch_size = batch_size
         self._buffer: list[TelemetryEvent] = []
         self._lock = Lock()
+        self._publisher = publisher
 
     def ingest(
         self,
@@ -101,6 +112,63 @@ class TelemetryIngestionPipeline:
         if batch:
             logger.info("Telemetry full flush: %s events", len(batch))
         return batch
+
+    async def flush_ready_async(self) -> TelemetryPublishResult:
+        """Flush a full batch and publish through configured broker transport."""
+        return await self._publish_batch(self.flush_ready())
+
+    async def flush_all_async(self) -> TelemetryPublishResult:
+        """Flush all events and publish through configured broker transport."""
+        return await self._publish_batch(self.flush_all())
+
+    async def _publish_batch(self, batch: list[TelemetryEvent]) -> TelemetryPublishResult:
+        if not batch:
+            return TelemetryPublishResult(
+                published=0,
+                deduplicated=0,
+                dead_lettered=0,
+                retries=0,
+            )
+        if self._publisher is None:
+            raise RuntimeError("Telemetry publisher is not configured")
+
+        published = 0
+        deduplicated = 0
+        dead_lettered = 0
+        retries = 0
+
+        for event in batch:
+            result = await self._publisher.publish(self._to_envelope(event))
+            if result.status is PublishStatus.PUBLISHED:
+                published += 1
+            elif result.status is PublishStatus.DEDUPLICATED:
+                deduplicated += 1
+            elif result.status is PublishStatus.DEAD_LETTERED:
+                dead_lettered += 1
+
+            if result.attempts > 1:
+                retries += result.attempts - 1
+
+        return TelemetryPublishResult(
+            published=published,
+            deduplicated=deduplicated,
+            dead_lettered=dead_lettered,
+            retries=retries,
+        )
+
+    @staticmethod
+    def _to_envelope(event: TelemetryEvent) -> BrokerEnvelope:
+        return BrokerEnvelope(
+            event_id=event.event_id,
+            event_type=event.event_type,
+            timestamp=event.timestamp,
+            actor=event.actor,
+            target=event.target,
+            status=event.status,
+            attributes=dict(event.attributes),
+            idempotency_key=event.event_id,
+            attempt=1,
+        )
 
     @property
     def buffered_count(self) -> int:
