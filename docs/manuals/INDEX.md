@@ -51,6 +51,19 @@ This index tracks production manuals and governance documents aligned with curre
 - `docs/PRIVACY_POLICY.md`
 - `docs/ACCEPTABLE_USE_POLICY.md`
 
+## Governance & Legal
+
+- `docs/DISCLAIMER.md`
+- `docs/EULA.md`
+- `docs/ACCEPTABLE_USE_POLICY.md`
+- `docs/PRIVACY_POLICY.md`
+- `docs/USER_REGISTRATION_POLICY.md`
+- `docs/SECURITY_POLICY.md`
+- `docs/THREAT_MODEL.md`
+- `docs/ARCHITECTURE_SECURITY_OVERVIEW.md`
+- `docs/COMPLIANCE_STATEMENT.md`
+- `SECURITY.md`
+
 ## Product-Level Governance
 
 - `README.md`

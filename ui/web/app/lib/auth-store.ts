@@ -17,6 +17,8 @@ Sell derived competing products
 import { randomBytes, scrypt as scryptCallback, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 
+import { legalEnforcementService } from "./legal-enforcement";
+
 const scrypt = promisify(scryptCallback);
 const sessionTtlSeconds = 8 * 60 * 60;
 
@@ -61,6 +63,16 @@ type AuthDataStore = {
   sessionsByToken: Map<string, StoredSession>;
   bootstrapPromise: Promise<void> | null;
   demoPromise: Promise<PublicUser> | null;
+};
+
+export type AuthValidationResult = {
+  ok: boolean;
+  error?: "unauthorized" | "LEGAL_ACCEPTANCE_REQUIRED";
+  legal?: {
+    environment: "self-hosted" | "enterprise" | "saas";
+    reason?: string;
+    requires_reacceptance: boolean;
+  };
 };
 
 const globalStoreKey = "__spectrastrikeAuthStore__";
@@ -271,14 +283,35 @@ export function extractSessionToken(request: Request): string | null {
 }
 
 export async function isAuthenticatedRequest(request: Request): Promise<boolean> {
-  await ensureBootstrapUser();
-  const token = extractSessionToken(request);
-  if (!token) {
-    return false;
-  }
-  return isSessionTokenValid(token);
+  const result = await validateAuthenticatedRequest(request);
+  return result.ok;
 }
 
 export function revokeSession(token: string): void {
   authStore.sessionsByToken.delete(token);
+}
+
+export async function validateAuthenticatedRequest(
+  request: Request
+): Promise<AuthValidationResult> {
+  await ensureBootstrapUser();
+  const token = extractSessionToken(request);
+  if (!token || !isSessionTokenValid(token)) {
+    return { ok: false, error: "unauthorized" };
+  }
+
+  const legalDecision = await legalEnforcementService.hooks().forAuthMiddleware();
+  if (!legalDecision.isCompliant) {
+    return {
+      ok: false,
+      error: "LEGAL_ACCEPTANCE_REQUIRED",
+      legal: {
+        environment: legalDecision.environment,
+        reason: legalDecision.reason,
+        requires_reacceptance: legalDecision.requires_reacceptance,
+      },
+    };
+  }
+
+  return { ok: true };
 }

@@ -20,7 +20,7 @@ import {
   isJsonContentType,
   validateOrigin,
 } from "../../../lib/request-guards";
-import { isAuthenticatedRequest } from "../../../lib/auth-store";
+import { validateAuthenticatedRequest } from "../../../lib/auth-store";
 import { proxyToOrchestrator } from "../../../lib/orchestrator-proxy";
 
 type ManualSyncPayload = {
@@ -38,8 +38,16 @@ export async function POST(request: Request) {
   if (!isJsonContentType(request)) {
     return Response.json({ error: "unsupported_media_type" }, { status: 415 });
   }
-  if (!(await isAuthenticatedRequest(request))) {
-    return Response.json({ error: "unauthorized" }, { status: 401 });
+  const authDecision = await validateAuthenticatedRequest(request);
+  if (!authDecision.ok) {
+    const status = authDecision.error === "LEGAL_ACCEPTANCE_REQUIRED" ? 403 : 401;
+    return Response.json(
+      {
+        error: authDecision.error ?? "unauthorized",
+        legal: authDecision.legal,
+      },
+      { status }
+    );
   }
 
   const payload = (await request.json()) as ManualSyncPayload;

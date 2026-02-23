@@ -24,6 +24,7 @@ import shlex
 import time
 from typing import Any
 
+from pkg.governance.legal_enforcement import assert_cli_legal_acceptance
 from pkg.ui_admin.client import AdminApiClient, AdminApiError, AuthSession
 
 ANSI_RESET = "\033[0m"
@@ -307,6 +308,15 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> int:
     _setup_logging()
+    try:
+        assert_cli_legal_acceptance()
+    except RuntimeError as exc:
+        print(f"{ANSI_ERROR}{exc}{ANSI_RESET}")
+        print(
+            f"{ANSI_WARNING}accept legal documents before using Admin TUI "
+            f"(path: .spectrastrike/legal/acceptance.json){ANSI_RESET}"
+        )
+        return 2
     args = _parse_args()
     client = AdminApiClient(
         base_url=args.base_url, timeout_seconds=args.timeout_seconds

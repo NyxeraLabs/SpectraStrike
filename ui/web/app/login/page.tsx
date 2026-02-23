@@ -111,6 +111,12 @@ export default function LoginPage() {
       const body = (await response.json()) as { error?: string };
 
       if (!response.ok) {
+        if (body.error === "LEGAL_ACCEPTANCE_REQUIRED") {
+          showStatus("info", "Legal acceptance required. Redirecting...");
+          router.push("/legal/acceptance");
+          router.refresh();
+          return;
+        }
         const message =
           body.error === "invalid_credentials"
             ? "Invalid username or password."

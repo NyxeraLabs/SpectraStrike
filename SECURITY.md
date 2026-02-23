@@ -30,6 +30,9 @@ SpectraStrike is a professional offensive security orchestration platform.
 Security of our software, infrastructure, and customer data is our top priority.  
 This document outlines responsible disclosure, reporting procedures, and security best practices.
 
+Governance companion policy:
+- `docs/SECURITY_POLICY.md`
+
 ---
 
 ## 2. Reporting a Vulnerability
@@ -44,6 +47,9 @@ We encourage responsible disclosure from researchers, clients, and partners:
 3. **Do Not Publicly Disclose** until resolved.
 
 We respond promptly and may recognize contributions or provide rewards at our discretion.
+
+Required reporting channel:
+- `security@nyxera.cloud`
 
 ---
 

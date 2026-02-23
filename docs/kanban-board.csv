@@ -68,7 +68,7 @@ Add retry/dead-letter/idempotency for broker delivery,Harden async telemetry del
 Integration tests for broker publish/consume flow,Validate queue/topic end-to-end behavior,Done,QA,Integration and unit coverage added for publish/consume
 Add dockerized RabbitMQ wiring + Makefile ops,Provide one-command deploy/test/logs workflows for messaging stack,Done,DevOps,Compose + Makefile targets for dev/prod and tools profile
 Add remote operator endpoint env configuration,Default integrations to remote operator endpoints instead of localhost,Done,DevOps,MSF RPC/manual and RabbitMQ env-based config added
-Commit messaging backbone,Commit messaging implementation,Backlog,Dev,Sprint 9.5 messaging baseline completed
+Commit messaging backbone,Commit messaging implementation,Done,Dev,Sprint 9.5 messaging baseline completed
 Connect to Cobalt Strike API,Cobalt Strike beacon automation,Backlog,Dev,
 Deploy beacon simulation (Cobalt Strike),Simulate attack beacon,Backlog,Dev,
 Capture command output (Cobalt Strike),Capture commands,Backlog,Dev,
@@ -121,7 +121,7 @@ Add container security baseline (non-root minimal images pinned versions),Reduce
 Add infrastructure integration tests and security QA checks,Validate runtime stack and hardening controls end-to-end,Done,QA,compose config validation and pytest baseline integrated
 Add project Makefile for easy test easy deploy and easy QA operations,Create one-command developer and operator workflows,Done,DevOps,Makefile includes deploy test qa backups and security-check
 Add QA runbook and full-regression command targets,Standardize complete QA execution for local and CI usage,Done,QA,QA_RUNBOOK and full-regression Make target added
-Commit security/container platform baseline,Commit hardened infrastructure baseline,Backlog,DevOps,Hardening baseline implemented in repo
+Commit security/container platform baseline,Commit hardened infrastructure baseline,Done,DevOps,Hardening baseline implemented in repo
 Sprint 9.8 QA: validate Sprint 9.5 messaging backbone tests,Run messaging publisher and integration QA suite for RabbitMQ delivery path,Done,QA,pytest tests for telemetry messaging + publish/consume passed
 Sprint 9.8 QA: validate Sprint 9.5 remote endpoint/manual ingestion,Run remote endpoint config and Metasploit manual ingestion QA coverage,Done,QA,pytest remote endpoint and manual-ingestion tests passed
 Sprint 9.8 QA: validate Sprint 9.6 Admin TUI workflows,Run command-level QA checks for task telemetry watch and sync commands,Done,QA,ui_admin unit + QA tests passed
@@ -130,6 +130,15 @@ Sprint 9.8 QA: validate Sprint 9.7 AAA and audit hardening tests,Run AAA framewo
 Sprint 9.8 QA: validate Sprint 9.7 compose policy and config checks,Validate dev/prod compose rendering and hardening policy script,Done,QA,compose config and check_compose_policy.sh passed
 Sprint 9.8 QA: validate docs integrity and schema,Check manuals index links roadmap completion and kanban CSV schema under automated test,Done,QA,tests/qa/test_docs_qa.py added and passing
 Sprint 9.8 QA: validate repository license headers,Run license header enforcement script across repository paths,Done,QA,scripts/check_license_headers.py passed
+Governance: environment-aware legal enforcement service,Implement unified legal enforcement service with environment detection and local/offline behavior,Governance,Architecture,core/governance/legal-enforcement.service.ts added with CLI Web UI and auth middleware hooks
+Governance: versioned legal configuration,Define centralized legal document versions for EULA AUP and Privacy,Governance,Architecture,config/legal.config.ts added and wired into enforcement checks
+Governance: self-hosted acceptance storage,Persist and validate local installation acceptance under .spectrastrike/legal/acceptance.json,Governance,Security,self-hosted acceptance read/write support implemented
+Governance: enterprise installation acceptance model,Draft installation-level enterprise acceptance storage model with optional per-user requirement flag,Governance,Architecture,legal_installation_acceptance SQL draft added
+Governance: saas user-level acceptance schema,Draft SaaS user acceptance schema for login/token gating and version reacceptance,Governance,Architecture,legal_user_acceptance SQL draft added
+Governance: legal middleware integration,Integrate legal enforcement into auth and protected API checks with explicit LEGAL_ACCEPTANCE_REQUIRED error,Governance,Security,login/demo and protected API routes now enforce legal state before access
+Governance: re-acceptance flow support,Support version mismatch invalidation and legal re-acceptance write path,Governance,DevOps,/ui/api/v1/auth/legal/accept endpoint and legal acceptance page added
+Governance: documentation indexing,Index governance legal and security documents in manuals index and README,Governance,Dev,manual index and README legal/governance sections updated
+Governance: SECURITY.md integration,Ensure root security policy references security governance docs and reporting workflow,Governance,Security,SECURITY.md updated to reference docs/SECURITY_POLICY.md and disclosure process
 Implement wrapper module (Gobuster / DirBuster),Directory brute-force scanning,Backlog,Dev,
 Configure wordlists (Gobuster / DirBuster),Set up wordlists,Backlog,Dev,
 Automate directory scan (Gobuster / DirBuster),Run directory scans,Backlog,Dev,

@@ -21,6 +21,7 @@ import {
   validateOrigin,
 } from "../../../../lib/request-guards";
 import { ensureDemoUser, issueSessionToken } from "../../../../lib/auth-store";
+import { legalEnforcementService } from "../../../../lib/legal-enforcement";
 
 function isDemoEnabled(): boolean {
   return process.env.UI_AUTH_ENABLE_DEMO_LOGIN !== "false";
@@ -39,6 +40,22 @@ export async function POST(request: Request) {
   }
 
   const demoUser = await ensureDemoUser();
+  const legalDecision = await legalEnforcementService.hooks().forWebUi();
+  if (!legalDecision.isCompliant) {
+    return Response.json(
+      {
+        error: "LEGAL_ACCEPTANCE_REQUIRED",
+        legal: {
+          environment: legalDecision.environment,
+          required_versions: legalDecision.required_versions,
+          accepted_versions: legalDecision.accepted_versions,
+          reason: legalDecision.reason,
+          requires_reacceptance: legalDecision.requires_reacceptance,
+        },
+      },
+      { status: 403 }
+    );
+  }
   const { accessToken, expiresAt, maxAge } = issueSessionToken(demoUser.id);
   const cookieSecure = process.env.UI_AUTH_COOKIE_SECURE !== "false";
 

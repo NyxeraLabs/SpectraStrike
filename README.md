@@ -84,6 +84,19 @@ Admin TUI:
 make ui-admin-shell
 ```
 
+## Legal & Governance
+
+- `docs/DISCLAIMER.md`: legal boundaries and operational liability framing.
+- `docs/EULA.md`: software license usage terms and constraints.
+- `docs/ACCEPTABLE_USE_POLICY.md`: authorized and prohibited security-testing behavior.
+- `docs/PRIVACY_POLICY.md`: data handling model across self-hosted and future SaaS.
+- `docs/USER_REGISTRATION_POLICY.md`: operator-account policy and registration controls.
+- `docs/SECURITY_POLICY.md`: internal security control expectations for platform operations.
+- `docs/THREAT_MODEL.md`: threat surfaces, mitigations, and residual-risk posture.
+- `docs/ARCHITECTURE_SECURITY_OVERVIEW.md`: layered architecture security controls.
+- `docs/COMPLIANCE_STATEMENT.md`: compliance-enablement posture and control boundaries.
+- `SECURITY.md`: vulnerability reporting process and security disclosure policy.
+
 ## QA and Security Gates
 
 Primary QA execution:

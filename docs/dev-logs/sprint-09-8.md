@@ -40,3 +40,14 @@ Primary risk is incomplete UI regression in isolated networks. Mitigation is an 
 ## Forward Linkage
 
 Sprint 10 begins Phase 4 Cobalt Strike integration implementation.
+
+## Addendum: Governance and Legal Enforcement
+
+Post-sprint governance hardening introduced a unified legal enforcement subsystem across web auth middleware and CLI startup paths. The implementation is environment-aware (`self-hosted`, `enterprise`, `saas`), version-driven, and includes local self-hosted acceptance storage under `.spectrastrike/legal/acceptance.json`.
+
+Governance add-ons delivered:
+- central legal version configuration (`EULA`, `AUP`, `PRIVACY`)
+- re-acceptance invalidation flow when versions change
+- legal gate before token issuance and protected API authorization checks
+- CLI legal gate at admin-shell initialization
+- SQL schema drafts for enterprise installation-level and future SaaS user-level legal acceptance

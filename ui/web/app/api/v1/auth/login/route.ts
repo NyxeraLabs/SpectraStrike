@@ -22,6 +22,7 @@ import {
   validateOrigin,
 } from "../../../../lib/request-guards";
 import { authenticateUser, issueSessionToken } from "../../../../lib/auth-store";
+import { legalEnforcementService } from "../../../../lib/legal-enforcement";
 
 type LoginPayload = {
   username?: string;
@@ -67,6 +68,23 @@ export async function POST(request: Request) {
   const user = await authenticateUser(payload.username ?? "", payload.password ?? "");
   if (!user) {
     return Response.json({ error: "invalid_credentials" }, { status: 401 });
+  }
+
+  const legalDecision = await legalEnforcementService.hooks().forWebUi();
+  if (!legalDecision.isCompliant) {
+    return Response.json(
+      {
+        error: "LEGAL_ACCEPTANCE_REQUIRED",
+        legal: {
+          environment: legalDecision.environment,
+          required_versions: legalDecision.required_versions,
+          accepted_versions: legalDecision.accepted_versions,
+          reason: legalDecision.reason,
+          requires_reacceptance: legalDecision.requires_reacceptance,
+        },
+      },
+      { status: 403 }
+    );
   }
 
   const { accessToken, expiresAt, maxAge } = issueSessionToken(user.id);

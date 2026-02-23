@@ -15,11 +15,19 @@ Sell derived competing products
 */
 
 import { findings } from "../../components/findings-data";
-import { isAuthenticatedRequest } from "../../lib/auth-store";
+import { validateAuthenticatedRequest } from "../../lib/auth-store";
 
 export async function GET(request: Request) {
-  if (!(await isAuthenticatedRequest(request))) {
-    return Response.json({ error: "unauthorized" }, { status: 401 });
+  const authDecision = await validateAuthenticatedRequest(request);
+  if (!authDecision.ok) {
+    const status = authDecision.error === "LEGAL_ACCEPTANCE_REQUIRED" ? 403 : 401;
+    return Response.json(
+      {
+        error: authDecision.error ?? "unauthorized",
+        legal: authDecision.legal,
+      },
+      { status }
+    );
   }
   return Response.json({ items: findings, next_cursor: null });
 }

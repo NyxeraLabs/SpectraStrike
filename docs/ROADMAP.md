@@ -179,16 +179,28 @@ Sell derived competing products
 - [x] QA: validate Sprint 9.7 compose configuration and security policy checks
 - [x] QA: validate docs integrity and references (`docs/manuals/INDEX.md`, roadmap completeness, kanban schema)
 - [x] QA: validate license header compliance across repo
-- [ ] QA blocker note (Web UI dependency bootstrap): `npm --prefix ui/web install --no-audit --no-fund` failed with `EAI_AGAIN` (`getaddrinfo EAI_AGAIN registry.npmjs.org`)
-- [ ] QA blocker note (Web UI unit): `npm --prefix ui/web run test:unit` output -> `sh: line 1: vitest: command not found`
-- [ ] QA blocker note (Web UI e2e): `npm --prefix ui/web run test:e2e` output -> `error: unknown command 'test'`
+- [x] QA blocker note (Web UI dependency bootstrap): `npm --prefix ui/web install --no-audit --no-fund` failed with `EAI_AGAIN` (`getaddrinfo EAI_AGAIN registry.npmjs.org`)
+- [x] QA blocker note (Web UI unit): `npm --prefix ui/web run test:unit` output -> `sh: line 1: vitest: command not found`
+- [x] QA blocker note (Web UI e2e): `npm --prefix ui/web run test:e2e` output -> `error: unknown command 'test'`
 
 ### Sprint 9.8 Deliverables
 - [x] Consolidated QA pass evidence for Sprint 9.5, 9.6 (TUI/API), and 9.7 security baseline
 - [x] New docs QA test coverage under `tests/qa/test_docs_qa.py`
 - [x] Roadmap and kanban updated with Sprint 9.8 QA tasks
 - [ ] Web UI test rerun pending local/web dependency bootstrap
-- [ ] Blocker captured with exact command output for dependency and test commands
+- [x] Blocker captured with exact command output for dependency and test commands
+
+## Governance & Legal Enforcement (Unified Model)
+
+- [x] Environment-aware legal enforcement service
+- [x] Versioned legal config
+- [x] Self-hosted acceptance storage
+- [x] Enterprise installation acceptance model (schema draft)
+- [x] SaaS user-level acceptance schema (migration draft)
+- [x] Legal middleware integration
+- [x] Re-acceptance flow support
+- [x] Documentation indexing
+- [x] SECURITY.md integration
 
 ---
 

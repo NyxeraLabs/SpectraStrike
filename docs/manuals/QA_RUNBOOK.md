@@ -90,6 +90,20 @@ make security-gate
 
 Expected current result: `39 passed`.
 
+### 4.5 Governance and legal enforcement gate
+
+```bash
+cat .spectrastrike/legal/acceptance.json
+```
+
+Acceptance file must exist in self-hosted mode and match active versions:
+- `eula: 2026.1`
+- `aup: 2026.1`
+- `privacy: 2026.1` (required for SaaS and enterprise-per-user mode)
+
+If versions differ from `config/legal.config.ts`, access must be blocked with:
+- `LEGAL_ACCEPTANCE_REQUIRED`
+
 ## 5. Web UI QA Execution Path
 
 ### 5.1 Required dependency bootstrap
