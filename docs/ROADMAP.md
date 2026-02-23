@@ -170,6 +170,26 @@ Sell derived competing products
 - [x] Add QA runbook and full-regression command targets (local and CI-aligned)
 - [x] Commit security/container platform baseline
 
+### Sprint 9.8 (Week 19-20): Cross-Sprint QA Consolidation (9.5/9.6/9.7 + Docs)
+- [x] QA: validate Sprint 9.5 messaging backbone tests (publisher, idempotency, integration flow)
+- [x] QA: validate Sprint 9.5 remote endpoint/manual-ingestion integration tests
+- [x] QA: validate Sprint 9.6 Admin TUI workflows (task submission, telemetry watch, integration sync)
+- [ ] QA: rerun Sprint 9.6 Web UI unit/E2E suite in dependency-ready environment (`ui/web/node_modules`)
+- [x] QA: validate Sprint 9.7 AAA + audit trail hardening tests
+- [x] QA: validate Sprint 9.7 compose configuration and security policy checks
+- [x] QA: validate docs integrity and references (`docs/manuals/INDEX.md`, roadmap completeness, kanban schema)
+- [x] QA: validate license header compliance across repo
+- [ ] QA blocker note (Web UI dependency bootstrap): `npm --prefix ui/web install --no-audit --no-fund` failed with `EAI_AGAIN` (`getaddrinfo EAI_AGAIN registry.npmjs.org`)
+- [ ] QA blocker note (Web UI unit): `npm --prefix ui/web run test:unit` output -> `sh: line 1: vitest: command not found`
+- [ ] QA blocker note (Web UI e2e): `npm --prefix ui/web run test:e2e` output -> `error: unknown command 'test'`
+
+### Sprint 9.8 Deliverables
+- [x] Consolidated QA pass evidence for Sprint 9.5, 9.6 (TUI/API), and 9.7 security baseline
+- [x] New docs QA test coverage under `tests/qa/test_docs_qa.py`
+- [x] Roadmap and kanban updated with Sprint 9.8 QA tasks
+- [ ] Web UI test rerun pending local/web dependency bootstrap
+- [ ] Blocker captured with exact command output for dependency and test commands
+
 ---
 
 ## Phase 4: Beacon & Scanning Tool Integration (Sprint 10-13)

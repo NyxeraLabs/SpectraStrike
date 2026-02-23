@@ -238,5 +238,21 @@ In progress:
 - `README.md`
 - `SECURITY.md`
 - `docs/manuals/ORCHESTRATOR_ARCHITECTURE.md`
+- `docs/manuals/QA_RUNBOOK.md`
 - `docs/ROADMAP.md`
 - `docs/kanban-board.csv`
+- `docs/dev-logs/INDEX.md`
+
+## 11. Known QA Constraint (Sprint 9.8)
+
+In restricted network environments, Web UI dependency bootstrap may fail due to DNS resolution issues against the npm registry.
+
+Observed command outcomes:
+- `npm --prefix ui/web install --no-audit --no-fund` -> `EAI_AGAIN getaddrinfo EAI_AGAIN registry.npmjs.org`
+- `npm --prefix ui/web run test:unit` -> `sh: line 1: vitest: command not found`
+- `npm --prefix ui/web run test:e2e` -> `error: unknown command 'test'`
+
+When this occurs:
+- record the blocker in roadmap and kanban
+- preserve exact command output
+- execute remaining non-web QA gates

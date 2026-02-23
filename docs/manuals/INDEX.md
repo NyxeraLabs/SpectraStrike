@@ -8,10 +8,9 @@ Change Date: 2033-02-22 -> Apache-2.0
 # SpectraStrike Manuals Index
 ![SpectraStrike Logo](../../ui/web/assets/images/SprectraStrike_Logo.png)
 
+This index tracks production manuals and governance documents aligned with current implementation status.
 
-This index tracks the current, maintained manual set for the implemented codebase.
-
-## Core Manuals
+## Core Technical Manuals
 
 - `docs/manuals/USER_GUIDE.md`
   - Operator and platform runbook for deployment, security controls, and workflows.
@@ -20,29 +19,42 @@ This index tracks the current, maintained manual set for the implemented codebas
   - Orchestrator design, messaging backbone, and security data-plane behavior.
 
 - `docs/manuals/VECTORVUE_API_CLIENT_DESIGN.md`
-  - VectorVue client contracts, retry behavior, and error model.
-
-- `docs/manuals/QA_RUNBOOK.md`
-  - Full regression command matrix and release gating workflow.
+  - VectorVue client contracts, retry behavior, and integration error model.
 
 - `docs/manuals/UI_ARCHITECTURE_API_CONTRACTS.md`
-  - Sprint 9.6 UI architecture baseline and internal API contract definitions.
+  - Sprint 9.6 UI baseline architecture and internal API contracts.
 
 - `docs/manuals/UI_TUI_DESIGN_SYSTEM.md`
-  - Canonical color palette, typography, and component semantics for UI/TUI work.
+  - Canonical visual and interaction standards for web UI and admin TUI.
 
-## Program Tracking
+## QA and Release Governance
+
+- `docs/manuals/QA_RUNBOOK.md`
+  - Enterprise QA gate matrix, evidence process, and blocker escalation protocol.
+
+- `docs/dev-logs/INDEX.md`
+  - Sprint-by-sprint engineering logs with architecture and implementation detail.
+
+## Program and Tracking Artifacts
 
 - `docs/ROADMAP.md`
-  - Sprint-level implementation status.
+  - Sprint-level implementation and QA status.
 
 - `docs/kanban-board.csv`
-  - Task-level tracking and execution notes.
+  - Task-level tracking across architecture, development, QA, and security workstreams.
 
-## Governance
+## Compliance and Policy
+
+- `docs/COMPLIANCE_STATEMENT.md`
+- `docs/ARCHITECTURE_SECURITY_OVERVIEW.md`
+- `docs/THREAT_MODEL.md`
+- `docs/PRIVACY_POLICY.md`
+- `docs/ACCEPTABLE_USE_POLICY.md`
+
+## Product-Level Governance
 
 - `README.md`
-  - Product posture, deployment model, and security operations entry points.
+  - Product scope, architecture posture, and runtime status summary.
 
 - `SECURITY.md`
-  - Security policy and vulnerability reporting process.
+  - Security policy and vulnerability disclosure workflow.

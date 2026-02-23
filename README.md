@@ -8,154 +8,75 @@ Change Date: 2033-02-22 -> Apache-2.0
 # SpectraStrike
 ![SpectraStrike Logo](ui/web/assets/images/SprectraStrike_Logo.png)
 
+SpectraStrike is an enterprise-grade offensive telemetry intelligence and orchestration platform for authorized security validation programs.
 
-SpectraStrike is a security orchestration platform for controlled offensive-security operations, with AAA enforcement, auditability, and a hardened local Docker runtime.
+## Executive Summary
 
-## Product Positioning
+SpectraStrike is engineered as a production-capable control plane for:
+- autonomous and operator-assisted detection workflows
+- real-time telemetry ingestion and normalization
+- threat-correlation and evidence navigation
+- hardened orchestration and auditability
+- compliance-ready export pathways, including VectorVue interoperability
 
-SpectraStrike is designed for boutique security teams that require:
-- deterministic operations
-- strict access controls
-- auditable automation pipelines
-- local-first deployment without cloud dependencies
+## Current Delivery Status
 
-## Current Implemented Scope (as of Sprint 9.7 + Sprint 9.6 Step 2)
+- Phase 1 completed: repository, CI baseline, local runtime setup.
+- Phase 2 completed: orchestrator core, scheduling, telemetry ingestion, AAA enforcement.
+- Phase 3 completed through Sprint 9.8:
+  - Sprint 9.5 messaging backbone (RabbitMQ, retry, DLQ, idempotency)
+  - Sprint 9.6 web UI + admin TUI foundation and command workflows
+  - Sprint 9.7 security and container hardening baseline
+  - Sprint 9.8 cross-sprint QA consolidation and docs QA automation
+- Phase 4+ pending: Cobalt Strike and subsequent wrapper/integration roadmap.
 
-- Orchestrator core: scheduler, async runtime, telemetry ingestion, audit trail
-- AAA framework: authentication, authorization, accounting
-- Tool integrations: Nmap wrapper, Metasploit RPC wrapper, manual Metasploit ingestion
-- Messaging backbone: RabbitMQ-first publisher abstraction, retry, DLQ, idempotency
-- UI foundation: dockerized Next.js App Router + Tailwind web console (`/ui`)
-- Auth + shell views: operator login (`/ui/login`) and dashboard shell (`/ui/dashboard`)
-- Telemetry feed view: `/ui/dashboard/telemetry` for Nmap/Metasploit/manual streams
-- Findings + evidence navigation: `/ui/dashboard/findings`, `/ui/dashboard/findings/{id}`, `/ui/dashboard/findings/{id}/evidence`
-- Web UI action wiring: secure BFF endpoints for tasks/manual sync/telemetry with local fallback
-- Responsive UX baseline: mobile-first layouts for login, dashboard, telemetry, findings, and evidence screens
-- Hardened Docker stack: app, nginx, rabbitmq, postgres, redis, loki, vector
-- Security controls:
-  - TLS edge with optional mTLS client verification
-  - internal mTLS for app-to-rabbitmq, app-to-postgres, and app-to-redis transport
-  - certificate pinning checks (Metasploit + VectorVue clients)
-  - host ingress firewall baseline + Docker egress allowlist scripts
-  - tamper-evident audit hash chain
-  - local supply-chain gate (SBOM, CVE scan, image signing)
+Known open QA blocker (tracked in roadmap/kanban):
+- Web UI dependency bootstrap may fail in restricted environments with DNS resolution error to npm registry (`EAI_AGAIN`), which blocks `vitest`/`playwright` execution.
 
-## Architecture Summary
+## Platform Architecture
 
-- Control Plane: `OrchestratorEngine` + `TaskScheduler` + AAA + audit
-- Telemetry Plane: `TelemetryIngestionPipeline` -> `TelemetryPublisher`
-- Broker: RabbitMQ (mTLS-enforced)
-- Data Services: PostgreSQL + Redis (TLS-only with client certificate verification)
-- Edge: Nginx (HTTPS-first)
-- Observability: Vector -> Loki
-- UI: `ui-web` (Next.js) routed through Nginx at `/ui`
+### Control Plane
+- `src/pkg/orchestrator/engine.py`
+- `src/pkg/orchestrator/task_scheduler.py`
+- `src/pkg/orchestrator/event_loop.py`
+- `src/pkg/security/aaa_framework.py`
+- `src/pkg/orchestrator/audit_trail.py`
 
-Primary docs:
-- `docs/manuals/ORCHESTRATOR_ARCHITECTURE.md`
-- `docs/manuals/USER_GUIDE.md`
+### Telemetry and Messaging Plane
+- `src/pkg/orchestrator/telemetry_ingestion.py`
+- `src/pkg/orchestrator/messaging.py`
+- RabbitMQ TLS transport with retry, idempotency, and dead-letter routing.
 
-## Local Deployment (Dockerized)
+### Integration Plane
+- Nmap and Metasploit wrappers
+- Manual Metasploit ingestion connector
+- VectorVue client abstraction with security controls and QA hooks
 
-### 1. Prerequisites
+### Operator Experience Plane
+- Web console (`ui/web`) with auth, dashboard, telemetry, findings, and evidence navigation
+- Admin TUI (`src/pkg/ui_admin`) with task submission, telemetry watch, and integration sync
 
-- Docker Engine 24+
-- Docker Compose v2
-- GNU Make
-- OpenSSL (for local cert generation)
-- Python 3.12+ (for local test execution)
+### Security and Runtime Plane
+- Hardened Docker stack (`docker-compose.dev.yml`, `docker-compose.prod.yml`)
+- Nginx TLS edge with optional mTLS
+- Internal mTLS between application and broker/data services
+- Host firewall and egress-allowlist scripts
+- Supply-chain controls (SBOM, CVE scan, signature verification)
 
-### 2. Initialize Local Security Material
+## Quickstart
 
 ```bash
 cp .env.example .env
+make secrets-init
 make tls-dev-cert
 make pki-internal
-```
-
-Then replace credential placeholders in:
-- `docker/secrets/rabbitmq_password.txt`
-- `docker/secrets/postgres_password.txt`
-
-### 3. Start Runtime
-
-```bash
 make up
 ```
 
-Optional tooling profile:
-
-```bash
-make up-all
-```
-
-### 4. Exposed Host Ports (customizable via `.env`)
-
-- Proxy HTTP redirect: `HOST_PROXY_HTTP_PORT` (default `18080`)
-- Proxy HTTPS: `HOST_PROXY_TLS_PORT` (default `18443`)
-- PostgreSQL: `HOST_DB_PORT` (default `15432`)
-- RabbitMQ management: `HOST_RABBITMQ_MGMT_PORT` (default `15672`)
-
-Only these ports are intentionally exposed from the container network.
-
-## Web Auth
-
-- Login endpoint: `POST /api/v1/auth/login`
-- Register endpoint: `POST /api/v1/auth/register`
-- Demo endpoint: `POST /api/v1/auth/demo`
-- Logout endpoint: `POST /api/v1/auth/logout`
-- Protected routes: `/dashboard/*` and UI BFF API endpoints require a valid session.
-
-Default bootstrap user (override via `.env`):
-- username: `operator`
-- password: `Operator!ChangeMe123`
-
-Registration security:
-- Password policy enforced (12+ chars with upper/lowercase, number, symbol).
-- License + EULA + Security Policy acceptance is mandatory before registration.
-- Optional registration gate token via `UI_AUTH_REGISTRATION_TOKEN`.
-- Session cookie security defaults to TLS-only; for plain-http local testing set `UI_AUTH_COOKIE_SECURE=false`.
-- Demo shell can be enabled/disabled with `UI_AUTH_ENABLE_DEMO_LOGIN` (default `true` in local dev template).
-
-## Security Operations Commands
-
-```bash
-make security-check          # compose validation + pytest
-make policy-check            # compose hardening policy checks
-make full-regression         # complete QA + security regression gate
-make sbom                    # dockerized syft
-make vuln-scan               # dockerized grype
-make sign-image              # dockerized cosign signing
-make verify-sign             # dockerized cosign verify
-make backup-all              # postgres + redis backups
-```
-
-Host firewall helpers (root required):
-
-```bash
-sudo make firewall-apply
-sudo make firewall-egress-apply
-```
-
-## Remote Integration Defaults
-
-The platform is configured remote-operator-first (not localhost-coupled):
-- `MSF_RPC_*`
-- `MSF_MANUAL_*`
-- `RABBITMQ_*`
-- optional pinning: `MSF_RPC_TLS_PINNED_CERT_SHA256`, `VECTORVUE_TLS_PINNED_CERT_SHA256`
-
-See `.env.example` for full variable list.
-
-## Test and QA
-
-```bash
-make test
-make test-unit
-make test-integration
-make test-docker
-make test-ui
-make test-ui-e2e
-```
+UI endpoints:
+- `https://localhost:${HOST_PROXY_TLS_PORT:-18443}/ui`
+- `https://localhost:${HOST_PROXY_TLS_PORT:-18443}/ui/login`
+- `https://localhost:${HOST_PROXY_TLS_PORT:-18443}/ui/dashboard`
 
 Admin TUI:
 
@@ -163,26 +84,41 @@ Admin TUI:
 make ui-admin-shell
 ```
 
-## Pre-commit License Header Enforcement
+## QA and Security Gates
+
+Primary QA execution:
 
 ```bash
-pip install pre-commit
-pre-commit install
-pre-commit run --all-files
+make test
+make test-unit
+make test-integration
+make test-docker
+./.venv/bin/pytest -q tests/qa/test_docs_qa.py
 ```
 
-Manual check:
+Security and policy gates:
 
 ```bash
-make license-check
+make policy-check
+make security-check
+make security-gate
+make full-regression
+```
+
+Web UI QA (dependency-ready environments):
+
+```bash
+npm --prefix ui/web install --no-audit --no-fund
+npm --prefix ui/web run test:unit
+npm --prefix ui/web run test:e2e
 ```
 
 ## Documentation
 
 - Roadmap: `docs/ROADMAP.md`
-- Kanban snapshot: `docs/kanban-board.csv`
-- User Guide: `docs/manuals/USER_GUIDE.md`
-- Security Policy: `SECURITY.md`
+- Kanban board: `docs/kanban-board.csv`
+- Manuals index: `docs/manuals/INDEX.md`
+- Sprint engineering logs: `docs/dev-logs/INDEX.md`
 
 ## License
 

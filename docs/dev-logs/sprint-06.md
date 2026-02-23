@@ -1,0 +1,41 @@
+<!--
+Copyright (c) 2026 NyxeraLabs
+Author: José María Micoli
+Licensed under BSL 1.1
+Change Date: 2033-02-22 -> Apache-2.0
+-->
+
+# Sprint 6 Engineering Log
+
+## Program Context
+
+- Phase: Phase 3
+- Sprint: Sprint 6
+- Status: Completed
+- Primary Architecture Layers: Detection Engine, Telemetry Ingestion
+
+## Architectural Intent
+
+Implement Nmap wrapper orchestration with structured result parsing and orchestrator telemetry handoff.
+
+## Implementation Detail
+
+Wrapper command-building logic, scan mode support, XML parsing, normalization, and telemetry emission integration were implemented, including logging instrumentation.
+
+## Security and Control Posture
+
+- AAA scope and authorization boundaries are enforced according to current orchestrator policy.
+- Telemetry and audit events are expected to remain structured, attributable, and export-ready.
+- Integration interfaces are maintained as loosely coupled contracts to preserve VectorVue interoperability.
+
+## QA and Validation Evidence
+
+Unit coverage validated command construction, parsing semantics, error handling, and ingestion pipeline compatibility.
+
+## Risk Register
+
+Primary risk was runtime privilege mismatch for scan modes; mitigated later with unprivileged fallback enhancements.
+
+## Forward Linkage
+
+Sprint 7 targeted QA validation of scan behavior and AAA boundaries.

@@ -96,9 +96,9 @@ Implement findings and evidence navigation screens (Web UI),Expose findings and 
 Wire Web UI actions to orchestrator and integration endpoints,Connect frontend workflows to SpectraStrike APIs,Done,Frontend,UI quick actions wired to secure BFF routes and orchestrator proxy/fallback endpoints.
 Add Web UI tests (component/unit + basic E2E),Validate web UI behavior and core user flows,Done,QA,"Vitest component/unit tests and Playwright basic E2E flow added under ui/web/tests."
 Implement Interactive Terminal UI (Admin TUI) for operational control,Provide keyboard-first admin operations interface before Cobalt Strike implementation,Done,DevOps,"Dockerized ui-admin terminal shell implemented with authenticated health, telemetry, findings, task submission, and manual sync commands."
-Add Admin TUI command workflows (task submission; telemetry watch; integration sync),Enable admin runtime operations from terminal UI,Backlog,DevOps,
-Add Admin TUI tests and command-level QA checks,Validate admin TUI commands and interaction behavior,Backlog,QA,
-Commit UI foundation (Web UI + Admin TUI),Commit frontend and terminal UI baseline,Backlog,Frontend,
+Add Admin TUI command workflows (task submission; telemetry watch; integration sync),Enable admin runtime operations from terminal UI,Done,DevOps,Admin TUI task submission telemetry watch and integration sync workflows implemented
+Add Admin TUI tests and command-level QA checks,Validate admin TUI commands and interaction behavior,Done,QA,Unit and QA command-level coverage added for ui_admin shell workflows
+Commit UI foundation (Web UI + Admin TUI),Commit frontend and terminal UI baseline,Done,Frontend,Sprint 9.6 Web UI and Admin TUI baseline completed
 Implement Dockerized runtime stack for all components,Containerize SpectraStrike services for consistent deployments before Cobalt Strike implementation,Done,DevOps,Dockerfile + compose dev/prod stacks implemented
 Add Nginx reverse proxy container (TLS termination; routing; rate limits),Front proxy and edge security for all HTTP traffic,Done,Security,Nginx reverse proxy with rate limiting and hardened headers
 Add PostgreSQL container for persistent operational data,Persist orchestrator and integration state in relational DB,Done,DevOps,PostgreSQL service with healthcheck and persistent volume
@@ -122,6 +122,14 @@ Add infrastructure integration tests and security QA checks,Validate runtime sta
 Add project Makefile for easy test easy deploy and easy QA operations,Create one-command developer and operator workflows,Done,DevOps,Makefile includes deploy test qa backups and security-check
 Add QA runbook and full-regression command targets,Standardize complete QA execution for local and CI usage,Done,QA,QA_RUNBOOK and full-regression Make target added
 Commit security/container platform baseline,Commit hardened infrastructure baseline,Backlog,DevOps,Hardening baseline implemented in repo
+Sprint 9.8 QA: validate Sprint 9.5 messaging backbone tests,Run messaging publisher and integration QA suite for RabbitMQ delivery path,Done,QA,pytest tests for telemetry messaging + publish/consume passed
+Sprint 9.8 QA: validate Sprint 9.5 remote endpoint/manual ingestion,Run remote endpoint config and Metasploit manual ingestion QA coverage,Done,QA,pytest remote endpoint and manual-ingestion tests passed
+Sprint 9.8 QA: validate Sprint 9.6 Admin TUI workflows,Run command-level QA checks for task telemetry watch and sync commands,Done,QA,ui_admin unit + QA tests passed
+Sprint 9.8 QA: rerun Sprint 9.6 Web UI tests in dependency-ready runtime,Execute Vitest and Playwright suites after installing ui/web dependencies,Backlog,QA,"Blocked by DNS/npm registry access. Exact outputs: npm --prefix ui/web install --no-audit --no-fund -> EAI_AGAIN getaddrinfo EAI_AGAIN registry.npmjs.org; npm --prefix ui/web run test:unit -> sh: line 1: vitest: command not found; npm --prefix ui/web run test:e2e -> error: unknown command 'test'"
+Sprint 9.8 QA: validate Sprint 9.7 AAA and audit hardening tests,Run AAA framework and audit trail regression suite,Done,QA,pytest AAA and audit QA tests passed
+Sprint 9.8 QA: validate Sprint 9.7 compose policy and config checks,Validate dev/prod compose rendering and hardening policy script,Done,QA,compose config and check_compose_policy.sh passed
+Sprint 9.8 QA: validate docs integrity and schema,Check manuals index links roadmap completion and kanban CSV schema under automated test,Done,QA,tests/qa/test_docs_qa.py added and passing
+Sprint 9.8 QA: validate repository license headers,Run license header enforcement script across repository paths,Done,QA,scripts/check_license_headers.py passed
 Implement wrapper module (Gobuster / DirBuster),Directory brute-force scanning,Backlog,Dev,
 Configure wordlists (Gobuster / DirBuster),Set up wordlists,Backlog,Dev,
 Automate directory scan (Gobuster / DirBuster),Run directory scans,Backlog,Dev,
