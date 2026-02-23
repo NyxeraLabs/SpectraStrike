@@ -22,8 +22,8 @@ Deployed services:
 - `app` (orchestrator runtime)
 - `nginx` (HTTPS edge, optional mTLS)
 - `rabbitmq` (telemetry broker, TLS-only listener)
-- `postgres` (state storage)
-- `redis` (cache/buffer)
+- `postgres` (state storage, TLS + client-cert verification)
+- `redis` (cache/buffer, TLS + client-cert verification)
 - `loki` + `vector` (centralized local log pipeline)
 
 Optional tool profile:
@@ -52,6 +52,8 @@ Generated artifacts:
 - `docker/nginx/certs/tls.crt`, `docker/nginx/certs/tls.key`
 - `docker/pki/ca.crt`
 - `docker/pki/rabbitmq/server.crt`, `docker/pki/rabbitmq/server.key`
+- `docker/pki/postgres/server.crt`, `docker/pki/postgres/server.key`
+- `docker/pki/redis/server.crt`, `docker/pki/redis/server.key`
 - `docker/pki/app/client.crt`, `docker/pki/app/client.key`
 
 ### 3.3 Configure secrets
@@ -182,7 +184,7 @@ Implemented:
 - optional MFA and lockout in AAA framework
 
 In progress:
-- full internal mTLS for all service-to-service links (DB/cache path)
+- full service-to-service mTLS for observability pipeline (`vector` <-> `loki`)
 
 ## 9. Troubleshooting
 
@@ -199,6 +201,16 @@ In progress:
 - Re-check allowed ports in `.env`.
 - Re-apply with updated values.
 - Review host `iptables -S DOCKER-USER` and `iptables -S DOCKER-EGRESS`.
+
+### 9.4 PostgreSQL mTLS connection failures
+- Ensure `make pki-internal` was re-run after TLS changes.
+- Verify Postgres started with `start-postgres-tls.sh` in compose.
+- Confirm client uses CA/client cert/key (`POSTGRES_SSL_*` envs).
+
+### 9.5 Redis mTLS connection failures
+- Ensure Redis healthcheck is `redis-cli --tls` and passing.
+- Validate mounted cert paths under `/etc/redis/pki` in container.
+- Confirm client uses `REDIS_TLS_*` env variables and port `6380`.
 
 ## 10. Operational References
 

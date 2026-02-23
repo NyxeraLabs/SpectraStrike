@@ -124,7 +124,7 @@ Add egress allowlist enforcement for Docker traffic,Restrict outbound container 
 Add TLS certificate pinning for external integration clients,Defend against rogue certificates for outbound tool/API calls,Done,Security,Metasploit and VectorVue pinning checks implemented
 Add HTTPS edge with optional mTLS in reverse proxy,Encrypt ingress traffic and optionally verify client certificates,Done,Security,Nginx TLS listener with optional mTLS client verification
 Add internal mTLS for telemetry data plane,Encrypt app to broker telemetry transport with mutual certificate validation,Done,Security,RabbitMQ TLS-only listener and app client cert auth added
-Add full service-to-service end-to-end TLS,Encrypt all internal runtime hops including broker and data plane,In Progress,Security,broker mTLS complete; DB/cache mTLS still pending
+Add full service-to-service end-to-end TLS,Encrypt all internal runtime hops including broker and data plane,Done,Security,mTLS enforced for RabbitMQ PostgreSQL and Redis with internal CA and client certificate verification
 Add centralized log pipeline and retention policy in containers,Collect and retain application and security logs,Done,Observability,Vector and Loki stack with local retention enabled
 Add local supply-chain security gate,Generate SBOM, scan CVEs, and verify signed images before deploy,Done,Security,Dockerized syft grype cosign workflows and Make targets
 Add tamper-evident audit trail chaining,Protect audit stream integrity against silent record tampering,Done,Security,hash-linked audit events implemented in logging framework

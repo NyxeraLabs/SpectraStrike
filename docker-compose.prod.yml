@@ -37,8 +37,17 @@ services:
       - RABBITMQ_VHOST=/
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
+      - POSTGRES_SSL=true
+      - POSTGRES_SSLMODE=verify-full
+      - POSTGRES_SSL_ROOT_CERT=/app/docker/pki/ca.crt
+      - POSTGRES_SSL_CERT_FILE=/app/docker/pki/app/client.crt
+      - POSTGRES_SSL_KEY_FILE=/app/docker/pki/app/client.key
       - REDIS_HOST=redis
-      - REDIS_PORT=6379
+      - REDIS_PORT=6380
+      - REDIS_TLS=true
+      - REDIS_TLS_CA_FILE=/app/docker/pki/ca.crt
+      - REDIS_TLS_CERT_FILE=/app/docker/pki/app/client.crt
+      - REDIS_TLS_KEY_FILE=/app/docker/pki/app/client.key
       - MSF_RPC_HOST=metasploit.remote.operator
       - MSF_RPC_PORT=55553
       - MSF_RPC_SSL=true
@@ -117,6 +126,10 @@ services:
       - POSTGRES_PASSWORD_FILE=/run/secrets/postgres_password
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/pki:/etc/postgresql/pki:ro
+      - ./docker/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./docker/scripts/start_postgres_tls.sh:/usr/local/bin/start-postgres-tls.sh:ro
+    command: ["/usr/local/bin/start-postgres-tls.sh"]
     ports:
       - "0.0.0.0:${HOST_DB_PORT:-15432}:5432"
     secrets:
@@ -142,13 +155,15 @@ services:
     container_name: spectrastrike_redis_prod
     init: true
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes", "--save", "900", "1"]
+    command: ["/usr/local/bin/start-redis-tls.sh"]
     volumes:
       - redis_data:/data
+      - ./docker/pki:/etc/redis/pki:ro
+      - ./docker/scripts/start_redis_tls.sh:/usr/local/bin/start-redis-tls.sh:ro
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "--tls", "--cacert", "/etc/redis/pki/ca.crt", "--cert", "/etc/redis/pki/app/client.crt", "--key", "/etc/redis/pki/app/client.key", "-p", "6380", "ping"]
       interval: 20s
       timeout: 5s
       retries: 5

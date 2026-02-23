@@ -52,6 +52,14 @@ make vuln-scan
 make full-regression
 ```
 
+6. Internal mTLS verification (DB/cache/broker)
+
+```bash
+docker compose -f docker-compose.dev.yml exec -T redis redis-cli --tls --cacert /etc/redis/pki/ca.crt --cert /etc/redis/pki/app/client.crt --key /etc/redis/pki/app/client.key -p 6380 ping
+docker compose -f docker-compose.dev.yml exec -T postgres psql "host=postgres dbname=spectrastrike user=$(cat docker/secrets/postgres_user.txt) sslmode=verify-ca sslrootcert=/etc/postgresql/pki/ca.crt sslcert=/etc/postgresql/pki/app/client.crt sslkey=/etc/postgresql/pki/app/client.key" -c "select version();"
+docker compose -f docker-compose.dev.yml exec -T app python -c "from pkg.orchestrator.messaging import RabbitMQPublisher; print('rabbitmq tls config loaded')"
+```
+
 ## Expected Outcome
 
 - no failing tests

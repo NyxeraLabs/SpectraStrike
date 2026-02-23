@@ -156,7 +156,7 @@ Sell derived competing products
 - [x] Add TLS certificate pinning checks for external integrations (Metasploit/VectorVue)
 - [x] Add HTTPS edge with optional mTLS client verification in Nginx
 - [x] Add internal mTLS for telemetry data plane (app <-> RabbitMQ)
-- [ ] Add full service-to-service end-to-end TLS (internal mTLS between all runtime services, including DB/cache)
+- [x] Add full service-to-service end-to-end TLS (internal mTLS between all runtime services, including DB/cache)
 - [x] Add health checks, startup ordering, and restart policies for all services
 - [x] Add backup/restore workflow for PostgreSQL and Redis state
 - [x] Add container security baseline (non-root, minimal images, pinned versions)

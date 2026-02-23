@@ -26,7 +26,7 @@ SpectraStrike is designed for boutique security teams that require:
 - Hardened Docker stack: app, nginx, rabbitmq, postgres, redis, loki, vector
 - Security controls:
   - TLS edge with optional mTLS client verification
-  - internal mTLS for app-to-rabbitmq telemetry transport
+  - internal mTLS for app-to-rabbitmq, app-to-postgres, and app-to-redis transport
   - certificate pinning checks (Metasploit + VectorVue clients)
   - host ingress firewall baseline + Docker egress allowlist scripts
   - tamper-evident audit hash chain
@@ -36,8 +36,8 @@ SpectraStrike is designed for boutique security teams that require:
 
 - Control Plane: `OrchestratorEngine` + `TaskScheduler` + AAA + audit
 - Telemetry Plane: `TelemetryIngestionPipeline` -> `TelemetryPublisher`
-- Broker: RabbitMQ (TLS-enabled for telemetry data plane)
-- Data Services: PostgreSQL, Redis
+- Broker: RabbitMQ (mTLS-enforced)
+- Data Services: PostgreSQL + Redis (TLS-only with client certificate verification)
 - Edge: Nginx (HTTPS-first)
 - Observability: Vector -> Loki
 
