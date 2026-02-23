@@ -1,9 +1,26 @@
+/*
+Copyright (c) 2026 NyxeraLabs
+Author: José María Micoli
+Licensed under BSL 1.1
+Change Date: 2033-02-22 -> Apache-2.0
+
+You may:
+Study
+Modify
+Use for internal security testing
+
+You may NOT:
+Offer as a commercial service
+Sell derived competing products
+*/
+
 import {
   clientAddressKey,
   enforceRateLimit,
   isJsonContentType,
   validateOrigin,
 } from "../../../lib/request-guards";
+import { isAuthenticatedRequest } from "../../../lib/auth-store";
 import { proxyToOrchestrator } from "../../../lib/orchestrator-proxy";
 
 type TaskActionPayload = {
@@ -34,6 +51,9 @@ export async function POST(request: Request) {
   }
   if (!isJsonContentType(request)) {
     return Response.json({ error: "unsupported_media_type" }, { status: 415 });
+  }
+  if (!(await isAuthenticatedRequest(request))) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
   }
 
   const payload = (await request.json()) as TaskActionPayload;

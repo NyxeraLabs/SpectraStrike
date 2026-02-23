@@ -1,4 +1,21 @@
+/*
+Copyright (c) 2026 NyxeraLabs
+Author: José María Micoli
+Licensed under BSL 1.1
+Change Date: 2033-02-22 -> Apache-2.0
+
+You may:
+Study
+Modify
+Use for internal security testing
+
+You may NOT:
+Offer as a commercial service
+Sell derived competing products
+*/
+
 import { proxyToOrchestrator } from "../../../lib/orchestrator-proxy";
+import { isAuthenticatedRequest } from "../../../lib/auth-store";
 
 const events = [
   {
@@ -31,6 +48,10 @@ const events = [
 ];
 
 export async function GET(request: Request) {
+  if (!(await isAuthenticatedRequest(request))) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+
   const url = new URL(request.url);
   const source = url.searchParams.get("source");
   const status = url.searchParams.get("status");

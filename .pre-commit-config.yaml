@@ -1,0 +1,23 @@
+# Copyright (c) 2026 NyxeraLabs
+# Author: José María Micoli
+# Licensed under BSL 1.1
+# Change Date: 2033-02-22 -> Apache-2.0
+#
+# You may:
+# Study
+# Modify
+# Use for internal security testing
+#
+# You may NOT:
+# Offer as a commercial service
+# Sell derived competing products
+
+repos:
+  - repo: local
+    hooks:
+      - id: license-header-check
+        name: license header check
+        entry: python scripts/check_license_headers.py
+        language: python
+        pass_filenames: true
+        files: \.(py|ts|tsx|js|mjs|md|txt|sh|yml|yaml|toml|conf)$|(^|/)Dockerfile$|^Makefile$

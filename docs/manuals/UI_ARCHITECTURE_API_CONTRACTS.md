@@ -66,10 +66,34 @@ All endpoints are internal API contracts served by orchestrator and consumed by 
     - `access_token: string`
     - `expires_at: string (ISO-8601)`
     - `roles: string[]`
+    - `Set-Cookie: spectrastrike_session` (`HttpOnly`, `SameSite=Strict`, `Secure`)
+
+- `POST /api/v1/auth/register`
+  - Request:
+    - `username: string`
+    - `full_name: string`
+    - `email: string`
+    - `password: string`
+    - `password_confirm: string`
+    - `accepted_license: boolean`
+    - `accepted_eula: boolean`
+    - `accepted_security_policy: boolean`
+    - `registration_token?: string` (required only if server policy enforces it)
+  - Response:
+    - `status: registered`
+    - `user: { id, username, full_name, email, roles, created_at }`
 
 - `POST /api/v1/auth/logout`
   - Request: bearer token
   - Response: `204 No Content`
+
+- `POST /api/v1/auth/demo`
+  - Purpose: issue a demo operator session for local development/demo flows.
+  - Guard: controlled by `UI_AUTH_ENABLE_DEMO_LOGIN`.
+  - Response:
+    - `access_token: string`
+    - `expires_at: string (ISO-8601)`
+    - `roles: string[]`
 
 ### 4.2 Dashboard and Telemetry
 

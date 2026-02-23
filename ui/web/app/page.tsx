@@ -1,3 +1,19 @@
+/*
+Copyright (c) 2026 NyxeraLabs
+Author: José María Micoli
+Licensed under BSL 1.1
+Change Date: 2033-02-22 -> Apache-2.0
+
+You may:
+Study
+Modify
+Use for internal security testing
+
+You may NOT:
+Offer as a commercial service
+Sell derived competing products
+*/
+
 import Image from "next/image";
 import Link from "next/link";
 
@@ -8,8 +24,8 @@ export default function Home() {
         <Image
           src="/ui/assets/spectrastrike-logo.png"
           alt="SpectraStrike logo"
-          width={120}
-          height={80}
+          width={520}
+          height={347}
           className="rounded-lg border border-borderSubtle/80"
           priority
         />

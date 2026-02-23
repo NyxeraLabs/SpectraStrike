@@ -97,6 +97,25 @@ make up-all
 
 Only these ports are intentionally exposed from the container network.
 
+## Web Auth
+
+- Login endpoint: `POST /api/v1/auth/login`
+- Register endpoint: `POST /api/v1/auth/register`
+- Demo endpoint: `POST /api/v1/auth/demo`
+- Logout endpoint: `POST /api/v1/auth/logout`
+- Protected routes: `/dashboard/*` and UI BFF API endpoints require a valid session.
+
+Default bootstrap user (override via `.env`):
+- username: `operator`
+- password: `Operator!ChangeMe123`
+
+Registration security:
+- Password policy enforced (12+ chars with upper/lowercase, number, symbol).
+- License + EULA + Security Policy acceptance is mandatory before registration.
+- Optional registration gate token via `UI_AUTH_REGISTRATION_TOKEN`.
+- Session cookie security defaults to TLS-only; for plain-http local testing set `UI_AUTH_COOKIE_SECURE=false`.
+- Demo shell can be enabled/disabled with `UI_AUTH_ENABLE_DEMO_LOGIN` (default `true` in local dev template).
+
 ## Security Operations Commands
 
 ```bash
@@ -134,6 +153,20 @@ make test
 make test-unit
 make test-integration
 make test-docker
+```
+
+## Pre-commit License Header Enforcement
+
+```bash
+pip install pre-commit
+pre-commit install
+pre-commit run --all-files
+```
+
+Manual check:
+
+```bash
+make license-check
 ```
 
 ## Documentation

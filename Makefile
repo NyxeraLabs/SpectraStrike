@@ -12,7 +12,7 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-.PHONY: help build ui-build up up-all ui-up ui-down down down-all restart ps logs ui-logs test test-unit test-integration test-docker qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all security-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
+.PHONY: help build ui-build secrets-init pki-ensure tls-ensure up up-all ui-up ui-down ui-open down down-all restart ps logs ui-logs test test-unit test-integration test-docker qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all security-check license-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
 
 COMPOSE_DEV = docker compose -f docker-compose.dev.yml
 COMPOSE_PROD = docker compose -f docker-compose.prod.yml
@@ -20,9 +20,13 @@ COMPOSE_PROD = docker compose -f docker-compose.prod.yml
 help:
 	@echo "Available targets:"
 	@echo "  build             Build app image"
+	@echo "  secrets-init      Create missing local secret files with placeholders"
+	@echo "  pki-ensure        Ensure internal mTLS PKI exists for RabbitMQ/Postgres/Redis"
+	@echo "  tls-ensure        Ensure edge TLS cert/key exists for nginx"
 	@echo "  up                Start dev dockerized stack"
 	@echo "  up-all            Start dev stack + dockerized tool profile"
 	@echo "  ui-up             Start dockerized web UI foundation only"
+	@echo "  ui-open           Open Web UI in default browser (or print URL)"
 	@echo "  down              Stop dev stack"
 	@echo "  ui-down           Stop dockerized web UI foundation"
 	@echo "  down-all          Stop dev stack + tool profile"
@@ -45,6 +49,7 @@ help:
 	@echo "  backup-redis      Backup redis into ./backup"
 	@echo "  backup-all        Backup postgres and redis"
 	@echo "  security-check    Validate compose configs and local tests"
+	@echo "  license-check     Validate required BSL license headers"
 	@echo "  tls-dev-cert      Generate local TLS cert/key for nginx"
 	@echo "  pki-internal      Generate internal CA + service mTLS certs"
 	@echo "  firewall-apply    Apply DOCKER-USER iptables baseline (requires root)"
@@ -62,17 +67,51 @@ help:
 build:
 	$(COMPOSE_DEV) build app
 
+secrets-init:
+	@mkdir -p docker/secrets
+	@[ -f docker/secrets/rabbitmq_user.txt ] || printf "spectra\n" > docker/secrets/rabbitmq_user.txt
+	@[ -f docker/secrets/rabbitmq_password.txt ] || printf "CHANGE_ME_RABBITMQ_PASSWORD\n" > docker/secrets/rabbitmq_password.txt
+	@[ -f docker/secrets/postgres_user.txt ] || printf "spectra\n" > docker/secrets/postgres_user.txt
+	@[ -f docker/secrets/postgres_password.txt ] || printf "CHANGE_ME_POSTGRES_PASSWORD\n" > docker/secrets/postgres_password.txt
+	@echo "Secret files checked/created under docker/secrets"
+	@echo "Replace placeholder passwords before production use."
+
 ui-build:
 	$(COMPOSE_DEV) build ui-web
 
-up:
+pki-ensure:
+	@if [ ! -f docker/pki/ca.crt ] || [ ! -f docker/pki/rabbitmq/server.crt ] || [ ! -f docker/pki/postgres/server.crt ] || [ ! -f docker/pki/redis/server.crt ] || [ ! -f docker/pki/app/client.crt ]; then \
+		echo "Internal PKI missing. Generating certificates..."; \
+		./docker/scripts/generate_internal_pki.sh; \
+	else \
+		echo "Internal PKI already present."; \
+	fi
+
+tls-ensure:
+	@if [ ! -f docker/nginx/certs/tls.crt ] || [ ! -f docker/nginx/certs/tls.key ] || [ ! -f docker/nginx/certs/ca.crt ]; then \
+		echo "Nginx TLS certs missing. Generating dev certs..."; \
+		./docker/scripts/generate_dev_tls.sh; \
+	else \
+		echo "Nginx TLS certs already present."; \
+	fi
+
+up: secrets-init pki-ensure tls-ensure
 	$(COMPOSE_DEV) up -d
 
-up-all:
+up-all: secrets-init pki-ensure tls-ensure
 	$(COMPOSE_DEV) --profile tools up -d
 
 ui-up:
 	$(COMPOSE_DEV) up -d ui-web
+
+ui-open:
+	@URL="https://localhost:$${HOST_PROXY_TLS_PORT:-18443}/ui"; \
+	echo "Web UI URL: $$URL"; \
+	if command -v xdg-open >/dev/null 2>&1; then \
+		xdg-open "$$URL" >/dev/null 2>&1 || true; \
+	elif command -v open >/dev/null 2>&1; then \
+		open "$$URL" >/dev/null 2>&1 || true; \
+	fi
 
 down:
 	$(COMPOSE_DEV) down
@@ -129,6 +168,9 @@ security-check:
 	docker compose -f docker-compose.prod.yml config >/dev/null
 	.venv/bin/pytest -q
 
+license-check:
+	.venv/bin/python scripts/check_license_headers.py
+
 tls-dev-cert:
 	./docker/scripts/generate_dev_tls.sh
 
@@ -164,7 +206,7 @@ obs-up:
 obs-down:
 	$(COMPOSE_DEV) stop loki vector
 
-prod-up:
+prod-up: secrets-init pki-ensure tls-ensure
 	$(COMPOSE_PROD) up -d
 
 prod-down:

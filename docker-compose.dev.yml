@@ -100,7 +100,7 @@ services:
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/ui/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "const http=require('http');const os=require('os');const host=os.hostname();http.get({host,port:3000,path:'/ui'},res=>process.exit(res.statusCode===200?0:1)).on('error',()=>process.exit(1));"]
       interval: 20s
       timeout: 5s
       retries: 5
