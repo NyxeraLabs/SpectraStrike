@@ -19,9 +19,14 @@ __pycache__/
 .pytest_cache/
 .msfhome/
 backup/
+
+# Generated local TLS and PKI artifacts
 docker/nginx/certs/*
 !docker/nginx/certs/.gitkeep
 docker/pki/*
 !docker/pki/.gitkeep
+
+# Local secret files and local signing keys
+docker/secrets/*.txt
 docker/secrets/cosign/*
 !docker/secrets/cosign/.gitkeep
