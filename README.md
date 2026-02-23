@@ -26,6 +26,7 @@ SpectraStrike is designed for boutique security teams that require:
 - UI foundation: dockerized Next.js App Router + Tailwind web console (`/ui`)
 - Auth + shell views: operator login (`/ui/login`) and dashboard shell (`/ui/dashboard`)
 - Telemetry feed view: `/ui/dashboard/telemetry` for Nmap/Metasploit/manual streams
+- Findings + evidence navigation: `/ui/dashboard/findings`, `/ui/dashboard/findings/{id}`, `/ui/dashboard/findings/{id}/evidence`
 - Hardened Docker stack: app, nginx, rabbitmq, postgres, redis, loki, vector
 - Security controls:
   - TLS edge with optional mTLS client verification

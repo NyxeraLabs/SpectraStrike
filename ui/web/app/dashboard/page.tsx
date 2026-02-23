@@ -60,6 +60,11 @@ export default function DashboardPage() {
               </button>
             ))}
           </div>
+          <div className="mt-4">
+            <Link href="/dashboard/findings" className="spectra-button-primary inline-flex px-4 py-2 text-sm font-semibold">
+              Open Findings Navigator
+            </Link>
+          </div>
         </article>
       </section>
 

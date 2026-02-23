@@ -98,6 +98,9 @@ Web UI entrypoint:
 - `https://localhost:${HOST_PROXY_TLS_PORT}/ui/login`
 - `https://localhost:${HOST_PROXY_TLS_PORT}/ui/dashboard`
 - `https://localhost:${HOST_PROXY_TLS_PORT}/ui/dashboard/telemetry`
+- `https://localhost:${HOST_PROXY_TLS_PORT}/ui/dashboard/findings`
+- `https://localhost:${HOST_PROXY_TLS_PORT}/ui/dashboard/findings/FND-2026-001`
+- `https://localhost:${HOST_PROXY_TLS_PORT}/ui/dashboard/findings/FND-2026-001/evidence`
 
 ### 4.5 Stop stack
 

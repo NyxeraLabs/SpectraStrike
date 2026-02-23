@@ -137,7 +137,16 @@ export function TelemetryFeedView() {
             </div>
           ))}
         </div>
+        <div className="mt-4 flex gap-2">
+          <Link href="/dashboard/findings" className="spectra-button-secondary px-4 py-2 text-sm font-semibold">
+            Findings
+          </Link>
+          <Link href="/dashboard/findings/FND-2026-001/evidence" className="spectra-button-primary px-4 py-2 text-sm font-semibold">
+            Jump to Evidence
+          </Link>
+        </div>
       </article>
     </section>
   );
 }
+import Link from "next/link";

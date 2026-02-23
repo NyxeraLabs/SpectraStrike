@@ -135,7 +135,7 @@ Sell derived competing products
 - [x] Implement Web UI foundation with Next.js (App Router) + Tailwind CSS
 - [x] Implement auth views and operator dashboard shell (Web UI)
 - [x] Implement telemetry feed view (Nmap/Metasploit/Manual ingestion) (Web UI)
-- [ ] Implement findings and evidence navigation screens (Web UI)
+- [x] Implement findings and evidence navigation screens (Web UI)
 - [ ] Wire Web UI actions to orchestrator and integration endpoints
 - [ ] Add Web UI tests (component/unit + basic E2E)
 - [ ] Implement Interactive Terminal UI (Admin TUI) for operational control
