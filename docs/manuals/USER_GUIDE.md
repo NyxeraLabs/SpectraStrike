@@ -95,6 +95,8 @@ make ui-down
 
 Web UI entrypoint:
 - `https://localhost:${HOST_PROXY_TLS_PORT}/ui`
+- `https://localhost:${HOST_PROXY_TLS_PORT}/ui/login`
+- `https://localhost:${HOST_PROXY_TLS_PORT}/ui/dashboard`
 
 ### 4.5 Stop stack
 

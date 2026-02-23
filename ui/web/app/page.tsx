@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-12">
@@ -7,16 +9,16 @@ export default function Home() {
           SpectraStrike Web Console
         </h1>
         <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300">
-          Dockerized Next.js foundation is online. Auth views, dashboard workflows, and telemetry
-          modules will be added in subsequent Sprint 9.6 steps.
+          Dockerized Next.js foundation is online. Authentication view and operator dashboard shell
+          are now available for endpoint wiring in subsequent Sprint 9.6 steps.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
-          <button type="button" className="spectra-button-primary px-4 py-2 text-sm font-semibold">
-            Primary Action
-          </button>
-          <button type="button" className="spectra-button-secondary px-4 py-2 text-sm font-semibold">
-            Secondary Action
-          </button>
+          <Link href="/login" className="spectra-button-primary px-4 py-2 text-sm font-semibold">
+            Open Login
+          </Link>
+          <Link href="/dashboard" className="spectra-button-secondary px-4 py-2 text-sm font-semibold">
+            Open Dashboard
+          </Link>
         </div>
       </header>
 
