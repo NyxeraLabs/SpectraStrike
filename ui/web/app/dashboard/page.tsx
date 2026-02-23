@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { TopNav } from "../components/top-nav";
 
 const kpis = [
@@ -37,6 +39,11 @@ export default function DashboardPage() {
             <p className="spectra-mono text-warning">[broker] retry_attempt queue=spectrastrike.telemetry attempt=2</p>
             <p className="spectra-mono text-critical">[alert] policy_violation source=operator-session</p>
           </div>
+          <div className="mt-4">
+            <Link href="/dashboard/telemetry" className="spectra-button-primary inline-flex px-4 py-2 text-sm font-semibold">
+              Open Full Telemetry Feed
+            </Link>
+          </div>
         </article>
 
         <article className="spectra-panel p-5">
@@ -67,6 +74,9 @@ export default function DashboardPage() {
           </p>
           <p>
             API Contract: <span className="spectra-mono text-white">GET /api/v1/dashboard/summary</span>
+          </p>
+          <p>
+            Telemetry API: <span className="spectra-mono text-white">GET /api/v1/telemetry/events</span>
           </p>
         </div>
       </section>

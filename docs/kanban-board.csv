@@ -91,7 +91,7 @@ QA: ensure AAA applied (Burp),Verify access control,Backlog,QA,
 Define UI architecture and API contracts,Plan UI interaction model and backend contracts before Cobalt Strike implementation,Done,Architecture,Dockerized UI topology and API contract baseline documented in manuals.
 Implement Web UI foundation with Next.js + Tailwind CSS,Build initial web frontend baseline before Cobalt Strike implementation,Done,Frontend,Dockerized Next.js App Router + Tailwind ui-web service wired to /ui via nginx.
 Implement auth views and operator dashboard shell (Web UI),Create login and operator landing experience,Done,Frontend,Login and dashboard shell routes implemented at /ui/login and /ui/dashboard.
-Implement telemetry feed view (Nmap/Metasploit/Manual ingestion) (Web UI),Display live operational telemetry in web UI,Backlog,Frontend,
+Implement telemetry feed view (Nmap/Metasploit/Manual ingestion) (Web UI),Display live operational telemetry in web UI,Done,Frontend,Telemetry feed view implemented at /ui/dashboard/telemetry with Nmap Metasploit and manual ingestion stream cards.
 Implement findings and evidence navigation screens (Web UI),Expose findings and evidence browsing in web UI,Backlog,Frontend,
 Wire Web UI actions to orchestrator and integration endpoints,Connect frontend workflows to SpectraStrike APIs,Backlog,Frontend,
 Add Web UI tests (component/unit + basic E2E),Validate web UI behavior and core user flows,Backlog,QA,
