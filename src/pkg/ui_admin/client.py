@@ -16,9 +16,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 import requests
@@ -123,7 +123,9 @@ class AdminApiClient:
         """Return health response from UI API."""
         return self._request("GET", "/health")
 
-    def login(self, username: str, password: str, mfa_code: str | None = None) -> AuthSession:
+    def login(
+        self, username: str, password: str, mfa_code: str | None = None
+    ) -> AuthSession:
         """Authenticate with username/password and optional MFA."""
         response = self._request(
             "POST",
@@ -219,4 +221,3 @@ class AdminApiClient:
             payload={"actor": actor},
             access_token=access_token,
         )
-

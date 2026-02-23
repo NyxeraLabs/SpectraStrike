@@ -13,4 +13,3 @@
 # Sell derived competing products
 
 """Admin TUI package for operator terminal workflows."""
-
