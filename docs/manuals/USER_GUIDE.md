@@ -233,6 +233,17 @@ In progress:
 - Validate mounted cert paths under `/etc/redis/pki` in container.
 - Confirm client uses `REDIS_TLS_*` env variables and port `6380`.
 
+### 9.6 Legal acceptance endpoint errors
+- In dockerized mode, ensure legal persistence env and volume are present:
+  - `SPECTRASTRIKE_LEGAL_ACCEPTANCE_PATH=/var/lib/spectrastrike/legal/acceptance.json`
+  - `ui_legal_data:/var/lib/spectrastrike`
+- Verify endpoint:
+  - `POST /ui/api/v1/auth/legal/accept`
+- If auth/demo access is blocked, confirm legal decision state reports:
+  - `LEGAL_ACCEPTANCE_REQUIRED`
+- Local/default path outside containerized runtime:
+  - `.spectrastrike/legal/acceptance.json`
+
 ## 10. Operational References
 
 - `README.md`

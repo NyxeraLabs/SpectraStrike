@@ -33,7 +33,7 @@ This index tracks production manuals and governance documents aligned with curre
   - Enterprise QA gate matrix, evidence process, and blocker escalation protocol.
 
 - `docs/dev-logs/INDEX.md`
-  - Sprint-by-sprint engineering logs with architecture and implementation detail.
+  - Sprint-by-sprint engineering logs with architecture and implementation detail (includes Sprint 9.9 governance/legal enforcement log).
 
 ## Program and Tracking Artifacts
 

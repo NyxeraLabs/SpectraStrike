@@ -190,17 +190,25 @@ Sell derived competing products
 - [ ] Web UI test rerun pending local/web dependency bootstrap
 - [x] Blocker captured with exact command output for dependency and test commands
 
-## Governance & Legal Enforcement (Unified Model)
+### Sprint 9.9 (Week 20): Governance & Legal Enforcement (Unified Model)
+- [x] Implement environment-aware legal enforcement service (`self-hosted`, `enterprise`, `saas`)
+- [x] Add versioned legal configuration (`EULA`, `AUP`, `PRIVACY`)
+- [x] Implement self-hosted acceptance storage and validation
+- [x] Add enterprise installation acceptance model (schema draft)
+- [x] Add SaaS user-level acceptance model (migration draft)
+- [x] Integrate legal enforcement into auth middleware and token issuance gates
+- [x] Add re-acceptance flow on legal version mismatch
+- [x] Add legal acceptance route and Web UI acceptance workflow
+- [x] Add CLI/TUI legal gate integration
+- [x] Update governance/security documentation indexing and `SECURITY.md` linkage
 
-- [x] Environment-aware legal enforcement service
-- [x] Versioned legal config
-- [x] Self-hosted acceptance storage
-- [x] Enterprise installation acceptance model (schema draft)
-- [x] SaaS user-level acceptance schema (migration draft)
-- [x] Legal middleware integration
-- [x] Re-acceptance flow support
-- [x] Documentation indexing
-- [x] SECURITY.md integration
+### Sprint 9.9 QA & Documentation
+- [x] QA: verify legal acceptance API path and error handling in dockerized runtime
+- [x] QA: verify self-hosted acceptance persistence using writable container path
+- [x] QA: verify legal enforcement behavior on demo/login flows (`LEGAL_ACCEPTANCE_REQUIRED`)
+- [x] QA: validate compose startup stability after healthcheck hardening
+- [x] QA: validate infra startup script execution permissions (`rabbitmq`, `postgres`, `redis`)
+- [x] Documentation: roadmap, kanban, README, manuals, and sprint dev-log updated for Sprint 9.9
 
 ---
 

@@ -94,12 +94,17 @@ Expected current result: `39 passed`.
 
 ```bash
 cat .spectrastrike/legal/acceptance.json
+docker compose -f docker-compose.dev.yml exec -T ui-web sh -lc 'cat /var/lib/spectrastrike/legal/acceptance.json'
 ```
 
 Acceptance file must exist in self-hosted mode and match active versions:
 - `eula: 2026.1`
 - `aup: 2026.1`
 - `privacy: 2026.1` (required for SaaS and enterprise-per-user mode)
+
+Notes:
+- local/default non-container path: `.spectrastrike/legal/acceptance.json`
+- dockerized runtime path: `/var/lib/spectrastrike/legal/acceptance.json`
 
 If versions differ from `config/legal.config.ts`, access must be blocked with:
 - `LEGAL_ACCEPTANCE_REQUIRED`

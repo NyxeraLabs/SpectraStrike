@@ -23,11 +23,12 @@ SpectraStrike is engineered as a production-capable control plane for:
 
 - Phase 1 completed: repository, CI baseline, local runtime setup.
 - Phase 2 completed: orchestrator core, scheduling, telemetry ingestion, AAA enforcement.
-- Phase 3 completed through Sprint 9.8:
+- Phase 3 completed through Sprint 9.9:
   - Sprint 9.5 messaging backbone (RabbitMQ, retry, DLQ, idempotency)
   - Sprint 9.6 web UI + admin TUI foundation and command workflows
   - Sprint 9.7 security and container hardening baseline
   - Sprint 9.8 cross-sprint QA consolidation and docs QA automation
+  - Sprint 9.9 unified legal enforcement and governance hardening
 - Phase 4+ pending: Cobalt Strike and subsequent wrapper/integration roadmap.
 
 Known open QA blocker (tracked in roadmap/kanban):
@@ -96,6 +97,14 @@ make ui-admin-shell
 - `docs/ARCHITECTURE_SECURITY_OVERVIEW.md`: layered architecture security controls.
 - `docs/COMPLIANCE_STATEMENT.md`: compliance-enablement posture and control boundaries.
 - `SECURITY.md`: vulnerability reporting process and security disclosure policy.
+
+Runtime governance controls implemented:
+- environment-aware legal enforcement gate (`self-hosted`, `enterprise`, `saas` model)
+- versioned legal acceptance invalidation and re-acceptance requirement
+- auth/token gating with explicit `LEGAL_ACCEPTANCE_REQUIRED` contract
+- self-hosted acceptance persistence:
+  - local/default: `.spectrastrike/legal/acceptance.json`
+  - dockerized runtime: `/var/lib/spectrastrike/legal/acceptance.json`
 
 ## QA and Security Gates
 

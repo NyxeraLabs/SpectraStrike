@@ -25,6 +25,7 @@ This folder contains per-sprint architecture and implementation logs used for en
 - `docs/dev-logs/sprint-09-6.md`
 - `docs/dev-logs/sprint-09-7.md`
 - `docs/dev-logs/sprint-09-8.md`
+- `docs/dev-logs/sprint-09-9.md`
 
 ## Planned Sprints
 

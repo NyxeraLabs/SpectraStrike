@@ -139,6 +139,12 @@ Governance: legal middleware integration,Integrate legal enforcement into auth a
 Governance: re-acceptance flow support,Support version mismatch invalidation and legal re-acceptance write path,Governance,DevOps,/ui/api/v1/auth/legal/accept endpoint and legal acceptance page added
 Governance: documentation indexing,Index governance legal and security documents in manuals index and README,Governance,Dev,manual index and README legal/governance sections updated
 Governance: SECURITY.md integration,Ensure root security policy references security governance docs and reporting workflow,Governance,Security,SECURITY.md updated to reference docs/SECURITY_POLICY.md and disclosure process
+Sprint 9.9 QA: validate legal acceptance API runtime path,Verify legal acceptance endpoint behavior in dockerized self-hosted mode,Done,QA,"POST /ui/api/v1/auth/legal/accept validated after persistence-path and error-handling hardening"
+Sprint 9.9 QA: validate legal persistence writable path,Confirm acceptance file persistence works in read-only container model,Done,QA,"SPECTRASTRIKE_LEGAL_ACCEPTANCE_PATH mapped to /var/lib/spectrastrike/legal/acceptance.json with dedicated volume"
+Sprint 9.9 QA: validate legal gate auth behavior,Confirm login/demo workflows enforce LEGAL_ACCEPTANCE_REQUIRED until acceptance is recorded,Done,QA,Auth and demo routes verified against legal enforcement decision path
+Sprint 9.9 QA: stabilize ui-web healthcheck startup behavior,Eliminate false-unhealthy startup states during make up flow,Done,DevOps,Healthcheck hardened to probe hostname and loopback paths with resilient status handling
+Sprint 9.9 QA: restore infra startup script execution,Resolve container startup failures caused by non-executable mounted scripts,Done,DevOps,"Executable permissions restored for start-rabbitmq.sh start-postgres-tls.sh and start-redis-tls.sh"
+Sprint 9.9 Docs: update roadmap kanban README manuals and dev-log,Align governance implementation evidence with release documentation,Done,Dev,"Sprint 9.9 entries added to roadmap kanban dev-logs index README and manuals"
 Implement wrapper module (Gobuster / DirBuster),Directory brute-force scanning,Backlog,Dev,
 Configure wordlists (Gobuster / DirBuster),Set up wordlists,Backlog,Dev,
 Automate directory scan (Gobuster / DirBuster),Run directory scans,Backlog,Dev,
