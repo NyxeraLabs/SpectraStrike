@@ -22,6 +22,7 @@ from pkg.security.aaa_framework import (
     AAAService,
     AuthenticationError,
     AuthorizationError,
+    MFAError,
 )
 
 
@@ -66,3 +67,44 @@ def test_authorize_failure() -> None:
         service.authorize(
             principal, required_role="admin", action="run_scan", target="nmap"
         )
+
+
+def test_authenticate_with_mfa_success(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("pkg.security.aaa_framework.time.time", lambda: 1700000000)
+    service = AAAService(
+        users={"alice": "pw"},
+        role_bindings={"alice": {"operator"}},
+        mfa_secrets={"alice": "mfa-secret"},
+    )
+    code = service.generate_mfa_code("alice", timestamp=1700000000)
+
+    principal = service.authenticate("alice", "pw", mfa_code=code)
+
+    assert principal.principal_id == "alice"
+
+
+def test_authenticate_mfa_failure() -> None:
+    service = AAAService(
+        users={"alice": "pw"},
+        role_bindings={"alice": {"operator"}},
+        mfa_secrets={"alice": "mfa-secret"},
+    )
+
+    with pytest.raises(MFAError):
+        service.authenticate("alice", "pw", mfa_code="000000")
+
+
+def test_authenticate_lockout_after_failed_attempts() -> None:
+    service = AAAService(
+        users={"alice": "pw"},
+        role_bindings={"alice": {"operator"}},
+        max_failed_attempts=2,
+        lockout_seconds=60,
+    )
+
+    with pytest.raises(AuthenticationError):
+        service.authenticate("alice", "bad")
+    with pytest.raises(AuthenticationError):
+        service.authenticate("alice", "bad")
+    with pytest.raises(AuthenticationError):
+        service.authenticate("alice", "pw")

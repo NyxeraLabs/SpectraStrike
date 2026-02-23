@@ -121,12 +121,14 @@ Sell derived competing products
 - [x] QA: check telemetry delivery (Metasploit)
 
 ### Sprint 9.5 (Week 18): Messaging Backbone (Kafka/RabbitMQ)
-- [ ] Select broker standard (Kafka or RabbitMQ) and define topic/queue model
-- [ ] Implement telemetry publisher abstraction (`TelemetryPublisher`)
-- [ ] Add broker-backed async delivery path for orchestrator telemetry
-- [ ] Add retry, dead-letter, and idempotency handling for broker delivery
-- [ ] Add integration tests for publish/consume flow
-- [ ] Commit messaging backbone
+- [x] Select broker standard (RabbitMQ) and define topic/queue model
+- [x] Implement telemetry publisher abstraction (`TelemetryPublisher`)
+- [x] Add broker-backed async delivery path for orchestrator telemetry
+- [x] Add retry, dead-letter, and idempotency handling for broker delivery
+- [x] Add integration tests for publish/consume flow
+- [x] Add dockerized RabbitMQ runtime wiring + Makefile command targets
+- [x] Add remote operator endpoint configuration (`MSF_RPC_*`, `MSF_MANUAL_*`, `RABBITMQ_*`)
+- [x] Commit messaging backbone
 
 ### Sprint 9.6 (Week 18-19): User Interface Foundation (Before Cobalt Strike)
 - [ ] Define UI architecture and API contracts
@@ -142,20 +144,29 @@ Sell derived competing products
 - [ ] Commit UI foundation (Web UI + Admin TUI)
 
 ### Sprint 9.7 (Week 19): Security & Container Platform Hardening (Before Cobalt Strike)
-- [ ] Implement Dockerized runtime stack for all components
-- [ ] Add Nginx reverse proxy container (TLS termination, routing, rate limits)
-- [ ] Add PostgreSQL container for persistent operational data
-- [ ] Add Redis container for cache, buffering, and near-real-time log/event stream
-- [ ] Add secure internal Docker network segmentation between services
-- [ ] Add secrets/config management for credentials, tokens, and API keys
-- [ ] Add centralized log pipeline and retention policy in containers
-- [ ] Add health checks, startup ordering, and restart policies for all services
-- [ ] Add backup/restore workflow for PostgreSQL and Redis state
-- [ ] Add container security baseline (non-root, minimal images, pinned versions)
-- [ ] Add infrastructure integration tests and security QA checks
-- [ ] Add project Makefile for easy test, easy deploy, and easy QA operations
-- [ ] Add QA runbook and full-regression command targets (local and CI-aligned)
-- [ ] Commit security/container platform baseline
+- [x] Implement Dockerized runtime stack for all components
+- [x] Add Nginx reverse proxy container (TLS termination, routing, rate limits)
+- [x] Add PostgreSQL container for persistent operational data
+- [x] Add Redis container for cache, buffering, and near-real-time log/event stream
+- [x] Add secure internal Docker network segmentation between services
+- [x] Add secrets/config management for credentials, tokens, and API keys
+- [x] Add centralized log pipeline and retention policy in containers
+- [x] Add host firewall baseline for published container ports (`DOCKER-USER` policy)
+- [x] Add egress allowlist enforcement baseline for Docker bridge traffic
+- [x] Add TLS certificate pinning checks for external integrations (Metasploit/VectorVue)
+- [x] Add HTTPS edge with optional mTLS client verification in Nginx
+- [x] Add internal mTLS for telemetry data plane (app <-> RabbitMQ)
+- [ ] Add full service-to-service end-to-end TLS (internal mTLS between all runtime services, including DB/cache)
+- [x] Add health checks, startup ordering, and restart policies for all services
+- [x] Add backup/restore workflow for PostgreSQL and Redis state
+- [x] Add container security baseline (non-root, minimal images, pinned versions)
+- [x] Add infrastructure integration tests and security QA checks
+- [x] Add project Makefile for easy test, easy deploy, and easy QA operations
+- [x] Add local supply-chain security gate (SBOM + CVE scan + signature workflow)
+- [x] Add tamper-evident audit event hash-chaining
+- [x] Add stronger AAA controls (constant-time auth, lockout, optional MFA)
+- [x] Add QA runbook and full-regression command targets (local and CI-aligned)
+- [x] Commit security/container platform baseline
 
 ---
 

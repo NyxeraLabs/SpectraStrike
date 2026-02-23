@@ -42,6 +42,7 @@ The orchestrator is the central control plane for SpectraStrike. It coordinates 
 - Normalizes runtime events.
 - Buffers and batches telemetry for downstream export.
 - Supports secure transport abstraction for VectorVue integration.
+- Supports broker-backed async publishing via `TelemetryPublisher`.
 
 6. `AuditLogger`
 - Uses `pkg.logging.framework`.
@@ -66,12 +67,31 @@ The orchestrator is the central control plane for SpectraStrike. It coordinates 
 6. Emit telemetry events and batch for export.
 7. Persist result and expose status query.
 
+## Messaging Backbone (Sprint 9.5)
+1. Broker standard: RabbitMQ (dockerized deployment target).
+2. Logical model:
+- Exchange: `spectrastrike.telemetry`
+- Routing key: `telemetry.events`
+- Main queue: `telemetry.events`
+- Dead-letter queue: `telemetry.events.dlq`
+3. Delivery policy:
+- Idempotency key per event (`event_id`) to deduplicate replays.
+- Bounded retry attempts for transient broker failures.
+- Dead-letter routing when retries are exhausted.
+4. Runtime adapters:
+- `RabbitMQTelemetryPublisher`: in-memory RabbitMQ model for deterministic tests.
+- `PikaRabbitMQTelemetryPublisher`: dockerized RabbitMQ adapter for real runtime publish.
+5. Telemetry transport security:
+- RabbitMQ listener configured TLS-only (`5671`) with client-certificate verification.
+- App-side publisher supports CA/cert/key configuration from `RABBITMQ_SSL_*`.
+
 ## Security and Reliability Requirements
 1. No secrets in code or logs.
 2. TLS-only transport for outbound telemetry.
 3. Role-based authorization enforced before execution.
 4. Audit trail for denied and successful operations.
 5. Retry with bounded backoff; circuit-break style failure protection.
+6. Tamper-evident audit stream via hash-chained audit event records.
 
 ## Testing Strategy (for next tasks)
 1. Unit tests for scheduler ordering and retry behavior.

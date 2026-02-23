@@ -20,12 +20,14 @@ from .aaa_framework import (
     AccountingRecord,
     AuthenticationError,
     AuthorizationError,
+    MFAError,
     Principal,
 )
 
 __all__ = [
     "AAAError",
     "AuthenticationError",
+    "MFAError",
     "AuthorizationError",
     "Principal",
     "AccountingRecord",

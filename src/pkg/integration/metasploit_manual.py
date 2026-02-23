@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -55,7 +56,7 @@ class MetasploitManualAPIError(MetasploitManualError):
 class MetasploitManualConfig:
     """Runtime config for Metasploit manual-ingestion data API."""
 
-    base_url: str = "https://localhost:5443"
+    base_url: str = "https://metasploit.remote.operator:5443"
     username: str = ""
     password: str = ""
     verify_tls: bool = True
@@ -75,6 +76,27 @@ class MetasploitManualConfig:
             raise MetasploitManualConfigError("backoff_seconds must be zero or greater")
         if not self.username or not self.password:
             raise MetasploitManualConfigError("username and password are required")
+
+    @classmethod
+    def from_env(cls, prefix: str = "MSF_MANUAL_") -> MetasploitManualConfig:
+        """Build config from environment for remote operator data API endpoints."""
+        base_url = os.getenv(f"{prefix}BASE_URL", "https://metasploit.remote.operator:5443")
+        username = os.getenv(f"{prefix}USERNAME", "")
+        password = os.getenv(f"{prefix}PASSWORD", "")
+        verify_tls_raw = os.getenv(f"{prefix}VERIFY_TLS", "true").strip().lower()
+        verify_tls = verify_tls_raw in {"1", "true", "yes", "on"}
+        timeout_seconds = float(os.getenv(f"{prefix}TIMEOUT_SECONDS", "10.0"))
+        max_retries = int(os.getenv(f"{prefix}MAX_RETRIES", "2"))
+        backoff_seconds = float(os.getenv(f"{prefix}BACKOFF_SECONDS", "0.2"))
+        return cls(
+            base_url=base_url,
+            username=username,
+            password=password,
+            verify_tls=verify_tls,
+            timeout_seconds=timeout_seconds,
+            max_retries=max_retries,
+            backoff_seconds=backoff_seconds,
+        )
 
 
 @dataclass(slots=True)

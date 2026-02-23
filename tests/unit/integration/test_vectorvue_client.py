@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import hashlib
 from typing import Any
 
 import pytest
@@ -40,6 +41,26 @@ class FakeResponse:
 
     def json(self) -> dict[str, Any]:
         return self.payload
+
+
+class _FakeSock:
+    def __init__(self, cert: bytes) -> None:
+        self._cert = cert
+
+    def getpeercert(self, binary_form: bool = False) -> bytes | dict[str, Any]:
+        if binary_form:
+            return self._cert
+        return {}
+
+
+class _FakeConn:
+    def __init__(self, cert: bytes) -> None:
+        self.sock = _FakeSock(cert)
+
+
+class _FakeRaw:
+    def __init__(self, cert: bytes) -> None:
+        self.connection = _FakeConn(cert)
 
 
 class FakeSession:
@@ -248,3 +269,32 @@ def test_validation_error_uses_code_and_message_fields() -> None:
     assert err.value.status_code == 422
     assert err.value.error_code == "validation_failed"
     assert str(err.value) == "Payload validation failed"
+
+
+def test_tls_pinning_accepts_matching_peer_cert() -> None:
+    cert = b"vectorvue-cert"
+    digest = hashlib.sha256(cert).hexdigest()
+    response = FakeResponse(200, {"request_id": "r", "status": "accepted", "data": {}, "errors": []})
+    response.raw = _FakeRaw(cert)  # type: ignore[attr-defined]
+    session = FakeSession([response])
+    client = VectorVueClient(
+        _config_with_creds(token="jwt", tls_pinned_cert_sha256=digest),
+        session=session,
+    )
+
+    envelope = client.send_event({"event_type": "A"})
+    assert envelope.status == "accepted"
+
+
+def test_tls_pinning_rejects_mismatched_peer_cert() -> None:
+    cert = b"vectorvue-cert"
+    response = FakeResponse(200, {"request_id": "r", "status": "accepted", "data": {}, "errors": []})
+    response.raw = _FakeRaw(cert)  # type: ignore[attr-defined]
+    session = FakeSession([response])
+    client = VectorVueClient(
+        _config_with_creds(token="jwt", tls_pinned_cert_sha256="deadbeef"),
+        session=session,
+    )
+
+    with pytest.raises(VectorVueTransportError, match="tls pinning validation failed"):
+        client.send_event({"event_type": "A"})

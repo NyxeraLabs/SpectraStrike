@@ -3,185 +3,137 @@ Copyright (c) 2026 NyxeraLabs
 Author: José María Micoli
 Licensed under BSL 1.1
 Change Date: 2033-02-22 -> Apache-2.0
-
-You may:
-Study
-Modify
-Use for internal security testing
-
-You may NOT:
-Offer as a commercial service
-Sell derived competing products
 -->
 
 # SpectraStrike
 
-![Lint/Test](https://github.com/<your-org>/<repo>/actions/workflows/lint-test.yml/badge.svg)
-![Dev Pipeline](https://github.com/<your-org>/<repo>/actions/workflows/dev-pipeline.yml/badge.svg)
-![QA Pipeline](https://github.com/<your-org>/<repo>/actions/workflows/qa-pipeline.yml/badge.svg)
-![Release Pipeline](https://github.com/<your-org>/<repo>/actions/workflows/release-pipeline.yml/badge.svg)
+SpectraStrike is a security orchestration platform for controlled offensive-security operations, with AAA enforcement, auditability, and a hardened local Docker runtime.
 
-**Author:** José María Micoli  
-**Intellectual Property Holder:** Nyxera Labs  
-**License:** Business Source License 1.1 (BSL 1.1)
+## Product Positioning
 
-SpectraStrike is a professional offensive security orchestration platform, designed for boutique clients, penetration testers, and enterprise teams requiring **precision, automation, and audit-ready operations**.
+SpectraStrike is designed for boutique security teams that require:
+- deterministic operations
+- strict access controls
+- auditable automation pipelines
+- local-first deployment without cloud dependencies
 
----
+## Current Implemented Scope (as of Sprint 9.7)
 
-## Table of Contents
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Security](#security)
-- [Telemetry & Logging](#telemetry--logging)
-- [Contributing](#contributing)
-- [Support](#support)
-- [License](#license)
+- Orchestrator core: scheduler, async runtime, telemetry ingestion, audit trail
+- AAA framework: authentication, authorization, accounting
+- Tool integrations: Nmap wrapper, Metasploit RPC wrapper, manual Metasploit ingestion
+- Messaging backbone: RabbitMQ-first publisher abstraction, retry, DLQ, idempotency
+- Hardened Docker stack: app, nginx, rabbitmq, postgres, redis, loki, vector
+- Security controls:
+  - TLS edge with optional mTLS client verification
+  - internal mTLS for app-to-rabbitmq telemetry transport
+  - certificate pinning checks (Metasploit + VectorVue clients)
+  - host ingress firewall baseline + Docker egress allowlist scripts
+  - tamper-evident audit hash chain
+  - local supply-chain gate (SBOM, CVE scan, image signing)
 
----
+## Architecture Summary
 
-## Overview
+- Control Plane: `OrchestratorEngine` + `TaskScheduler` + AAA + audit
+- Telemetry Plane: `TelemetryIngestionPipeline` -> `TelemetryPublisher`
+- Broker: RabbitMQ (TLS-enabled for telemetry data plane)
+- Data Services: PostgreSQL, Redis
+- Edge: Nginx (HTTPS-first)
+- Observability: Vector -> Loki
 
-SpectraStrike provides a unified platform for:
+Primary docs:
+- `docs/manuals/ORCHESTRATOR_ARCHITECTURE.md`
+- `docs/manuals/USER_GUIDE.md`
 
-- Orchestrating pentests and red team operations
-- Automating scans and exploitation workflows
-- Collecting and correlating telemetry
-- Enforcing authentication, authorization, and auditing (AAA)
+## Local Deployment (Dockerized)
 
-Designed with modularity, auditability, and security at its core.
+### 1. Prerequisites
 
----
+- Docker Engine 24+
+- Docker Compose v2
+- GNU Make
+- OpenSSL (for local cert generation)
+- Python 3.12+ (for local test execution)
 
-## Key Features
-
-- Multi-tool orchestration: Nmap, Metasploit, Cobalt Strike, Burp Suite, Gobuster/DirBuster, Impacket, BloodHound
-- Telemetry ingestion, logging, and audit trails
-- Automated CI/CD integration
-- Red Team attack simulations and Chaos testing
-- Manual pentest integration with full AAA enforcement
-- AI-assisted pentesting modules
-- Secure API client integration (VectorVue)
-
----
-
-## Architecture
-
-```
-
-Orchestrator Engine
-├─ Task Scheduler
-├─ Telemetry Collector
-├─ Logging & Audit Module
-├─ Tool Wrappers
-└─ Integration Layer (API & AI modules)
-
-````
-
-- Modules are isolated for security and reliability  
-- Communication is **TLS-encrypted**  
-- Audit logging is enforced for compliance  
-
----
-
-## Installation
-
-### Prerequisites
-- Python 3.12+
-- Docker 24+
-- Git
-- Optional: CI/CD pipeline (GitHub Actions, GitLab CI, Jenkins)
-
-### Quick Start
-```bash
-git clone https://github.com/nyxera-labs/spectrastrike.git
-cd spectrastrike
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-````
-
-* Configure Docker containers:
+### 2. Initialize Local Security Material
 
 ```bash
-docker-compose up -d
+cp .env.example .env
+make tls-dev-cert
+make pki-internal
 ```
 
-* Verify initial setup:
+Then replace credential placeholders in:
+- `docker/secrets/rabbitmq_password.txt`
+- `docker/secrets/postgres_password.txt`
+
+### 3. Start Runtime
 
 ```bash
-python manage.py check-env
+make up
 ```
 
----
-
-## Usage
-
-* Run orchestrator:
+Optional tooling profile:
 
 ```bash
-python orchestrator/main.py
+make up-all
 ```
 
-* Execute a pentest workflow:
+### 4. Exposed Host Ports (customizable via `.env`)
+
+- Proxy HTTP redirect: `HOST_PROXY_HTTP_PORT` (default `18080`)
+- Proxy HTTPS: `HOST_PROXY_TLS_PORT` (default `18443`)
+- PostgreSQL: `HOST_DB_PORT` (default `15432`)
+- RabbitMQ management: `HOST_RABBITMQ_MGMT_PORT` (default `15672`)
+
+Only these ports are intentionally exposed from the container network.
+
+## Security Operations Commands
 
 ```bash
-python orchestrator/run_task.py --tool nmap --target 10.0.0.0/24
+make security-check          # compose validation + pytest
+make policy-check            # compose hardening policy checks
+make full-regression         # complete QA + security regression gate
+make sbom                    # dockerized syft
+make vuln-scan               # dockerized grype
+make sign-image              # dockerized cosign signing
+make verify-sign             # dockerized cosign verify
+make backup-all              # postgres + redis backups
 ```
 
-* Monitor telemetry:
+Host firewall helpers (root required):
 
 ```bash
-python telemetry/view_logs.py
+sudo make firewall-apply
+sudo make firewall-egress-apply
 ```
 
----
+## Remote Integration Defaults
 
-## Security
+The platform is configured remote-operator-first (not localhost-coupled):
+- `MSF_RPC_*`
+- `MSF_MANUAL_*`
+- `RABBITMQ_*`
+- optional pinning: `MSF_RPC_TLS_PINNED_CERT_SHA256`, `VECTORVUE_TLS_PINNED_CERT_SHA256`
 
-* AAA enforced on all modules
-* TLS/SSL encrypted communication
-* Audit logging for all actions
-* Secure development lifecycle with unit tests, CI/CD, pre-commit hooks
+See `.env.example` for full variable list.
 
-See [SECURITY.md](SECURITY.md) for details.
+## Test and QA
 
----
+```bash
+make test
+make test-unit
+make test-integration
+make test-docker
+```
 
-## Telemetry & Logging
+## Documentation
 
-* Full audit logging with timestamps, module, and user context
-* Telemetry can be sent securely to VectorVue or internal dashboards
-* Supports batching and retry logic
-
----
-
-## Contributing
-
-* Clone repository
-* Follow [ROADMAP.md](docs/ROADMAP.md) strictly
-* Implement unit tests per module
-* Submit pull requests for review
-
----
-
-## Support
-
-* Email: [support@nyxera.cloud](mailto:support@nyxera.cloud)
-* Security: [security@nyxera.cloud](mailto:security@nyxera.cloud)
-
----
+- Roadmap: `docs/ROADMAP.md`
+- Kanban snapshot: `docs/kanban-board.csv`
+- User Guide: `docs/manuals/USER_GUIDE.md`
+- Security Policy: `SECURITY.md`
 
 ## License
 
-**Business Source License 1.1 (BSL 1.1)**
-
-* Author: José María Micoli
-* IP Holder: Nyxera Labs
-* Use, modification, and production deployment are subject to BSL 1.1 terms
-* Certain commercial restrictions apply until the change date defined in the license
-
----
+Business Source License 1.1 (BSL 1.1). See `LICENSE`.

@@ -1,0 +1,13 @@
+[sources.docker_logs]
+type = "docker_logs"
+
+[sinks.loki]
+type = "loki"
+inputs = ["docker_logs"]
+endpoint = "http://loki:3100"
+encoding.codec = "json"
+
+[sinks.loki.labels]
+service = "{{ container_name }}"
+image = "{{ image }}"
+stream = "{{ stream }}"

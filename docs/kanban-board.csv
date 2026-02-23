@@ -75,12 +75,14 @@ Add checkpoint-based deduplication for Metasploit manual ingestion,Prevent dupli
 Add CLI sync entrypoint for operator-driven Metasploit ingestion,Provide repeatable manual sync command for operators,Backlog,DevOps,
 Add tests for manual Metasploit ingestion flow,Validate parsing deduplication and sync behavior,Backlog,QA,
 Commit end-to-end stabilization updates (Nmap + Metasploit manual),Commit hardening and manual-ingestion baseline,Backlog,Dev,
-Select broker standard (Kafka or RabbitMQ),Choose messaging backbone for async telemetry,Backlog,Architecture,
-Implement telemetry publisher abstraction (TelemetryPublisher),Create broker-agnostic publisher interface,Backlog,Dev,
-Add broker-backed async telemetry delivery,Publish orchestrator telemetry to queue/topic,Backlog,Dev,
-Add retry/dead-letter/idempotency for broker delivery,Harden async telemetry delivery path,Backlog,Dev,
-Integration tests for broker publish/consume flow,Validate queue/topic end-to-end behavior,Backlog,QA,
-Commit messaging backbone,Commit messaging implementation,Backlog,Dev,
+Select broker standard (Kafka or RabbitMQ),Choose messaging backbone for async telemetry,Done,Architecture,RabbitMQ selected with exchange/queue/DLQ model
+Implement telemetry publisher abstraction (TelemetryPublisher),Create broker-agnostic publisher interface,Done,Dev,Interface and RabbitMQ adapters implemented
+Add broker-backed async telemetry delivery,Publish orchestrator telemetry to queue/topic,Done,Dev,Async flush path publishes telemetry events to broker
+Add retry/dead-letter/idempotency for broker delivery,Harden async telemetry delivery path,Done,Dev,Bounded retry with DLQ and idempotency key dedup
+Integration tests for broker publish/consume flow,Validate queue/topic end-to-end behavior,Done,QA,Integration and unit coverage added for publish/consume
+Add dockerized RabbitMQ wiring + Makefile ops,Provide one-command deploy/test/logs workflows for messaging stack,Done,DevOps,Compose + Makefile targets for dev/prod and tools profile
+Add remote operator endpoint env configuration,Default integrations to remote operator endpoints instead of localhost,Done,DevOps,MSF RPC/manual and RabbitMQ env-based config added
+Commit messaging backbone,Commit messaging implementation,Done,Dev,Sprint 9.5 messaging baseline completed
 Connect to Cobalt Strike API,Cobalt Strike beacon automation,Backlog,Dev,
 Deploy beacon simulation (Cobalt Strike),Simulate attack beacon,Backlog,Dev,
 Capture command output (Cobalt Strike),Capture commands,Backlog,Dev,
@@ -111,20 +113,29 @@ Implement Interactive Terminal UI (Admin TUI) for operational control,Provide ke
 Add Admin TUI command workflows (task submission; telemetry watch; integration sync),Enable admin runtime operations from terminal UI,Backlog,DevOps,
 Add Admin TUI tests and command-level QA checks,Validate admin TUI commands and interaction behavior,Backlog,QA,
 Commit UI foundation (Web UI + Admin TUI),Commit frontend and terminal UI baseline,Backlog,Frontend,
-Implement Dockerized runtime stack for all components,Containerize SpectraStrike services for consistent deployments before Cobalt Strike implementation,Backlog,DevOps,
-Add Nginx reverse proxy container (TLS termination; routing; rate limits),Front proxy and edge security for all HTTP traffic,Backlog,Security,
-Add PostgreSQL container for persistent operational data,Persist orchestrator and integration state in relational DB,Backlog,DevOps,
-Add Redis container for cache and near-real-time log/event stream,Support low-latency caching and event/log buffering,Backlog,DevOps,
-Add secure internal Docker network segmentation between services,Isolate service-to-service traffic with explicit network policy,Backlog,Security,
-Add secrets/config management for credentials and API keys,Protect sensitive runtime configuration and tokens,Backlog,Security,
-Add centralized log pipeline and retention policy in containers,Collect and retain application and security logs,Backlog,Observability,
-Add health checks startup ordering and restart policies for all services,Improve service reliability and self-healing behavior,Backlog,DevOps,
-Add backup/restore workflow for PostgreSQL and Redis state,Guarantee recoverability for operational data,Backlog,DevOps,
-Add container security baseline (non-root minimal images pinned versions),Reduce container attack surface and supply-chain risk,Backlog,Security,
-Add infrastructure integration tests and security QA checks,Validate runtime stack and hardening controls end-to-end,Backlog,QA,
-Add project Makefile for easy test easy deploy and easy QA operations,Create one-command developer and operator workflows,Backlog,DevOps,
-Add QA runbook and full-regression command targets,Standardize complete QA execution for local and CI usage,Backlog,QA,
-Commit security/container platform baseline,Commit hardened infrastructure baseline,Backlog,DevOps,
+Implement Dockerized runtime stack for all components,Containerize SpectraStrike services for consistent deployments before Cobalt Strike implementation,Done,DevOps,Dockerfile + compose dev/prod stacks implemented
+Add Nginx reverse proxy container (TLS termination; routing; rate limits),Front proxy and edge security for all HTTP traffic,Done,Security,Nginx reverse proxy with rate limiting and hardened headers
+Add PostgreSQL container for persistent operational data,Persist orchestrator and integration state in relational DB,Done,DevOps,PostgreSQL service with healthcheck and persistent volume
+Add Redis container for cache and near-real-time log/event stream,Support low-latency caching and event/log buffering,Done,DevOps,Redis service with appendonly persistence and healthcheck
+Add secure internal Docker network segmentation between services,Isolate service-to-service traffic with explicit network policy,Done,Security,internal core/tools networks and edge split configured
+Add secrets/config management for credentials and API keys,Protect sensitive runtime configuration and tokens,Done,Security,compose secrets files + env-driven endpoint config
+Add host firewall baseline for published Docker ports,Restrict ingress to explicitly approved exposed service ports,Done,Security,iptables DOCKER-USER baseline script and Make target added
+Add egress allowlist enforcement for Docker traffic,Restrict outbound container traffic to approved network destinations,Done,Security,host egress allowlist script and Make target added
+Add TLS certificate pinning for external integration clients,Defend against rogue certificates for outbound tool/API calls,Done,Security,Metasploit and VectorVue pinning checks implemented
+Add HTTPS edge with optional mTLS in reverse proxy,Encrypt ingress traffic and optionally verify client certificates,Done,Security,Nginx TLS listener with optional mTLS client verification
+Add internal mTLS for telemetry data plane,Encrypt app to broker telemetry transport with mutual certificate validation,Done,Security,RabbitMQ TLS-only listener and app client cert auth added
+Add full service-to-service end-to-end TLS,Encrypt all internal runtime hops including broker and data plane,In Progress,Security,broker mTLS complete; DB/cache mTLS still pending
+Add centralized log pipeline and retention policy in containers,Collect and retain application and security logs,Done,Observability,Vector and Loki stack with local retention enabled
+Add local supply-chain security gate,Generate SBOM, scan CVEs, and verify signed images before deploy,Done,Security,Dockerized syft grype cosign workflows and Make targets
+Add tamper-evident audit trail chaining,Protect audit stream integrity against silent record tampering,Done,Security,hash-linked audit events implemented in logging framework
+Add stronger AAA controls,Enforce constant-time auth checks optional MFA and lockout policy,Done,Security,AAA lockout and optional MFA code validation added
+Add health checks startup ordering and restart policies for all services,Improve service reliability and self-healing behavior,Done,DevOps,depends_on health conditions and healthchecks configured
+Add backup/restore workflow for PostgreSQL and Redis state,Guarantee recoverability for operational data,Done,DevOps,backup scripts and make targets added
+Add container security baseline (non-root minimal images pinned versions),Reduce container attack surface and supply-chain risk,Done,Security,non-root app read-only fs no-new-privileges and cap-drop
+Add infrastructure integration tests and security QA checks,Validate runtime stack and hardening controls end-to-end,Done,QA,compose config validation and pytest baseline integrated
+Add project Makefile for easy test easy deploy and easy QA operations,Create one-command developer and operator workflows,Done,DevOps,Makefile includes deploy test qa backups and security-check
+Add QA runbook and full-regression command targets,Standardize complete QA execution for local and CI usage,Done,QA,QA_RUNBOOK and full-regression Make target added
+Commit security/container platform baseline,Commit hardened infrastructure baseline,Done,DevOps,Hardening baseline implemented in repo
 Implement wrapper module (Gobuster / DirBuster),Directory brute-force scanning,Backlog,Dev,
 Configure wordlists (Gobuster / DirBuster),Set up wordlists,Backlog,Dev,
 Automate directory scan (Gobuster / DirBuster),Run directory scans,Backlog,Dev,

@@ -16,6 +16,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import os
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable
@@ -40,7 +42,7 @@ class MetasploitTransportError(MetasploitRPCError):
 class MetasploitConfig:
     """Runtime config for Metasploit RPC transport."""
 
-    host: str = "127.0.0.1"
+    host: str = "metasploit.remote.operator"
     port: int = 55553
     ssl: bool = True
     uri: str = "/api/1.0"
@@ -49,11 +51,39 @@ class MetasploitConfig:
     timeout_seconds: float = 10.0
     max_retries: int = 2
     backoff_seconds: float = 0.2
+    tls_pinned_cert_sha256: str | None = None
 
     @property
     def endpoint(self) -> str:
         scheme = "https" if self.ssl else "http"
         return f"{scheme}://{self.host}:{self.port}{self.uri}"
+
+    @classmethod
+    def from_env(cls, prefix: str = "MSF_RPC_") -> MetasploitConfig:
+        """Build config from environment variables for remote operator endpoints."""
+        host = os.getenv(f"{prefix}HOST", "metasploit.remote.operator")
+        port = int(os.getenv(f"{prefix}PORT", "55553"))
+        ssl_raw = os.getenv(f"{prefix}SSL", "true").strip().lower()
+        ssl = ssl_raw in {"1", "true", "yes", "on"}
+        uri = os.getenv(f"{prefix}URI", "/api/1.0")
+        username = os.getenv(f"{prefix}USERNAME", "msf")
+        password = os.getenv(f"{prefix}PASSWORD", "msf")
+        timeout_seconds = float(os.getenv(f"{prefix}TIMEOUT_SECONDS", "10.0"))
+        max_retries = int(os.getenv(f"{prefix}MAX_RETRIES", "2"))
+        backoff_seconds = float(os.getenv(f"{prefix}BACKOFF_SECONDS", "0.2"))
+        tls_pinned_cert_sha256 = os.getenv(f"{prefix}TLS_PINNED_CERT_SHA256")
+        return cls(
+            host=host,
+            port=port,
+            ssl=ssl,
+            uri=uri,
+            username=username,
+            password=password,
+            timeout_seconds=timeout_seconds,
+            max_retries=max_retries,
+            backoff_seconds=backoff_seconds,
+            tls_pinned_cert_sha256=tls_pinned_cert_sha256,
+        )
 
 
 @dataclass(slots=True)
@@ -116,6 +146,7 @@ def default_rpc_transport(method: str, params: list[Any], config: MetasploitConf
             timeout=config.timeout_seconds,
             verify=config.ssl,
         )
+        _enforce_tls_pin(response, config.tls_pinned_cert_sha256)
     except requests.RequestException as exc:
         raise MetasploitTransportError(str(exc)) from exc
 
@@ -130,6 +161,36 @@ def default_rpc_transport(method: str, params: list[Any], config: MetasploitConf
     if not isinstance(data, dict):
         raise MetasploitTransportError("invalid RPC payload shape")
     return data
+
+
+def _enforce_tls_pin(response: requests.Response, pinned_sha256: str | None) -> None:
+    if not pinned_sha256:
+        return
+    cert = _extract_peer_cert(response)
+    if cert is None:
+        raise MetasploitTransportError(
+            "tls pinning enabled but peer certificate is unavailable"
+        )
+    actual = hashlib.sha256(cert).hexdigest().lower()
+    expected = pinned_sha256.replace(":", "").lower()
+    if actual != expected:
+        raise MetasploitTransportError("tls pinning validation failed")
+
+
+def _extract_peer_cert(response: requests.Response) -> bytes | None:
+    raw = getattr(response, "raw", None)
+    connection = getattr(raw, "connection", None) if raw is not None else None
+    sock = getattr(connection, "sock", None) if connection is not None else None
+    if sock is None:
+        return None
+    get_peer_cert = getattr(sock, "getpeercert", None)
+    if not callable(get_peer_cert):
+        return None
+    try:
+        cert = get_peer_cert(binary_form=True)
+    except Exception:
+        return None
+    return cert if isinstance(cert, (bytes, bytearray)) else None
 
 
 class MetasploitWrapper:

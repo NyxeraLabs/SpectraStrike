@@ -38,6 +38,7 @@ class VectorVueConfig:
     max_batch_size: int = 100
     signature_secret: str | None = None
     require_https: bool = True
+    tls_pinned_cert_sha256: str | None = None
 
     def __post_init__(self) -> None:
         self._validate()

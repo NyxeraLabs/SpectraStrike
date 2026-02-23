@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 
 from pkg.integration.metasploit_manual import (
     IngestionCheckpointStore,
@@ -29,9 +30,12 @@ from pkg.orchestrator.telemetry_ingestion import TelemetryIngestionPipeline
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Sync manual Metasploit activity into SpectraStrike")
-    parser.add_argument("--base-url", default="https://localhost:5443")
-    parser.add_argument("--username", required=True)
-    parser.add_argument("--password", required=True)
+    parser.add_argument(
+        "--base-url",
+        default=os.getenv("MSF_MANUAL_BASE_URL", "https://metasploit.remote.operator:5443"),
+    )
+    parser.add_argument("--username", default=os.getenv("MSF_MANUAL_USERNAME", ""))
+    parser.add_argument("--password", default=os.getenv("MSF_MANUAL_PASSWORD", ""))
     parser.add_argument("--actor", default="red-team-operator")
     parser.add_argument("--verify-tls", action="store_true")
     parser.add_argument("--checkpoint-file", default=".state/metasploit_manual_checkpoint.json")
@@ -40,7 +44,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
-    args = _build_parser().parse_args()
+    parser = _build_parser()
+    args = parser.parse_args()
+    if not args.username or not args.password:
+        parser.error("username/password required (or set MSF_MANUAL_USERNAME/MSF_MANUAL_PASSWORD)")
     config = MetasploitManualConfig(
         base_url=args.base_url,
         username=args.username,

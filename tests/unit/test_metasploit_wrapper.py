@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+import hashlib
 from typing import Any
 
 import pytest
@@ -28,6 +29,7 @@ from pkg.wrappers.metasploit import (
     MetasploitRPCError,
     MetasploitTransportError,
     MetasploitWrapper,
+    _enforce_tls_pin,
 )
 
 
@@ -189,3 +191,40 @@ def test_retry_exhaustion_raises() -> None:
 
     with pytest.raises(MetasploitRPCError):
         wrapper.load_module("exploit", "test/module")
+
+
+class _FakeSock:
+    def __init__(self, cert: bytes) -> None:
+        self._cert = cert
+
+    def getpeercert(self, binary_form: bool = False) -> bytes | dict[str, Any]:
+        if binary_form:
+            return self._cert
+        return {}
+
+
+class _FakeConn:
+    def __init__(self, cert: bytes) -> None:
+        self.sock = _FakeSock(cert)
+
+
+class _FakeRaw:
+    def __init__(self, cert: bytes) -> None:
+        self.connection = _FakeConn(cert)
+
+
+class _FakeResponse:
+    def __init__(self, cert: bytes) -> None:
+        self.raw = _FakeRaw(cert)
+
+
+def test_tls_pinning_accepts_matching_cert() -> None:
+    cert = b"metasploit-cert"
+    digest = hashlib.sha256(cert).hexdigest()
+    _enforce_tls_pin(_FakeResponse(cert), digest)
+
+
+def test_tls_pinning_rejects_mismatch() -> None:
+    cert = b"metasploit-cert"
+    with pytest.raises(MetasploitTransportError, match="tls pinning validation failed"):
+        _enforce_tls_pin(_FakeResponse(cert), "deadbeef")

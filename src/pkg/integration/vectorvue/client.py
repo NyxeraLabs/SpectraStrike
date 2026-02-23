@@ -192,6 +192,7 @@ class VectorVueClient:
                     timeout=self._config.timeout_seconds,
                     verify=self._config.verify_tls,
                 )
+                self._enforce_tls_pin(response)
             except (Timeout, RequestException) as exc:
                 last_error = exc
                 if attempt >= attempts:
@@ -223,6 +224,35 @@ class VectorVueClient:
             raise VectorVueTransportError(str(last_error)) from last_error
 
         raise VectorVueTransportError("request failed without specific error")
+
+    def _enforce_tls_pin(self, response: Response) -> None:
+        pinned = self._config.tls_pinned_cert_sha256
+        if not pinned:
+            return
+
+        peer_cert = self._extract_peer_cert(response)
+        if peer_cert is None:
+            raise VectorVueTransportError("tls pinning enabled but peer certificate is unavailable")
+
+        actual = hashlib.sha256(peer_cert).hexdigest().lower()
+        expected = pinned.replace(":", "").lower()
+        if actual != expected:
+            raise VectorVueTransportError("tls pinning validation failed")
+
+    def _extract_peer_cert(self, response: Response) -> bytes | None:
+        raw = getattr(response, "raw", None)
+        connection = getattr(raw, "connection", None) if raw is not None else None
+        sock = getattr(connection, "sock", None) if connection is not None else None
+        if sock is None:
+            return None
+        get_peer_cert = getattr(sock, "getpeercert", None)
+        if not callable(get_peer_cert):
+            return None
+        try:
+            cert = get_peer_cert(binary_form=True)
+        except Exception:
+            return None
+        return cert if isinstance(cert, (bytes, bytearray)) else None
 
     def _build_signature_headers(self, body: bytes) -> dict[str, str]:
         timestamp = str(int(time.time()))

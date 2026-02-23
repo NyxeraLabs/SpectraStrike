@@ -67,3 +67,5 @@ def test_emit_audit_event_logs_json(caplog) -> None:  # type: ignore[no-untyped-
     assert payload["actor"] == "tester"
     assert payload["status"] == "success"
     assert payload["metadata"]["source_ip"] == "127.0.0.1"
+    assert payload["prev_hash"]
+    assert payload["event_hash"]

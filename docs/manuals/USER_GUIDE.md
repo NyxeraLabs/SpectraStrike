@@ -3,201 +3,207 @@ Copyright (c) 2026 NyxeraLabs
 Author: José María Micoli
 Licensed under BSL 1.1
 Change Date: 2033-02-22 -> Apache-2.0
-
-You may:
-Study
-Modify
-Use for internal security testing
-
-You may NOT:
-Offer as a commercial service
-Sell derived competing products
 -->
 
-# SpectraStrike User Guide (Current Implementation)
+# SpectraStrike User Guide
 
-## 1. Purpose
+## 1. Audience and Purpose
 
-This guide explains how to operate SpectraStrike with the currently implemented features:
+This guide is for security operators and platform engineers running SpectraStrike in a local or on-prem Docker environment.
 
-- Core orchestrator and AAA enforcement
-- VectorVue integration client and QA smoke checks
-- Nmap wrapper integration
-- Metasploit wrapper (RPC-oriented)
-- Metasploit manual ingestion connector (operator-driven workflow)
+Goals:
+- deploy the runtime safely
+- operate integrations against remote operator infrastructure
+- execute repeatable security and QA controls
 
-## 2. Prerequisites
+## 2. Runtime Topology
 
-- Python 3.12+ with virtual environment support
-- Installed dependencies from `requirements.txt`
-- Nmap available in system path
-- Optional: local VectorVue instance
-- Optional: local Metasploit web service/API
+Deployed services:
+- `app` (orchestrator runtime)
+- `nginx` (HTTPS edge, optional mTLS)
+- `rabbitmq` (telemetry broker, TLS-only listener)
+- `postgres` (state storage)
+- `redis` (cache/buffer)
+- `loki` + `vector` (centralized local log pipeline)
 
-## 3. Environment Setup
+Optional tool profile:
+- `nmap-tool`
+- `metasploit-tool`
+
+## 3. Initial Setup
+
+### 3.1 Prepare environment
 
 ```bash
-cd /home/xoce/Workspace/SpectraStrike
+cp .env.example .env
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## 4. Run Core Test Baseline
+### 3.2 Generate certificates
 
 ```bash
-PYTHONPATH=src .venv/bin/pytest -q tests/unit tests/qa
+make tls-dev-cert
+make pki-internal
 ```
 
-## 5. VectorVue Usage
+Generated artifacts:
+- `docker/nginx/certs/tls.crt`, `docker/nginx/certs/tls.key`
+- `docker/pki/ca.crt`
+- `docker/pki/rabbitmq/server.crt`, `docker/pki/rabbitmq/server.key`
+- `docker/pki/app/client.crt`, `docker/pki/app/client.key`
 
-### 5.1 Run Sprint 5 QA smoke checks
+### 3.3 Configure secrets
+
+Set strong credentials in:
+- `docker/secrets/rabbitmq_password.txt`
+- `docker/secrets/postgres_password.txt`
+
+## 4. Start and Operate the Stack
+
+### 4.1 Start core stack
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m pkg.integration.vectorvue.qa_smoke
+make up
 ```
 
-### 5.2 Run live QA tests
+### 4.2 Start with tool profile
 
 ```bash
-VECTORVUE_QA_LIVE=1 PYTHONPATH=src .venv/bin/pytest -q tests/qa/test_vectorvue_api_qa.py
+make up-all
 ```
 
-### 5.3 What this validates
-
-- Login and token flow
-- Event ingestion endpoint
-- Finding ingestion endpoint
-- Ingest status polling
-
-## 6. Nmap Integration Usage
-
-Nmap integration is implemented through the wrapper module and telemetry handoff.
-
-### 6.1 Example invocation from Python
-
-```python
-from pkg.orchestrator.telemetry_ingestion import TelemetryIngestionPipeline
-from pkg.wrappers.nmap import NmapScanOptions, NmapWrapper
-
-telemetry = TelemetryIngestionPipeline(batch_size=10)
-wrapper = NmapWrapper()
-
-result = wrapper.run_scan(
-    NmapScanOptions(
-        targets=["127.0.0.1"],
-        tcp_syn=True,
-        udp_scan=False,
-        os_detection=False,
-        ports="80,443",
-        output_format="xml",
-    )
-)
-event = wrapper.send_to_orchestrator(result, telemetry, actor="operator")
-print(result.summary)
-print(event.event_type)
-```
-
-### 6.2 Notes
-
-- If running unprivileged, the wrapper can fall back from `-sS` to `-sT`.
-- Parsed output is normalized and emitted to telemetry pipeline.
-
-## 7. Metasploit Integration Models
-
-### 7.1 Wrapper model (RPC-oriented)
-
-The wrapper in `src/pkg/wrappers/metasploit.py` supports:
-
-- Auth/connect
-- Module metadata load
-- Exploit execution
-- Session output capture
-- Telemetry handoff
-
-Use this where RPC execution endpoints are available in your Metasploit runtime.
-
-### 7.2 Manual operator model (recommended for current workflow)
-
-Operators run Metasploit manually, and SpectraStrike ingests results from Metasploit APIs.
-
-Implemented in:
-
-- `src/pkg/integration/metasploit_manual.py`
-- `src/pkg/telemetry/sync_metasploit_manual.py`
-
-## 8. Manual Metasploit Ingestion (Operator-Driven)
-
-### 8.1 Workflow
-
-1. Red team operator or pentester executes activities in Metasploit.
-2. SpectraStrike sync command pulls sessions and session-events from Metasploit API.
-3. SpectraStrike emits normalized telemetry events.
-4. Checkpoint is updated to avoid duplicate ingestion on next run.
-
-### 8.2 Run command
+### 4.3 Centralized logs
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m pkg.telemetry.sync_metasploit_manual \
-  --base-url https://localhost:5443 \
-  --username <msf_webservice_user> \
-  --password '<msf_webservice_password>' \
-  --checkpoint-file .state/metasploit_manual_checkpoint.json
+make obs-up
+make obs-down
 ```
 
-### 8.3 Output example
+### 4.4 Stop stack
 
-The command prints a summary line similar to:
+```bash
+make down
+```
 
-`METASPLOIT_MANUAL_SYNC observed_sessions=<n> observed_events=<n> emitted=<n> flushed=<n> last_event_id=<id>`
+## 5. Exposed Ports
 
-### 8.4 Telemetry event types emitted
+Configured via `.env`:
+- `HOST_PROXY_HTTP_PORT` (default `18080`)
+- `HOST_PROXY_TLS_PORT` (default `18443`)
+- `HOST_DB_PORT` (default `15432`)
+- `HOST_RABBITMQ_MGMT_PORT` (default `15672`)
 
-- `metasploit_manual_session_observed`
-- `metasploit_manual_event_observed`
+All other service ports are internal-only by default.
 
-## 9. Security and Operational Notes
+## 6. Remote Integration Configuration
 
-- Use least-privilege credentials for integrations.
-- Prefer TLS verification in non-local environments.
-- Store API credentials in secure secret management, not shell history.
-- Keep checkpoint files persisted in durable storage for production sync jobs.
+SpectraStrike is remote-operator-first.
 
-## 10. Troubleshooting
+### 6.1 Metasploit RPC wrapper
 
-### 10.1 Nmap permission errors
+Use env vars:
+- `MSF_RPC_HOST`
+- `MSF_RPC_PORT`
+- `MSF_RPC_SSL`
+- `MSF_RPC_USERNAME`
+- `MSF_RPC_PASSWORD`
+- optional pin: `MSF_RPC_TLS_PINNED_CERT_SHA256`
 
-Symptoms:
-- `"requires root privileges"` or socket permission errors
+### 6.2 Manual Metasploit ingestion
 
-Actions:
-- Run with proper privileges where policy allows.
-- Keep unprivileged fallback enabled for TCP connect scans.
+Use env vars:
+- `MSF_MANUAL_BASE_URL`
+- `MSF_MANUAL_USERNAME`
+- `MSF_MANUAL_PASSWORD`
 
-### 10.2 Metasploit endpoint mismatch
+Run sync command:
 
-Symptoms:
-- Connection/refused or unsupported RPC route errors
+```bash
+PYTHONPATH=src .venv/bin/python -m pkg.telemetry.sync_metasploit_manual
+```
 
-Actions:
-- Verify whether your Metasploit runtime exposes RPC execution endpoints or only data APIs.
-- For manual operations, use `sync_metasploit_manual` flow.
+### 6.3 RabbitMQ publisher
 
-### 10.3 VectorVue validation errors
+Use env vars:
+- `RABBITMQ_HOST`
+- `RABBITMQ_PORT` (TLS listener default `5671`)
+- `RABBITMQ_USER`
+- `RABBITMQ_PASSWORD`
+- `RABBITMQ_SSL`
+- `RABBITMQ_SSL_CA_FILE`
+- `RABBITMQ_SSL_CERT_FILE`
+- `RABBITMQ_SSL_KEY_FILE`
 
-Symptoms:
-- HTTP `422` with `validation_failed`
+## 7. Security Controls and Validation
 
-Actions:
-- Align payload with the documented SpectraStrike payload examples.
+### 7.1 Baseline checks
 
-## 11. Current Feature Coverage Snapshot
+```bash
+make security-check
+make policy-check
+```
 
-- Implemented and QA-covered:
-  - VectorVue client + live QA checks
-  - Nmap wrapper + QA
-  - Metasploit wrapper + QA
-  - Metasploit manual ingestion connector + unit coverage
-- In progress by roadmap:
-  - Async messaging backbone (Kafka/RabbitMQ)
-  - Additional wrappers and later-phase integrations
+### 7.2 Supply-chain gate (local, dockerized)
+
+```bash
+make sbom
+make vuln-scan
+make sign-image
+make verify-sign
+make security-gate
+make full-regression
+```
+
+### 7.3 Firewall controls (host-level)
+
+```bash
+sudo make firewall-apply
+sudo make firewall-egress-apply
+```
+
+### 7.4 Backup workflows
+
+```bash
+make backup-postgres
+make backup-redis
+make backup-all
+```
+
+## 8. Enterprise Security Notes
+
+Implemented:
+- ingress TLS and hardened proxy headers
+- optional client-certificate validation at edge
+- internal mTLS for telemetry broker path (app <-> rabbitmq)
+- certificate pinning support in outbound integration clients
+- tamper-evident audit chaining
+- optional MFA and lockout in AAA framework
+
+In progress:
+- full internal mTLS for all service-to-service links (DB/cache path)
+
+## 9. Troubleshooting
+
+### 9.1 Nginx TLS health fails
+- Ensure `make tls-dev-cert` ran successfully.
+- Verify `docker/nginx/certs/tls.crt` and `tls.key` exist.
+
+### 9.2 RabbitMQ TLS handshake errors
+- Ensure `make pki-internal` ran.
+- Verify CA/client cert paths in `.env` (`RABBITMQ_SSL_*`).
+- Confirm rabbitmq container has mounted `docker/pki`.
+
+### 9.3 Firewall rules break connectivity
+- Re-check allowed ports in `.env`.
+- Re-apply with updated values.
+- Review host `iptables -S DOCKER-USER` and `iptables -S DOCKER-EGRESS`.
+
+## 10. Operational References
+
+- `README.md`
+- `SECURITY.md`
+- `docs/manuals/ORCHESTRATOR_ARCHITECTURE.md`
+- `docs/ROADMAP.md`
+- `docs/kanban-board.csv`
