@@ -12,7 +12,7 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-.PHONY: help build up up-all down down-all restart ps logs test test-unit test-integration test-docker qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all security-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
+.PHONY: help build ui-build up up-all ui-up ui-down down down-all restart ps logs ui-logs test test-unit test-integration test-docker qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all security-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
 
 COMPOSE_DEV = docker compose -f docker-compose.dev.yml
 COMPOSE_PROD = docker compose -f docker-compose.prod.yml
@@ -22,11 +22,14 @@ help:
 	@echo "  build             Build app image"
 	@echo "  up                Start dev dockerized stack"
 	@echo "  up-all            Start dev stack + dockerized tool profile"
+	@echo "  ui-up             Start dockerized web UI foundation only"
 	@echo "  down              Stop dev stack"
+	@echo "  ui-down           Stop dockerized web UI foundation"
 	@echo "  down-all          Stop dev stack + tool profile"
 	@echo "  restart           Restart dev stack"
 	@echo "  ps                Show dev stack status"
 	@echo "  logs              Tail dev stack logs"
+	@echo "  ui-logs           Tail dockerized web UI logs"
 	@echo "  tools-up          Start dockerized tool containers (nmap/metasploit profile)"
 	@echo "  tools-down        Stop dockerized tool containers"
 	@echo "  test              Run local test suite (.venv)"
@@ -59,11 +62,17 @@ help:
 build:
 	$(COMPOSE_DEV) build app
 
+ui-build:
+	$(COMPOSE_DEV) build ui-web
+
 up:
 	$(COMPOSE_DEV) up -d
 
 up-all:
 	$(COMPOSE_DEV) --profile tools up -d
+
+ui-up:
+	$(COMPOSE_DEV) up -d ui-web
 
 down:
 	$(COMPOSE_DEV) down
@@ -79,11 +88,17 @@ ps:
 logs:
 	$(COMPOSE_DEV) logs -f --tail=100
 
+ui-logs:
+	$(COMPOSE_DEV) logs -f --tail=100 ui-web
+
 tools-up:
 	$(COMPOSE_DEV) --profile tools up -d nmap-tool metasploit-tool
 
 tools-down:
 	$(COMPOSE_DEV) --profile tools stop nmap-tool metasploit-tool
+
+ui-down:
+	$(COMPOSE_DEV) stop ui-web
 
 test:
 	.venv/bin/pytest -q

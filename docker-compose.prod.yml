@@ -80,6 +80,38 @@ services:
     networks:
       - core_net
 
+  ui-web:
+    build:
+      context: ./ui/web
+      dockerfile: Dockerfile
+    image: spectrastrike/ui-web:0.9.6-local
+    container_name: spectrastrike_ui_web_prod
+    init: true
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+    depends_on:
+      app:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/ui/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - core_net
+
   rabbitmq:
     image: rabbitmq:3.13.7-management
     container_name: spectrastrike_rabbitmq_prod
@@ -185,6 +217,8 @@ services:
       rabbitmq:
         condition: service_healthy
       app:
+        condition: service_healthy
+      ui-web:
         condition: service_healthy
     ports:
       - "0.0.0.0:${HOST_PROXY_HTTP_PORT:-18080}:8080"

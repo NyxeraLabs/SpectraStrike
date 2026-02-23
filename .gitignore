@@ -30,3 +30,7 @@ docker/pki/*
 docker/secrets/*.txt
 docker/secrets/cosign/*
 !docker/secrets/cosign/.gitkeep
+
+# UI web local artifacts
+ui/web/node_modules/
+ui/web/.next/

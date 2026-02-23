@@ -21,6 +21,7 @@ Goals:
 Deployed services:
 - `app` (orchestrator runtime)
 - `nginx` (HTTPS edge, optional mTLS)
+- `ui-web` (Next.js App Router + Tailwind, routed at `/ui`)
 - `rabbitmq` (telemetry broker, TLS-only listener)
 - `postgres` (state storage, TLS + client-cert verification)
 - `redis` (cache/buffer, TLS + client-cert verification)
@@ -83,7 +84,19 @@ make obs-up
 make obs-down
 ```
 
-### 4.4 Stop stack
+### 4.4 UI-only operations
+
+```bash
+make ui-build
+make ui-up
+make ui-logs
+make ui-down
+```
+
+Web UI entrypoint:
+- `https://localhost:${HOST_PROXY_TLS_PORT}/ui`
+
+### 4.5 Stop stack
 
 ```bash
 make down

@@ -1,0 +1,48 @@
+export default function Home() {
+  return (
+    <main className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-12">
+      <header className="spectra-panel bg-surfaceElevated/80 p-8">
+        <p className="text-xs uppercase tracking-[0.2em] text-telemetry">Sprint 9.6</p>
+        <h1 className="mt-3 text-4xl font-bold text-white [font-family:var(--font-display)]">
+          SpectraStrike Web Console
+        </h1>
+        <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300">
+          Dockerized Next.js foundation is online. Auth views, dashboard workflows, and telemetry
+          modules will be added in subsequent Sprint 9.6 steps.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button type="button" className="spectra-button-primary px-4 py-2 text-sm font-semibold">
+            Primary Action
+          </button>
+          <button type="button" className="spectra-button-secondary px-4 py-2 text-sm font-semibold">
+            Secondary Action
+          </button>
+        </div>
+      </header>
+
+      <section className="mt-8 grid gap-4 md:grid-cols-3">
+        <article className="spectra-panel p-5">
+          <h2 className="text-sm uppercase tracking-wide text-telemetryGlow">Runtime</h2>
+          <p className="mt-2 text-lg font-medium text-white">Containerized</p>
+        </article>
+        <article className="spectra-panel p-5">
+          <h2 className="text-sm uppercase tracking-wide text-telemetryGlow">Route</h2>
+          <p className="mt-2 text-lg font-medium text-white">/ui</p>
+        </article>
+        <article className="spectra-panel p-5">
+          <h2 className="text-sm uppercase tracking-wide text-telemetryGlow">Status</h2>
+          <p className="mt-2 text-lg font-medium text-success">Foundation Ready</p>
+        </article>
+      </section>
+
+      <section className="mt-8 spectra-panel p-5">
+        <h2 className="text-sm uppercase tracking-wide text-accentGlow">Telemetry Preview</h2>
+        <pre className="spectra-mono mt-3 overflow-x-auto text-xs text-slate-300">
+          {`event_type=nmap_scan_completed status=success latency_ms=142
+event_type=metasploit_session_ingested status=info count=4
+event_type=broker_publish status=success exchange=spectrastrike.telemetry`}
+        </pre>
+      </section>
+    </main>
+  );
+}

@@ -26,6 +26,9 @@ This index tracks the current, maintained manual set for the implemented codebas
 - `docs/manuals/UI_ARCHITECTURE_API_CONTRACTS.md`
   - Sprint 9.6 UI architecture baseline and internal API contract definitions.
 
+- `docs/manuals/UI_TUI_DESIGN_SYSTEM.md`
+  - Canonical color palette, typography, and component semantics for UI/TUI work.
+
 ## Program Tracking
 
 - `docs/ROADMAP.md`

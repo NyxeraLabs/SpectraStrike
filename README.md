@@ -17,12 +17,13 @@ SpectraStrike is designed for boutique security teams that require:
 - auditable automation pipelines
 - local-first deployment without cloud dependencies
 
-## Current Implemented Scope (as of Sprint 9.7)
+## Current Implemented Scope (as of Sprint 9.7 + Sprint 9.6 Step 2)
 
 - Orchestrator core: scheduler, async runtime, telemetry ingestion, audit trail
 - AAA framework: authentication, authorization, accounting
 - Tool integrations: Nmap wrapper, Metasploit RPC wrapper, manual Metasploit ingestion
 - Messaging backbone: RabbitMQ-first publisher abstraction, retry, DLQ, idempotency
+- UI foundation: dockerized Next.js App Router + Tailwind web console (`/ui`)
 - Hardened Docker stack: app, nginx, rabbitmq, postgres, redis, loki, vector
 - Security controls:
   - TLS edge with optional mTLS client verification
@@ -40,6 +41,7 @@ SpectraStrike is designed for boutique security teams that require:
 - Data Services: PostgreSQL + Redis (TLS-only with client certificate verification)
 - Edge: Nginx (HTTPS-first)
 - Observability: Vector -> Loki
+- UI: `ui-web` (Next.js) routed through Nginx at `/ui`
 
 Primary docs:
 - `docs/manuals/ORCHESTRATOR_ARCHITECTURE.md`
