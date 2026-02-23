@@ -2,12 +2,12 @@
 # Author: José María Micoli
 # Licensed under BSL 1.1
 # Change Date: 2033-02-22 -> Apache-2.0
-# 
+#
 # You may:
 # Study
 # Modify
 # Use for internal security testing
-# 
+#
 # You may NOT:
 # Offer as a commercial service
 # Sell derived competing products
@@ -16,8 +16,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 import hashlib
+from dataclasses import dataclass, field
 from typing import Any
 
 import pytest
@@ -147,7 +147,9 @@ def test_login_accepts_top_level_access_token() -> None:
 def test_send_event_sets_idempotency_key() -> None:
     session = FakeSession(
         [
-            FakeResponse(200, {"request_id": "r", "status": "accepted", "data": {}, "errors": []})
+            FakeResponse(
+                200, {"request_id": "r", "status": "accepted", "data": {}, "errors": []}
+            )
         ]
     )
     client = VectorVueClient(_config_with_creds(token="jwt"), session=session)
@@ -159,11 +161,17 @@ def test_send_event_sets_idempotency_key() -> None:
     assert headers["Authorization"] == "Bearer jwt"
 
 
-def test_signing_headers_are_added_when_secret_configured(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr("pkg.integration.vectorvue.client.time.time", lambda: 1700000000)
+def test_signing_headers_are_added_when_secret_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "pkg.integration.vectorvue.client.time.time", lambda: 1700000000
+    )
     session = FakeSession(
         [
-            FakeResponse(200, {"request_id": "r", "status": "accepted", "data": {}, "errors": []})
+            FakeResponse(
+                200, {"request_id": "r", "status": "accepted", "data": {}, "errors": []}
+            )
         ]
     )
     client = VectorVueClient(
@@ -183,10 +191,15 @@ def test_retries_on_retryable_status(monkeypatch: pytest.MonkeyPatch) -> None:
     session = FakeSession(
         [
             FakeResponse(503, {"request_id": "r1", "status": "failed", "errors": []}),
-            FakeResponse(200, {"request_id": "r2", "status": "accepted", "data": {}, "errors": []}),
+            FakeResponse(
+                200,
+                {"request_id": "r2", "status": "accepted", "data": {}, "errors": []},
+            ),
         ]
     )
-    client = VectorVueClient(_config_with_creds(token="jwt", max_retries=2), session=session)
+    client = VectorVueClient(
+        _config_with_creds(token="jwt", max_retries=2), session=session
+    )
 
     envelope = client.send_event({"event_type": "PROCESS_ANOMALY"})
 
@@ -194,10 +207,14 @@ def test_retries_on_retryable_status(monkeypatch: pytest.MonkeyPatch) -> None:
     assert len(session.calls) == 2
 
 
-def test_retries_on_timeout_then_raises_when_exhausted(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_retries_on_timeout_then_raises_when_exhausted(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr("pkg.integration.vectorvue.client.time.sleep", lambda _: None)
     session = FakeSession([Timeout("t1"), Timeout("t2")])
-    client = VectorVueClient(_config_with_creds(token="jwt", max_retries=1), session=session)
+    client = VectorVueClient(
+        _config_with_creds(token="jwt", max_retries=1), session=session
+    )
 
     with pytest.raises(VectorVueTransportError):
         client.send_event({"event_type": "PROCESS_ANOMALY"})
@@ -207,13 +224,17 @@ def test_retries_on_timeout_then_raises_when_exhausted(monkeypatch: pytest.Monke
 
 def test_batch_size_guard() -> None:
     session = FakeSession([])
-    client = VectorVueClient(_config_with_creds(token="jwt", max_batch_size=1), session=session)
+    client = VectorVueClient(
+        _config_with_creds(token="jwt", max_batch_size=1), session=session
+    )
 
     with pytest.raises(VectorVueSerializationError):
-        client.send_events_batch([
-            {"event_type": "A"},
-            {"event_type": "B"},
-        ])
+        client.send_events_batch(
+            [
+                {"event_type": "A"},
+                {"event_type": "B"},
+            ]
+        )
 
 
 def test_idempotency_conflict_maps_to_typed_api_error() -> None:
@@ -274,7 +295,9 @@ def test_validation_error_uses_code_and_message_fields() -> None:
 def test_tls_pinning_accepts_matching_peer_cert() -> None:
     cert = b"vectorvue-cert"
     digest = hashlib.sha256(cert).hexdigest()
-    response = FakeResponse(200, {"request_id": "r", "status": "accepted", "data": {}, "errors": []})
+    response = FakeResponse(
+        200, {"request_id": "r", "status": "accepted", "data": {}, "errors": []}
+    )
     response.raw = _FakeRaw(cert)  # type: ignore[attr-defined]
     session = FakeSession([response])
     client = VectorVueClient(
@@ -288,7 +311,9 @@ def test_tls_pinning_accepts_matching_peer_cert() -> None:
 
 def test_tls_pinning_rejects_mismatched_peer_cert() -> None:
     cert = b"vectorvue-cert"
-    response = FakeResponse(200, {"request_id": "r", "status": "accepted", "data": {}, "errors": []})
+    response = FakeResponse(
+        200, {"request_id": "r", "status": "accepted", "data": {}, "errors": []}
+    )
     response.raw = _FakeRaw(cert)  # type: ignore[attr-defined]
     session = FakeSession([response])
     client = VectorVueClient(

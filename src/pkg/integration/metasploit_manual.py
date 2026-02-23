@@ -2,12 +2,12 @@
 # Author: José María Micoli
 # Licensed under BSL 1.1
 # Change Date: 2033-02-22 -> Apache-2.0
-# 
+#
 # You may:
 # Study
 # Modify
 # Use for internal security testing
-# 
+#
 # You may NOT:
 # Offer as a commercial service
 # Sell derived competing products
@@ -29,7 +29,7 @@ from requests import Response, Session
 from requests.exceptions import RequestException
 
 from pkg.logging.framework import get_logger
-from pkg.orchestrator.telemetry_ingestion import TelemetryEvent, TelemetryIngestionPipeline
+from pkg.orchestrator.telemetry_ingestion import TelemetryIngestionPipeline
 
 logger = get_logger("spectrastrike.integration.metasploit_manual")
 
@@ -69,7 +69,9 @@ class MetasploitManualConfig:
         if not parsed.scheme or not parsed.netloc:
             raise MetasploitManualConfigError("base_url must be an absolute URL")
         if self.timeout_seconds <= 0:
-            raise MetasploitManualConfigError("timeout_seconds must be greater than zero")
+            raise MetasploitManualConfigError(
+                "timeout_seconds must be greater than zero"
+            )
         if self.max_retries < 0:
             raise MetasploitManualConfigError("max_retries must be zero or greater")
         if self.backoff_seconds < 0:
@@ -80,7 +82,9 @@ class MetasploitManualConfig:
     @classmethod
     def from_env(cls, prefix: str = "MSF_MANUAL_") -> MetasploitManualConfig:
         """Build config from environment for remote operator data API endpoints."""
-        base_url = os.getenv(f"{prefix}BASE_URL", "https://metasploit.remote.operator:5443")
+        base_url = os.getenv(
+            f"{prefix}BASE_URL", "https://metasploit.remote.operator:5443"
+        )
         username = os.getenv(f"{prefix}USERNAME", "")
         password = os.getenv(f"{prefix}PASSWORD", "")
         verify_tls_raw = os.getenv(f"{prefix}VERIFY_TLS", "true").strip().lower()
@@ -142,7 +146,9 @@ class IngestionResult:
 class MetasploitManualClient:
     """HTTP client for Metasploit webservice data APIs used for manual ingestion."""
 
-    def __init__(self, config: MetasploitManualConfig, session: Session | None = None) -> None:
+    def __init__(
+        self, config: MetasploitManualConfig, session: Session | None = None
+    ) -> None:
         self._config = config
         self._session = session or requests.Session()
         self._authenticated = False
@@ -152,12 +158,17 @@ class MetasploitManualClient:
         response = self._request_raw(
             method="POST",
             path="/api/v1/auth/login",
-            json_payload={"username": self._config.username, "password": self._config.password},
+            json_payload={
+                "username": self._config.username,
+                "password": self._config.password,
+            },
             allow_redirects=False,
             allow_auth_retry=False,
         )
         if response.status_code not in {200, 302, 303}:
-            raise MetasploitManualAPIError(f"login failed with status {response.status_code}")
+            raise MetasploitManualAPIError(
+                f"login failed with status {response.status_code}"
+            )
         self._authenticated = True
         logger.info("Authenticated to Metasploit webservice")
 
@@ -180,10 +191,17 @@ class MetasploitManualClient:
             sessions.append(
                 MetasploitSession(
                     session_id=session_id,
-                    session_type=str(row.get("session_type") or row.get("stype") or row.get("type") or "unknown"),
+                    session_type=str(
+                        row.get("session_type")
+                        or row.get("stype")
+                        or row.get("type")
+                        or "unknown"
+                    ),
                     target_host=target_host,
                     via_exploit=(
-                        str(row["via_exploit"]) if row.get("via_exploit") not in {None, ""} else None
+                        str(row["via_exploit"])
+                        if row.get("via_exploit") not in {None, ""}
+                        else None
                     ),
                     raw=row,
                 )
@@ -200,13 +218,19 @@ class MetasploitManualClient:
             if not event_id:
                 continue
             session_id_raw = row.get("session_id")
-            session_id = str(session_id_raw) if session_id_raw not in {None, ""} else None
+            session_id = (
+                str(session_id_raw) if session_id_raw not in {None, ""} else None
+            )
             events.append(
                 MetasploitSessionEvent(
                     event_id=event_id,
                     session_id=session_id,
-                    event_type=str(row.get("etype") or row.get("event_type") or "unknown"),
-                    created_at=str(row["created_at"]) if row.get("created_at") else None,
+                    event_type=str(
+                        row.get("etype") or row.get("event_type") or "unknown"
+                    ),
+                    created_at=(
+                        str(row["created_at"]) if row.get("created_at") else None
+                    ),
                     raw=row,
                 )
             )
@@ -215,7 +239,9 @@ class MetasploitManualClient:
     def _request_json(self, method: str, path: str) -> dict[str, Any]:
         response = self._request_raw(method=method, path=path)
         if response.status_code >= 400:
-            raise MetasploitManualAPIError(f"{path} failed with status {response.status_code}")
+            raise MetasploitManualAPIError(
+                f"{path} failed with status {response.status_code}"
+            )
         try:
             payload = response.json()
         except ValueError as exc:
@@ -254,7 +280,11 @@ class MetasploitManualClient:
                 time.sleep(self._config.backoff_seconds * (2 ** (attempt - 1)))
                 continue
 
-            if allow_auth_retry and response.status_code in {401, 403} and not authed_retry_used:
+            if (
+                allow_auth_retry
+                and response.status_code in {401, 403}
+                and not authed_retry_used
+            ):
                 self.login()
                 authed_retry_used = True
                 continue
@@ -265,7 +295,9 @@ class MetasploitManualClient:
 
             return response
 
-        raise MetasploitManualTransportError(str(last_error) if last_error else "unknown transport error")
+        raise MetasploitManualTransportError(
+            str(last_error) if last_error else "unknown transport error"
+        )
 
     def _normalize_rows(self, payload: dict[str, Any]) -> list[dict[str, Any]]:
         data = payload.get("data")
@@ -285,7 +317,9 @@ class MetasploitManualClient:
 class MetasploitManualIngestor:
     """Sync runner that converts Metasploit manual activity into telemetry events."""
 
-    def __init__(self, client: MetasploitManualClient, telemetry: TelemetryIngestionPipeline) -> None:
+    def __init__(
+        self, client: MetasploitManualClient, telemetry: TelemetryIngestionPipeline
+    ) -> None:
         self._client = client
         self._telemetry = telemetry
 
@@ -318,10 +352,12 @@ class MetasploitManualIngestor:
             state.seen_session_ids.add(session.session_id)
             emitted += 1
 
-        for event in sorted(session_events, key=lambda item: self._event_sort_key(item.event_id)):
-            if state.last_session_event_id and self._event_sort_key(event.event_id) <= self._event_sort_key(
-                state.last_session_event_id
-            ):
+        for event in sorted(
+            session_events, key=lambda item: self._event_sort_key(item.event_id)
+        ):
+            if state.last_session_event_id and self._event_sort_key(
+                event.event_id
+            ) <= self._event_sort_key(state.last_session_event_id):
                 continue
             self._telemetry.ingest(
                 event_type="metasploit_manual_event_observed",
@@ -373,7 +409,9 @@ class IngestionCheckpointStore:
         last_session_event_id = payload.get("last_session_event_id")
         return IngestionCheckpoint(
             seen_session_ids={str(item) for item in seen_session_ids},
-            last_session_event_id=str(last_session_event_id) if last_session_event_id else None,
+            last_session_event_id=(
+                str(last_session_event_id) if last_session_event_id else None
+            ),
         )
 
     def save(self, checkpoint: IngestionCheckpoint) -> None:

@@ -2,12 +2,12 @@
 # Author: José María Micoli
 # Licensed under BSL 1.1
 # Change Date: 2033-02-22 -> Apache-2.0
-# 
+#
 # You may:
 # Study
 # Modify
 # Use for internal security testing
-# 
+#
 # You may NOT:
 # Offer as a commercial service
 # Sell derived competing products
@@ -73,7 +73,9 @@ class VectorVueClient:
         if not token and isinstance(response.data, dict):
             token = response.data.get("token")
         if not token:
-            raise VectorVueAPIError("login response missing access_token", response.http_status)
+            raise VectorVueAPIError(
+                "login response missing access_token", response.http_status
+            )
 
         self._token = token
         return token
@@ -142,17 +144,24 @@ class VectorVueClient:
     def _validate_batch_size(self, size: int) -> None:
         if size > self._config.max_batch_size:
             raise VectorVueSerializationError(
-                f"batch size {size} exceeds max_batch_size {self._config.max_batch_size}"
+                f"batch size {size} exceeds max_batch_size "
+                f"{self._config.max_batch_size}"
             )
 
-    def _serialize_payload(self, json_payload: Any | None) -> tuple[str | None, bytes | None]:
+    def _serialize_payload(
+        self, json_payload: Any | None
+    ) -> tuple[str | None, bytes | None]:
         if json_payload is None:
             return None, None
         try:
-            payload_text = json.dumps(json_payload, sort_keys=True, separators=(",", ":"))
+            payload_text = json.dumps(
+                json_payload, sort_keys=True, separators=(",", ":")
+            )
             return payload_text, payload_text.encode("utf-8")
         except (TypeError, ValueError) as exc:
-            raise VectorVueSerializationError("payload is not JSON serializable") from exc
+            raise VectorVueSerializationError(
+                "payload is not JSON serializable"
+            ) from exc
 
     def _request(
         self,
@@ -232,7 +241,9 @@ class VectorVueClient:
 
         peer_cert = self._extract_peer_cert(response)
         if peer_cert is None:
-            raise VectorVueTransportError("tls pinning enabled but peer certificate is unavailable")
+            raise VectorVueTransportError(
+                "tls pinning enabled but peer certificate is unavailable"
+            )
 
         actual = hashlib.sha256(peer_cert).hexdigest().lower()
         expected = pinned.replace(":", "").lower()
@@ -283,7 +294,9 @@ class VectorVueClient:
 
         return ResponseEnvelope(
             request_id=payload.get("request_id"),
-            status=payload.get("status", "failed" if response.status_code >= 400 else "accepted"),
+            status=payload.get(
+                "status", "failed" if response.status_code >= 400 else "accepted"
+            ),
             data=parsed_data,
             errors=self._coerce_errors(payload.get("errors")),
             signature=payload.get("signature"),
@@ -321,7 +334,9 @@ class VectorVueClient:
             return f"VectorVue API request failed with status {envelope.http_status}"
         return f"VectorVue API request error status {envelope.http_status}"
 
-    def _log_outbound_result(self, path: str, envelope: ResponseEnvelope, attempt: int) -> None:
+    def _log_outbound_result(
+        self, path: str, envelope: ResponseEnvelope, attempt: int
+    ) -> None:
         request_id = envelope.request_id or "unknown"
         tenant = self._config.tenant_id or "unknown"
         logger.info(

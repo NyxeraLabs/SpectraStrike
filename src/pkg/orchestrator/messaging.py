@@ -17,12 +17,12 @@
 from __future__ import annotations
 
 import asyncio
-from collections import defaultdict, deque
-from dataclasses import asdict, dataclass, replace
-from enum import Enum
 import json
 import os
 import ssl
+from collections import defaultdict, deque
+from dataclasses import asdict, dataclass, replace
+from enum import Enum
 from threading import Lock
 from typing import Protocol
 
@@ -164,7 +164,9 @@ class InMemoryRabbitBroker:
                 self._bindings[(exchange, routing_key)].append(queue)
             self._queues[queue]
 
-    def publish(self, exchange: str, routing_key: str, envelope: BrokerEnvelope) -> None:
+    def publish(
+        self, exchange: str, routing_key: str, envelope: BrokerEnvelope
+    ) -> None:
         with self._lock:
             queues = self._bindings.get((exchange, routing_key), [])
             for queue in queues:
@@ -264,7 +266,9 @@ class PikaRabbitMQTelemetryPublisher:
         max_retries: int = 3,
     ) -> None:
         if pika is None:
-            raise RuntimeError("pika package is required for PikaRabbitMQTelemetryPublisher")
+            raise RuntimeError(
+                "pika package is required for PikaRabbitMQTelemetryPublisher"
+            )
         if max_retries < 0:
             raise ValueError("max_retries must be greater than or equal to zero")
         self._connection = connection or RabbitMQConnectionConfig()
@@ -282,12 +286,20 @@ class PikaRabbitMQTelemetryPublisher:
         while attempts <= self._max_retries:
             attempts += 1
             try:
-                await asyncio.to_thread(self._publish_once, replace(envelope, attempt=attempts))
+                await asyncio.to_thread(
+                    self._publish_once, replace(envelope, attempt=attempts)
+                )
                 self._seen_keys.add(key)
-                return PublishAttemptResult(status=PublishStatus.PUBLISHED, attempts=attempts)
-            except Exception as exc:  # pragma: no cover - requires live broker fault paths
+                return PublishAttemptResult(
+                    status=PublishStatus.PUBLISHED, attempts=attempts
+                )
+            except (
+                Exception
+            ) as exc:  # pragma: no cover - requires live broker fault paths
                 if attempts > self._max_retries:
-                    await asyncio.to_thread(self._publish_dead_letter, replace(envelope, attempt=attempts))
+                    await asyncio.to_thread(
+                        self._publish_dead_letter, replace(envelope, attempt=attempts)
+                    )
                     return PublishAttemptResult(
                         status=PublishStatus.DEAD_LETTERED,
                         attempts=attempts,
@@ -299,7 +311,9 @@ class PikaRabbitMQTelemetryPublisher:
         conn = self._open_connection()
         try:
             channel = conn.channel()
-            channel.exchange_declare(exchange=self._routing.exchange, exchange_type="direct", durable=True)
+            channel.exchange_declare(
+                exchange=self._routing.exchange, exchange_type="direct", durable=True
+            )
             channel.queue_declare(queue=self._routing.queue, durable=True)
             channel.queue_bind(
                 exchange=self._routing.exchange,
@@ -339,7 +353,9 @@ class PikaRabbitMQTelemetryPublisher:
             conn.close()
 
     def _open_connection(self) -> "pika.BlockingConnection":
-        credentials = pika.PlainCredentials(self._connection.username, self._connection.password)
+        credentials = pika.PlainCredentials(
+            self._connection.username, self._connection.password
+        )
         ssl_options = None
         if self._connection.ssl_enabled:
             context = ssl.create_default_context(cafile=self._connection.ssl_ca_file)

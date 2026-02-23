@@ -2,12 +2,12 @@
 # Author: José María Micoli
 # Licensed under BSL 1.1
 # Change Date: 2033-02-22 -> Apache-2.0
-# 
+#
 # You may:
 # Study
 # Modify
 # Use for internal security testing
-# 
+#
 # You may NOT:
 # Offer as a commercial service
 # Sell derived competing products
@@ -29,7 +29,9 @@ class QAStubTransport:
         self._responses = list(responses)
         self.calls: list[tuple[str, list[Any], MetasploitConfig]] = []
 
-    def __call__(self, method: str, params: list[Any], config: MetasploitConfig) -> dict[str, Any]:
+    def __call__(
+        self, method: str, params: list[Any], config: MetasploitConfig
+    ) -> dict[str, Any]:
         self.calls.append((method, params, config))
         if not self._responses:
             raise AssertionError("no queued QA transport response")
@@ -97,7 +99,9 @@ def test_qa_check_telemetry_delivery_metasploit() -> None:
             payload="windows/meterpreter/reverse_tcp",
         )
     )
-    event = wrapper.send_to_orchestrator(result=result, telemetry=telemetry, actor="qa-bot")
+    event = wrapper.send_to_orchestrator(
+        result=result, telemetry=telemetry, actor="qa-bot"
+    )
     flushed = telemetry.flush_ready()
 
     assert event.event_type == "metasploit_exploit_completed"

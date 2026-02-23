@@ -2,12 +2,12 @@
 # Author: José María Micoli
 # Licensed under BSL 1.1
 # Change Date: 2033-02-22 -> Apache-2.0
-# 
+#
 # You may:
 # Study
 # Modify
 # Use for internal security testing
-# 
+#
 # You may NOT:
 # Offer as a commercial service
 # Sell derived competing products
@@ -16,8 +16,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 import hashlib
+from collections.abc import Iterator
 from typing import Any
 
 import pytest
@@ -38,7 +38,9 @@ class FakeTransport:
         self._responses = list(responses)
         self.calls: list[tuple[str, list[Any], MetasploitConfig]] = []
 
-    def __call__(self, method: str, params: list[Any], config: MetasploitConfig) -> dict[str, Any]:
+    def __call__(
+        self, method: str, params: list[Any], config: MetasploitConfig
+    ) -> dict[str, Any]:
         self.calls.append((method, params, config))
         if not self._responses:
             raise AssertionError("no fake response queued")
@@ -49,7 +51,9 @@ class FakeTransport:
 
 
 def _iterable_transport(sequence: Iterator[Any]):  # type: ignore[no-untyped-def]
-    def _transport(method: str, params: list[Any], config: MetasploitConfig) -> dict[str, Any]:
+    def _transport(
+        method: str, params: list[Any], config: MetasploitConfig
+    ) -> dict[str, Any]:
         _ = method, params, config
         item = next(sequence)
         if isinstance(item, Exception):
@@ -149,7 +153,9 @@ def test_send_to_orchestrator_emits_telemetry() -> None:
         )
     )
 
-    event = wrapper.send_to_orchestrator(result=result, telemetry=telemetry, actor="qa-user")
+    event = wrapper.send_to_orchestrator(
+        result=result, telemetry=telemetry, actor="qa-user"
+    )
 
     assert event.event_type == "metasploit_exploit_completed"
     assert event.actor == "qa-user"

@@ -2,12 +2,12 @@
 # Author: José María Micoli
 # Licensed under BSL 1.1
 # Change Date: 2033-02-22 -> Apache-2.0
-# 
+#
 # You may:
 # Study
 # Modify
 # Use for internal security testing
-# 
+#
 # You may NOT:
 # Offer as a commercial service
 # Sell derived competing products
@@ -32,7 +32,9 @@ class VectorVueTransportError(VectorVueError):
 class VectorVueAPIError(VectorVueError):
     """Raised when API call returns an error response."""
 
-    def __init__(self, message: str, status_code: int, error_code: str | None = None) -> None:
+    def __init__(
+        self, message: str, status_code: int, error_code: str | None = None
+    ) -> None:
         super().__init__(message)
         self.status_code = status_code
         self.error_code = error_code

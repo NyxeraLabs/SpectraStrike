@@ -2,12 +2,12 @@
 # Author: José María Micoli
 # Licensed under BSL 1.1
 # Change Date: 2033-02-22 -> Apache-2.0
-# 
+#
 # You may:
 # Study
 # Modify
 # Use for internal security testing
-# 
+#
 # You may NOT:
 # Offer as a commercial service
 # Sell derived competing products
@@ -29,16 +29,22 @@ from pkg.orchestrator.telemetry_ingestion import TelemetryIngestionPipeline
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Sync manual Metasploit activity into SpectraStrike")
+    parser = argparse.ArgumentParser(
+        description="Sync manual Metasploit activity into SpectraStrike"
+    )
     parser.add_argument(
         "--base-url",
-        default=os.getenv("MSF_MANUAL_BASE_URL", "https://metasploit.remote.operator:5443"),
+        default=os.getenv(
+            "MSF_MANUAL_BASE_URL", "https://metasploit.remote.operator:5443"
+        ),
     )
     parser.add_argument("--username", default=os.getenv("MSF_MANUAL_USERNAME", ""))
     parser.add_argument("--password", default=os.getenv("MSF_MANUAL_PASSWORD", ""))
     parser.add_argument("--actor", default="red-team-operator")
     parser.add_argument("--verify-tls", action="store_true")
-    parser.add_argument("--checkpoint-file", default=".state/metasploit_manual_checkpoint.json")
+    parser.add_argument(
+        "--checkpoint-file", default=".state/metasploit_manual_checkpoint.json"
+    )
     parser.add_argument("--batch-size", type=int, default=100)
     return parser
 
@@ -47,7 +53,10 @@ def main() -> int:
     parser = _build_parser()
     args = parser.parse_args()
     if not args.username or not args.password:
-        parser.error("username/password required (or set MSF_MANUAL_USERNAME/MSF_MANUAL_PASSWORD)")
+        parser.error(
+            "username/password required "
+            "(or set MSF_MANUAL_USERNAME/MSF_MANUAL_PASSWORD)"
+        )
     config = MetasploitManualConfig(
         base_url=args.base_url,
         username=args.username,

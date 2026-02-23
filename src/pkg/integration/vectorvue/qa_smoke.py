@@ -2,12 +2,12 @@
 # Author: José María Micoli
 # Licensed under BSL 1.1
 # Change Date: 2033-02-22 -> Apache-2.0
-# 
+#
 # You may:
 # Study
 # Modify
 # Use for internal security testing
-# 
+#
 # You may NOT:
 # Offer as a commercial service
 # Sell derived competing products
@@ -78,13 +78,17 @@ def run_smoke(config: VectorVueConfig) -> SmokeResult:
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Run Sprint 5 VectorVue API QA smoke checks")
+    parser = argparse.ArgumentParser(
+        description="Run Sprint 5 VectorVue API QA smoke checks"
+    )
     parser.add_argument("--base-url", default="https://127.0.0.1")
     parser.add_argument("--username", default="acme_viewer")
     parser.add_argument("--password", default="AcmeView3r!")
     parser.add_argument("--tenant-id", default="10000000-0000-0000-0000-000000000001")
     parser.add_argument("--timeout-seconds", type=float, default=5.0)
-    parser.add_argument("--verify-tls", action="store_true", help="Enable TLS certificate verify")
+    parser.add_argument(
+        "--verify-tls", action="store_true", help="Enable TLS certificate verify"
+    )
     return parser
 
 

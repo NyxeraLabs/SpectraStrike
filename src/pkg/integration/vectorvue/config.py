@@ -2,12 +2,12 @@
 # Author: José María Micoli
 # Licensed under BSL 1.1
 # Change Date: 2033-02-22 -> Apache-2.0
-# 
+#
 # You may:
 # Study
 # Modify
 # Use for internal security testing
-# 
+#
 # You may NOT:
 # Offer as a commercial service
 # Sell derived competing products
@@ -49,7 +49,9 @@ class VectorVueConfig:
             raise VectorVueConfigError("base_url must be an absolute URL")
 
         if self.require_https and parsed.scheme.lower() != "https":
-            raise VectorVueConfigError("base_url must use https when require_https is enabled")
+            raise VectorVueConfigError(
+                "base_url must use https when require_https is enabled"
+            )
 
         if self.timeout_seconds <= 0:
             raise VectorVueConfigError("timeout_seconds must be greater than zero")

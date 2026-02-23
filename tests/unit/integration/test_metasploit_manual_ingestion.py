@@ -2,12 +2,12 @@
 # Author: José María Micoli
 # Licensed under BSL 1.1
 # Change Date: 2033-02-22 -> Apache-2.0
-# 
+#
 # You may:
 # Study
 # Modify
 # Use for internal security testing
-# 
+#
 # You may NOT:
 # Offer as a commercial service
 # Sell derived competing products
@@ -26,9 +26,9 @@ import pytest
 from pkg.integration.metasploit_manual import (
     IngestionCheckpoint,
     IngestionCheckpointStore,
-    MetasploitManualConfigError,
     MetasploitManualClient,
     MetasploitManualConfig,
+    MetasploitManualConfigError,
     MetasploitManualIngestor,
 )
 from pkg.orchestrator.telemetry_ingestion import TelemetryIngestionPipeline
@@ -95,7 +95,16 @@ def test_list_sessions_and_events_parse_data_rows() -> None:
             ),
             FakeResponse(
                 200,
-                {"data": [{"id": 9, "session_id": 1, "etype": "command", "created_at": "now"}]},
+                {
+                    "data": [
+                        {
+                            "id": 9,
+                            "session_id": 1,
+                            "etype": "command",
+                            "created_at": "now",
+                        }
+                    ]
+                },
             ),
         ]
     )
@@ -163,7 +172,9 @@ def test_ingestor_sync_emits_only_unseen_records() -> None:
 
 def test_checkpoint_store_roundtrip(tmp_path: Path) -> None:
     store = IngestionCheckpointStore(tmp_path / "checkpoint.json")
-    checkpoint = IngestionCheckpoint(seen_session_ids={"1", "7"}, last_session_event_id="55")
+    checkpoint = IngestionCheckpoint(
+        seen_session_ids={"1", "7"}, last_session_event_id="55"
+    )
 
     store.save(checkpoint)
     loaded = store.load()
@@ -177,4 +188,6 @@ def test_checkpoint_store_roundtrip(tmp_path: Path) -> None:
 
 def test_missing_credentials_fails_config_validation() -> None:
     with pytest.raises(MetasploitManualConfigError):
-        MetasploitManualConfig(base_url="https://localhost:5443", username="", password="")
+        MetasploitManualConfig(
+            base_url="https://localhost:5443", username="", password=""
+        )

@@ -2,12 +2,12 @@
 # Author: José María Micoli
 # Licensed under BSL 1.1
 # Change Date: 2033-02-22 -> Apache-2.0
-# 
+#
 # You may:
 # Study
 # Modify
 # Use for internal security testing
-# 
+#
 # You may NOT:
 # Offer as a commercial service
 # Sell derived competing products
@@ -29,7 +29,9 @@ def _live_config() -> VectorVueConfig:
         base_url=os.getenv("VECTORVUE_BASE_URL", "https://127.0.0.1"),
         username=os.getenv("VECTORVUE_USERNAME", "acme_viewer"),
         password=os.getenv("VECTORVUE_PASSWORD", "AcmeView3r!"),
-        tenant_id=os.getenv("VECTORVUE_TENANT_ID", "10000000-0000-0000-0000-000000000001"),
+        tenant_id=os.getenv(
+            "VECTORVUE_TENANT_ID", "10000000-0000-0000-0000-000000000001"
+        ),
         timeout_seconds=float(os.getenv("VECTORVUE_TIMEOUT_SECONDS", "5")),
         verify_tls=os.getenv("VECTORVUE_VERIFY_TLS", "0") == "1",
         max_retries=1,

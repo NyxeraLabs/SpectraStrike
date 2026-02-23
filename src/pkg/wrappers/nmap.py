@@ -2,12 +2,12 @@
 # Author: José María Micoli
 # Licensed under BSL 1.1
 # Change Date: 2033-02-22 -> Apache-2.0
-# 
+#
 # You may:
 # Study
 # Modify
 # Use for internal security testing
-# 
+#
 # You may NOT:
 # Offer as a commercial service
 # Sell derived competing products
@@ -24,7 +24,10 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from pkg.logging.framework import get_logger
-from pkg.orchestrator.telemetry_ingestion import TelemetryEvent, TelemetryIngestionPipeline
+from pkg.orchestrator.telemetry_ingestion import (
+    TelemetryEvent,
+    TelemetryIngestionPipeline,
+)
 
 logger = get_logger("spectrastrike.wrappers.nmap")
 
@@ -51,7 +54,9 @@ class NmapScanOptions:
         if not self.targets:
             raise ValueError("at least one target is required")
         if not (self.tcp_syn or self.udp_scan or self.os_detection):
-            raise ValueError("enable at least one scan mode: tcp_syn, udp_scan, os_detection")
+            raise ValueError(
+                "enable at least one scan mode: tcp_syn, udp_scan, os_detection"
+            )
         if self.timing_template is not None and not 0 <= self.timing_template <= 5:
             raise ValueError("timing_template must be between 0 and 5")
 
@@ -180,8 +185,12 @@ class NmapWrapper:
         for host in root.findall("host"):
             address_node = host.find("address")
             status_node = host.find("status")
-            address = (address_node.get("addr") if address_node is not None else None) or "unknown"
-            status = (status_node.get("state") if status_node is not None else None) or "unknown"
+            address = (
+                address_node.get("addr") if address_node is not None else None
+            ) or "unknown"
+            status = (
+                status_node.get("state") if status_node is not None else None
+            ) or "unknown"
 
             services: list[dict[str, Any]] = []
             open_ports: list[int] = []
@@ -189,7 +198,9 @@ class NmapWrapper:
             if ports_node is not None:
                 for port_node in ports_node.findall("port"):
                     state_node = port_node.find("state")
-                    state = (state_node.get("state") if state_node is not None else "") or ""
+                    state = (
+                        state_node.get("state") if state_node is not None else ""
+                    ) or ""
                     if state != "open":
                         continue
                     port_id_raw = port_node.get("portid", "0")
@@ -231,7 +242,9 @@ class NmapWrapper:
         try:
             payload = json.loads(json_output)
         except json.JSONDecodeError as exc:
-            raise NmapExecutionError(f"failed to parse nmap JSON output: {exc}") from exc
+            raise NmapExecutionError(
+                f"failed to parse nmap JSON output: {exc}"
+            ) from exc
 
         host_nodes: list[dict[str, Any]] = []
         if isinstance(payload, dict):

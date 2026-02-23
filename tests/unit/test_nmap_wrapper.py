@@ -2,12 +2,12 @@
 # Author: José María Micoli
 # Licensed under BSL 1.1
 # Change Date: 2033-02-22 -> Apache-2.0
-# 
+#
 # You may:
 # Study
 # Modify
 # Use for internal security testing
-# 
+#
 # You may NOT:
 # Offer as a commercial service
 # Sell derived competing products
@@ -193,7 +193,9 @@ def test_send_to_orchestrator_emits_telemetry_event() -> None:
     result = wrapper.run_scan(options)
     telemetry = TelemetryIngestionPipeline(batch_size=10)
 
-    event = wrapper.send_to_orchestrator(result=result, telemetry=telemetry, actor="qa-user")
+    event = wrapper.send_to_orchestrator(
+        result=result, telemetry=telemetry, actor="qa-user"
+    )
 
     assert event.event_type == "nmap_scan_completed"
     assert event.actor == "qa-user"

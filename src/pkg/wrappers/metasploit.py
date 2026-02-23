@@ -2,12 +2,12 @@
 # Author: José María Micoli
 # Licensed under BSL 1.1
 # Change Date: 2033-02-22 -> Apache-2.0
-# 
+#
 # You may:
 # Study
 # Modify
 # Use for internal security testing
-# 
+#
 # You may NOT:
 # Offer as a commercial service
 # Sell derived competing products
@@ -25,7 +25,10 @@ from typing import Any, Callable
 import requests
 
 from pkg.logging.framework import get_logger
-from pkg.orchestrator.telemetry_ingestion import TelemetryEvent, TelemetryIngestionPipeline
+from pkg.orchestrator.telemetry_ingestion import (
+    TelemetryEvent,
+    TelemetryIngestionPipeline,
+)
 
 logger = get_logger("spectrastrike.wrappers.metasploit")
 
@@ -136,7 +139,9 @@ class MetasploitExploitResult:
 RPCTransport = Callable[[str, list[Any], MetasploitConfig], dict[str, Any]]
 
 
-def default_rpc_transport(method: str, params: list[Any], config: MetasploitConfig) -> dict[str, Any]:
+def default_rpc_transport(
+    method: str, params: list[Any], config: MetasploitConfig
+) -> dict[str, Any]:
     """Default HTTP transport for Metasploit JSON-RPC."""
     payload = {"method": method, "params": params}
     try:
@@ -156,7 +161,9 @@ def default_rpc_transport(method: str, params: list[Any], config: MetasploitConf
     try:
         data = response.json()
     except ValueError as exc:
-        raise MetasploitTransportError("invalid JSON response from Metasploit RPC") from exc
+        raise MetasploitTransportError(
+            "invalid JSON response from Metasploit RPC"
+        ) from exc
 
     if not isinstance(data, dict):
         raise MetasploitTransportError("invalid RPC payload shape")
@@ -263,9 +270,15 @@ class MetasploitWrapper:
             if not isinstance(session_meta, dict):
                 continue
             session_type = str(session_meta.get("type", "shell"))
-            method = "session.meterpreter_read" if session_type == "meterpreter" else "session.shell_read"
+            method = (
+                "session.meterpreter_read"
+                if session_type == "meterpreter"
+                else "session.shell_read"
+            )
             output_response = self._rpc_call_with_retry(method, [session_id])
-            output = str(output_response.get("data") or output_response.get("output") or "")
+            output = str(
+                output_response.get("data") or output_response.get("output") or ""
+            )
             sessions.append(
                 SessionTranscript(
                     session_id=str(session_id),
@@ -324,8 +337,11 @@ class MetasploitWrapper:
                 last_error = exc
                 if attempt >= attempts:
                     raise MetasploitRPCError(
-                        f"metasploit rpc call failed for {method} after {attempts} attempts: {exc}"
+                        f"metasploit rpc call failed for {method} "
+                        f"after {attempts} attempts: {exc}"
                     ) from exc
                 time.sleep(self._config.backoff_seconds * (2 ** (attempt - 1)))
 
-        raise MetasploitRPCError(str(last_error) if last_error else "unknown metasploit rpc error")
+        raise MetasploitRPCError(
+            str(last_error) if last_error else "unknown metasploit rpc error"
+        )

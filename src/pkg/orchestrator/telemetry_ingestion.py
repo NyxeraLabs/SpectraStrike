@@ -2,12 +2,12 @@
 # Author: José María Micoli
 # Licensed under BSL 1.1
 # Change Date: 2033-02-22 -> Apache-2.0
-# 
+#
 # You may:
 # Study
 # Modify
 # Use for internal security testing
-# 
+#
 # You may NOT:
 # Offer as a commercial service
 # Sell derived competing products
@@ -26,8 +26,8 @@ from pkg.logging.framework import emit_audit_event, get_logger
 from pkg.orchestrator.messaging import (
     BrokerEnvelope,
     PublishStatus,
-    TelemetryPublishResult,
     TelemetryPublisher,
+    TelemetryPublishResult,
 )
 
 logger = get_logger("spectrastrike.orchestrator.telemetry")
@@ -121,7 +121,9 @@ class TelemetryIngestionPipeline:
         """Flush all events and publish through configured broker transport."""
         return await self._publish_batch(self.flush_all())
 
-    async def _publish_batch(self, batch: list[TelemetryEvent]) -> TelemetryPublishResult:
+    async def _publish_batch(
+        self, batch: list[TelemetryEvent]
+    ) -> TelemetryPublishResult:
         if not batch:
             return TelemetryPublishResult(
                 published=0,

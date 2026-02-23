@@ -2,25 +2,18 @@
 # Author: José María Micoli
 # Licensed under BSL 1.1
 # Change Date: 2033-02-22 -> Apache-2.0
-# 
+#
 # You may:
 # Study
 # Modify
 # Use for internal security testing
-# 
+#
 # You may NOT:
 # Offer as a commercial service
 # Sell derived competing products
 
 """Tool wrappers for external security utilities."""
 
-from pkg.wrappers.nmap import (
-    NmapExecutionError,
-    NmapScanHost,
-    NmapScanOptions,
-    NmapScanResult,
-    NmapWrapper,
-)
 from pkg.wrappers.metasploit import (
     ExploitRequest,
     MetasploitConfig,
@@ -29,6 +22,13 @@ from pkg.wrappers.metasploit import (
     MetasploitTransportError,
     MetasploitWrapper,
     SessionTranscript,
+)
+from pkg.wrappers.nmap import (
+    NmapExecutionError,
+    NmapScanHost,
+    NmapScanOptions,
+    NmapScanResult,
+    NmapWrapper,
 )
 
 __all__ = [
