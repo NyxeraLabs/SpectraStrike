@@ -94,7 +94,7 @@ Implement auth views and operator dashboard shell (Web UI),Create login and oper
 Implement telemetry feed view (Nmap/Metasploit/Manual ingestion) (Web UI),Display live operational telemetry in web UI,Done,Frontend,Telemetry feed view implemented at /ui/dashboard/telemetry with Nmap Metasploit and manual ingestion stream cards.
 Implement findings and evidence navigation screens (Web UI),Expose findings and evidence browsing in web UI,Done,Frontend,"Findings list, finding detail, and evidence navigation routes implemented under /ui/dashboard/findings."
 Wire Web UI actions to orchestrator and integration endpoints,Connect frontend workflows to SpectraStrike APIs,Done,Frontend,UI quick actions wired to secure BFF routes and orchestrator proxy/fallback endpoints.
-Add Web UI tests (component/unit + basic E2E),Validate web UI behavior and core user flows,Backlog,QA,
+Add Web UI tests (component/unit + basic E2E),Validate web UI behavior and core user flows,Done,QA,"Vitest component/unit tests and Playwright basic E2E flow added under ui/web/tests."
 Implement Interactive Terminal UI (Admin TUI) for operational control,Provide keyboard-first admin operations interface before Cobalt Strike implementation,Backlog,DevOps,
 Add Admin TUI command workflows (task submission; telemetry watch; integration sync),Enable admin runtime operations from terminal UI,Backlog,DevOps,
 Add Admin TUI tests and command-level QA checks,Validate admin TUI commands and interaction behavior,Backlog,QA,

@@ -12,7 +12,7 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-.PHONY: help build ui-build secrets-init pki-ensure tls-ensure up up-all ui-up ui-down ui-open down down-all restart ps logs ui-logs test test-unit test-integration test-docker qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all security-check license-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
+.PHONY: help build ui-build secrets-init pki-ensure tls-ensure up up-all ui-up ui-down ui-open down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all security-check license-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
 
 COMPOSE_DEV = docker compose -f docker-compose.dev.yml
 COMPOSE_PROD = docker compose -f docker-compose.prod.yml
@@ -40,6 +40,8 @@ help:
 	@echo "  test-unit         Run local unit tests"
 	@echo "  test-integration  Run local integration tests"
 	@echo "  test-docker       Run test suite inside app container"
+	@echo "  test-ui           Run web UI component/unit tests"
+	@echo "  test-ui-e2e       Run web UI basic Playwright E2E tests"
 	@echo "  qa                Run local and dockerized tests"
 	@echo "  full-regression   Run full QA + security + docker test path"
 	@echo "  prod-up           Start production compose stack"
@@ -150,6 +152,12 @@ test-integration:
 
 test-docker:
 	$(COMPOSE_DEV) run --rm app python -m pytest -q
+
+test-ui:
+	npm --prefix ui/web run test:unit
+
+test-ui-e2e:
+	npm --prefix ui/web run test:e2e
 
 qa: test test-docker
 

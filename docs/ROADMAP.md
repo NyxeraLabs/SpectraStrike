@@ -139,7 +139,7 @@ Sell derived competing products
 - [x] Implement telemetry feed view (Nmap/Metasploit/Manual ingestion) (Web UI)
 - [x] Implement findings and evidence navigation screens (Web UI)
 - [x] Wire Web UI actions to orchestrator and integration endpoints
-- [ ] Add Web UI tests (component/unit + basic E2E)
+- [x] Add Web UI tests (component/unit + basic E2E)
 - [ ] Implement Interactive Terminal UI (Admin TUI) for operational control
 - [ ] Add Admin TUI command workflows (task submission, telemetry watch, integration sync)
 - [ ] Add Admin TUI tests and command-level QA checks

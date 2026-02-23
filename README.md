@@ -153,6 +153,8 @@ make test
 make test-unit
 make test-integration
 make test-docker
+make test-ui
+make test-ui-e2e
 ```
 
 ## Pre-commit License Header Enforcement
