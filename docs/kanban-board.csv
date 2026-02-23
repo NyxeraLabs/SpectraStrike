@@ -1,17 +1,3 @@
-# Copyright (c) 2026 NyxeraLabs
-# Author: José María Micoli
-# Licensed under BSL 1.1
-# Change Date: 2033-02-22 -> Apache-2.0
-# 
-# You may:
-# Study
-# Modify
-# Use for internal security testing
-# 
-# You may NOT:
-# Offer as a commercial service
-# Sell derived competing products
-
 Name,Description,List,Labels,Checklist
 Initialize Git repo,Setup repository for SpectraStrike,Backlog,Dev,
 Setup Python virtual environment,Setup Python venv and dependencies,Backlog,Dev,
@@ -82,7 +68,7 @@ Add retry/dead-letter/idempotency for broker delivery,Harden async telemetry del
 Integration tests for broker publish/consume flow,Validate queue/topic end-to-end behavior,Done,QA,Integration and unit coverage added for publish/consume
 Add dockerized RabbitMQ wiring + Makefile ops,Provide one-command deploy/test/logs workflows for messaging stack,Done,DevOps,Compose + Makefile targets for dev/prod and tools profile
 Add remote operator endpoint env configuration,Default integrations to remote operator endpoints instead of localhost,Done,DevOps,MSF RPC/manual and RabbitMQ env-based config added
-Commit messaging backbone,Commit messaging implementation,Done,Dev,Sprint 9.5 messaging baseline completed
+Commit messaging backbone,Commit messaging implementation,Backlog,Dev,Sprint 9.5 messaging baseline completed
 Connect to Cobalt Strike API,Cobalt Strike beacon automation,Backlog,Dev,
 Deploy beacon simulation (Cobalt Strike),Simulate attack beacon,Backlog,Dev,
 Capture command output (Cobalt Strike),Capture commands,Backlog,Dev,
@@ -126,7 +112,7 @@ Add HTTPS edge with optional mTLS in reverse proxy,Encrypt ingress traffic and o
 Add internal mTLS for telemetry data plane,Encrypt app to broker telemetry transport with mutual certificate validation,Done,Security,RabbitMQ TLS-only listener and app client cert auth added
 Add full service-to-service end-to-end TLS,Encrypt all internal runtime hops including broker and data plane,Done,Security,mTLS enforced for RabbitMQ PostgreSQL and Redis with internal CA and client certificate verification
 Add centralized log pipeline and retention policy in containers,Collect and retain application and security logs,Done,Observability,Vector and Loki stack with local retention enabled
-Add local supply-chain security gate,Generate SBOM, scan CVEs, and verify signed images before deploy,Done,Security,Dockerized syft grype cosign workflows and Make targets
+Add local supply-chain security gate,"Generate SBOM, scan CVEs, and verify signed images before deploy",Done,Security,Dockerized syft grype cosign workflows and Make targets
 Add tamper-evident audit trail chaining,Protect audit stream integrity against silent record tampering,Done,Security,hash-linked audit events implemented in logging framework
 Add stronger AAA controls,Enforce constant-time auth checks optional MFA and lockout policy,Done,Security,AAA lockout and optional MFA code validation added
 Add health checks startup ordering and restart policies for all services,Improve service reliability and self-healing behavior,Done,DevOps,depends_on health conditions and healthchecks configured
@@ -135,7 +121,7 @@ Add container security baseline (non-root minimal images pinned versions),Reduce
 Add infrastructure integration tests and security QA checks,Validate runtime stack and hardening controls end-to-end,Done,QA,compose config validation and pytest baseline integrated
 Add project Makefile for easy test easy deploy and easy QA operations,Create one-command developer and operator workflows,Done,DevOps,Makefile includes deploy test qa backups and security-check
 Add QA runbook and full-regression command targets,Standardize complete QA execution for local and CI usage,Done,QA,QA_RUNBOOK and full-regression Make target added
-Commit security/container platform baseline,Commit hardened infrastructure baseline,Done,DevOps,Hardening baseline implemented in repo
+Commit security/container platform baseline,Commit hardened infrastructure baseline,Backlog,DevOps,Hardening baseline implemented in repo
 Implement wrapper module (Gobuster / DirBuster),Directory brute-force scanning,Backlog,Dev,
 Configure wordlists (Gobuster / DirBuster),Set up wordlists,Backlog,Dev,
 Automate directory scan (Gobuster / DirBuster),Run directory scans,Backlog,Dev,
