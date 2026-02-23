@@ -21,29 +21,29 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { FormEvent } from "react";
 
+import { legalDocuments } from "../lib/legal-document-content";
+
 type AuthMode = "login" | "register";
 type StatusTone = "error" | "success" | "info";
+type ApiErrorBody = { error?: string };
 
-const policySections = [
-  {
-    id: "license",
-    title: "Business Source License 1.1",
-    body: "This tool is licensed under BSL 1.1. Internal security testing is permitted. Commercial hosting and competing resale are prohibited until the change date.",
-    confirmLabel: "I have read and accept the License terms."
-  },
-  {
-    id: "eula",
-    title: "End User License Agreement (EULA)",
-    body: "You confirm this platform will be used only by authorized operators for approved engagements. Abuse, unauthorized targeting, and policy bypass are forbidden.",
-    confirmLabel: "I have read and accept the EULA."
-  },
-  {
-    id: "security",
-    title: "Security Policy",
-    body: "You must protect credentials, use MFA, maintain audit trails, and report incidents immediately. Access is role-based and all high-risk actions are logged.",
-    confirmLabel: "I have read and accept the Security Policy."
+const registrationPolicies = legalDocuments.filter(
+  (section) => section.requiredForRegistration
+);
+
+type RegistrationPolicyId = (typeof registrationPolicies)[number]["id"];
+
+async function parseApiErrorBody(response: Response): Promise<ApiErrorBody> {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    return {};
   }
-] as const;
+  try {
+    return (await response.json()) as ApiErrorBody;
+  } catch {
+    return {};
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -51,7 +51,16 @@ export default function LoginPage() {
   const [acceptedPolicies, setAcceptedPolicies] = useState({
     license: false,
     eula: false,
-    security: false
+    aup: false,
+    privacy: false,
+    security: false,
+  });
+  const [viewedPolicies, setViewedPolicies] = useState({
+    license: false,
+    eula: false,
+    aup: false,
+    privacy: false,
+    security: false,
   });
   const [registrationUnlocked, setRegistrationUnlocked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -72,12 +81,30 @@ export default function LoginPage() {
   });
 
   const allPoliciesAccepted =
-    acceptedPolicies.license && acceptedPolicies.eula && acceptedPolicies.security;
+    acceptedPolicies.license &&
+    acceptedPolicies.eula &&
+    acceptedPolicies.aup &&
+    acceptedPolicies.privacy &&
+    acceptedPolicies.security;
 
-  const handlePolicyToggle = (policyId: "license" | "eula" | "security") => {
+  const handlePolicyToggle = (policyId: RegistrationPolicyId) => {
+    if (!viewedPolicies[policyId]) {
+      return;
+    }
     setAcceptedPolicies((current) => ({
       ...current,
-      [policyId]: !current[policyId]
+      [policyId]: !current[policyId],
+    }));
+  };
+
+  const handlePolicyScroll = (policyId: RegistrationPolicyId, element: HTMLDivElement) => {
+    const nearBottom = element.scrollTop + element.clientHeight >= element.scrollHeight - 4;
+    if (!nearBottom || viewedPolicies[policyId]) {
+      return;
+    }
+    setViewedPolicies((current) => ({
+      ...current,
+      [policyId]: true,
     }));
   };
 
@@ -108,7 +135,7 @@ export default function LoginPage() {
           mfa_code: loginForm.mfaCode || undefined
         })
       });
-      const body = (await response.json()) as { error?: string };
+      const body = await parseApiErrorBody(response);
 
       if (!response.ok) {
         if (body.error === "LEGAL_ACCEPTANCE_REQUIRED") {
@@ -156,11 +183,13 @@ export default function LoginPage() {
           password_confirm: registerForm.passwordConfirm,
           accepted_license: acceptedPolicies.license,
           accepted_eula: acceptedPolicies.eula,
+          accepted_aup: acceptedPolicies.aup,
+          accepted_privacy: acceptedPolicies.privacy,
           accepted_security_policy: acceptedPolicies.security,
           registration_token: registrationToken || undefined
         })
       });
-      const body = (await response.json()) as { error?: string };
+      const body = await parseApiErrorBody(response);
 
       if (!response.ok) {
         const messageByCode: Record<string, string> = {
@@ -169,7 +198,8 @@ export default function LoginPage() {
           invalid_email: "Enter a valid email address.",
           weak_password: "Use a stronger password (12+ chars with upper/lowercase, number, symbol).",
           password_mismatch: "Password and confirmation do not match.",
-          policies_not_accepted: "You must accept License, EULA, and Security Policy.",
+          policies_not_accepted:
+            "You must accept License, EULA, AUP, Privacy Policy, and Security Policy.",
           invalid_registration_token: "Registration token is invalid.",
           username_unavailable: "That username is already taken.",
           rate_limited: "Too many attempts. Try again in a minute."
@@ -201,13 +231,23 @@ export default function LoginPage() {
     setStatusMessage(null);
     try {
       const response = await fetch("/ui/api/v1/auth/demo", { method: "POST" });
-      const body = (await response.json()) as { error?: string };
+      const body = await parseApiErrorBody(response);
       if (!response.ok) {
+        if (body.error === "LEGAL_ACCEPTANCE_REQUIRED") {
+          showStatus("info", "Legal acceptance required. Redirecting...");
+          router.push("/legal/acceptance");
+          router.refresh();
+          return;
+        }
         const message =
           body.error === "demo_disabled"
             ? "Demo shell is disabled by policy."
+            : body.error === "origin_forbidden"
+            ? "Demo shell blocked by origin policy. Check UI_ALLOWED_ORIGINS."
             : body.error === "rate_limited"
             ? "Too many demo attempts. Try again in a minute."
+            : body.error
+            ? `Unable to open demo shell (${body.error}).`
             : "Unable to open demo shell.";
         showStatus("error", message);
         return;
@@ -365,22 +405,43 @@ export default function LoginPage() {
                 </p>
               </div>
 
-              <div className="max-h-72 space-y-3 overflow-y-auto pr-1">
-                {policySections.map((section) => (
+              <div className="max-h-96 space-y-3 overflow-y-auto pr-1">
+                {registrationPolicies.map((section) => (
                   <div key={section.id} className="rounded-panel border border-borderSubtle bg-bgPrimary/70 p-4">
-                    <h3 className="text-sm font-semibold text-white">{section.title}</h3>
-                    <p className="mt-2 text-sm leading-6 text-slate-300">{section.body}</p>
+                    <h3 className="text-sm font-semibold text-white">
+                      {section.title}
+                      <span className="ml-2 spectra-mono text-xs text-slate-400">
+                        v{section.version}
+                      </span>
+                    </h3>
+                    <div
+                      className="mt-2 max-h-48 overflow-y-auto rounded-panel border border-borderSubtle bg-bgPrimary/80 p-3"
+                      data-testid={`legal-scroll-${section.id}`}
+                      onScroll={(event) =>
+                        handlePolicyScroll(section.id, event.currentTarget)
+                      }
+                    >
+                      <pre className="whitespace-pre-wrap text-xs leading-6 text-slate-300">
+                        {section.content}
+                      </pre>
+                    </div>
+                    <p className="mt-2 text-xs text-slate-400">
+                      {viewedPolicies[section.id]
+                        ? "Document reviewed."
+                        : "Scroll to the end to enable acceptance."}
+                    </p>
                   </div>
                 ))}
               </div>
 
               <div className="space-y-3 rounded-panel border border-borderSubtle bg-bgPrimary/70 p-4 text-sm text-slate-200">
-                {policySections.map((section) => (
+                {registrationPolicies.map((section) => (
                   <label key={`${section.id}-checkbox`} className="flex cursor-pointer items-start gap-3">
                     <input
                       type="checkbox"
                       checked={acceptedPolicies[section.id]}
                       onChange={() => handlePolicyToggle(section.id)}
+                      disabled={!viewedPolicies[section.id]}
                       className="mt-1 h-4 w-4 rounded border-borderSubtle bg-bgPrimary text-accentPrimary"
                     />
                     <span>{section.confirmLabel}</span>

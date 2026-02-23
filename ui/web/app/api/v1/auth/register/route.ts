@@ -30,6 +30,8 @@ type RegisterPayload = {
   password_confirm?: string;
   accepted_license?: boolean;
   accepted_eula?: boolean;
+  accepted_aup?: boolean;
+  accepted_privacy?: boolean;
   accepted_security_policy?: boolean;
   registration_token?: string;
 };
@@ -56,6 +58,8 @@ function normalizeRegistrationPayload(payload: RegisterPayload) {
     passwordConfirm: payload.password_confirm ?? "",
     acceptedLicense: payload.accepted_license === true,
     acceptedEula: payload.accepted_eula === true,
+    acceptedAup: payload.accepted_aup === true,
+    acceptedPrivacy: payload.accepted_privacy === true,
     acceptedSecurityPolicy: payload.accepted_security_policy === true,
     registrationToken: (payload.registration_token ?? "").trim(),
   };
@@ -77,7 +81,13 @@ function validatePayload(payload: ReturnType<typeof normalizeRegistrationPayload
   if (payload.password !== payload.passwordConfirm) {
     return "password_mismatch";
   }
-  if (!payload.acceptedLicense || !payload.acceptedEula || !payload.acceptedSecurityPolicy) {
+  if (
+    !payload.acceptedLicense ||
+    !payload.acceptedEula ||
+    !payload.acceptedAup ||
+    !payload.acceptedPrivacy ||
+    !payload.acceptedSecurityPolicy
+  ) {
     return "policies_not_accepted";
   }
 

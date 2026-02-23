@@ -14,7 +14,7 @@ Offer as a commercial service
 Sell derived competing products
 */
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { vi } from "vitest";
 
@@ -39,11 +39,18 @@ describe("LoginPage", () => {
     const continueButton = screen.getByRole("button", { name: "Continue to Registration" });
     expect(continueButton).toBeDisabled();
 
+    for (const policyId of ["license", "eula", "aup", "privacy", "security"]) {
+      const scroller = screen.getByTestId(`legal-scroll-${policyId}`);
+      fireEvent.scroll(scroller);
+    }
+
     const checkboxes = screen.getAllByRole("checkbox");
-    expect(checkboxes).toHaveLength(3);
+    expect(checkboxes).toHaveLength(5);
     await user.click(checkboxes[0]);
     await user.click(checkboxes[1]);
     await user.click(checkboxes[2]);
+    await user.click(checkboxes[3]);
+    await user.click(checkboxes[4]);
 
     expect(continueButton).toBeEnabled();
     await user.click(continueButton);

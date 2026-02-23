@@ -12,7 +12,7 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-.PHONY: help build ui-build secrets-init pki-ensure tls-ensure up up-all ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all security-check license-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
+.PHONY: help build ui-build secrets-init pki-ensure tls-ensure up up-all ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db security-check license-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
 
 COMPOSE_DEV = docker compose -f docker-compose.dev.yml
 COMPOSE_PROD = docker compose -f docker-compose.prod.yml
@@ -53,6 +53,7 @@ help:
 	@echo "  backup-postgres   Backup postgres into ./backup"
 	@echo "  backup-redis      Backup redis into ./backup"
 	@echo "  backup-all        Backup postgres and redis"
+	@echo "  reset-db          Drop and recreate spectrastrike database in dev postgres container"
 	@echo "  security-check    Validate compose configs and local tests"
 	@echo "  license-check     Validate required BSL license headers"
 	@echo "  tls-dev-cert      Generate local TLS cert/key for nginx"
@@ -101,13 +102,13 @@ tls-ensure:
 	fi
 
 up: secrets-init pki-ensure tls-ensure
-	$(COMPOSE_DEV) up -d
+	$(COMPOSE_DEV) up -d --build
 
 up-all: secrets-init pki-ensure tls-ensure
-	$(COMPOSE_DEV) --profile tools up -d
+	$(COMPOSE_DEV) --profile tools up -d --build
 
 ui-up:
-	$(COMPOSE_DEV) up -d ui-web
+	$(COMPOSE_DEV) up -d --build ui-web
 
 ui-admin-shell:
 	$(COMPOSE_DEV) --profile admin run --rm ui-admin
@@ -182,6 +183,16 @@ backup-redis:
 	./docker/scripts/backup_redis.sh ./backup
 
 backup-all: backup-postgres backup-redis
+
+reset-db:
+	$(COMPOSE_DEV) exec -T postgres sh -lc '\
+	PGUSER="$$(cat /run/secrets/postgres_user)"; \
+	PGPASSWORD="$$(cat /run/secrets/postgres_password)"; \
+	export PGPASSWORD; \
+	psql -U "$$PGUSER" -d postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='\''spectrastrike'\'' AND pid <> pg_backend_pid();" >/dev/null; \
+	psql -U "$$PGUSER" -d postgres -c "DROP DATABASE IF EXISTS spectrastrike;"; \
+	psql -U "$$PGUSER" -d postgres -c "CREATE DATABASE spectrastrike;"; \
+	'
 
 security-check:
 	docker compose -f docker-compose.dev.yml config >/dev/null

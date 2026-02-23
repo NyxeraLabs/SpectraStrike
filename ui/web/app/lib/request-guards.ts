@@ -57,7 +57,9 @@ export function validateOrigin(request: Request): boolean {
     return true;
   }
 
-  const allowed = process.env.UI_ALLOWED_ORIGINS ?? "https://localhost:18443";
+  const allowed =
+    process.env.UI_ALLOWED_ORIGINS ??
+    "https://localhost:18443,https://127.0.0.1:18443,http://localhost:3000,http://127.0.0.1:3000";
   const allowlist = allowed
     .split(",")
     .map((item) => item.trim())

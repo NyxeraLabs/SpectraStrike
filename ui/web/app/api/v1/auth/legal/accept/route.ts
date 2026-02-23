@@ -55,24 +55,34 @@ export async function POST(request: Request) {
     );
   }
 
-  const payload = (await request.json()) as AcceptPayload;
-  const acceptedDocuments = payload.accepted_documents ?? {};
-  const stored = await legalEnforcementService.recordSelfHostedAcceptance({
-    acceptedBy: payload.accepted_by,
-    acceptedDocuments,
-    installationId: payload.installation_id,
-  });
-  const decision = await legalEnforcementService.evaluate({
-    environment: "self-hosted",
-    acceptanceRecord: stored,
-  });
+  try {
+    const payload = (await request.json()) as AcceptPayload;
+    const acceptedDocuments = payload.accepted_documents ?? {};
+    const stored = await legalEnforcementService.recordSelfHostedAcceptance({
+      acceptedBy: payload.accepted_by,
+      acceptedDocuments,
+      installationId: payload.installation_id,
+    });
+    const decision = await legalEnforcementService.evaluate({
+      environment: "self-hosted",
+      acceptanceRecord: stored,
+    });
 
-  return Response.json(
-    {
-      status: decision.isCompliant ? "accepted" : "incomplete",
-      legal: decision,
-      acceptance: stored,
-    },
-    { status: decision.isCompliant ? 200 : 202 }
-  );
+    return Response.json(
+      {
+        status: decision.isCompliant ? "accepted" : "incomplete",
+        legal: decision,
+        acceptance: stored,
+      },
+      { status: decision.isCompliant ? 200 : 202 }
+    );
+  } catch (error) {
+    return Response.json(
+      {
+        error: "legal_acceptance_write_failed",
+        message: error instanceof Error ? error.message : "unknown_error",
+      },
+      { status: 500 }
+    );
+  }
 }

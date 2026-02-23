@@ -30,6 +30,7 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup -S spectra && adduser -S spectra -G spectra
+RUN mkdir -p /var/lib/spectrastrike && chown -R spectra:spectra /var/lib/spectrastrike
 
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static

@@ -91,6 +91,10 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_TELEMETRY_DISABLED=1
+      - UI_ALLOWED_ORIGINS=https://localhost:${HOST_PROXY_TLS_PORT:-18443},https://127.0.0.1:${HOST_PROXY_TLS_PORT:-18443},http://localhost:3000,http://127.0.0.1:3000
+      - SPECTRASTRIKE_LEGAL_ACCEPTANCE_PATH=/var/lib/spectrastrike/legal/acceptance.json
+    volumes:
+      - ui_legal_data:/var/lib/spectrastrike
     depends_on:
       app:
         condition: service_healthy
@@ -100,7 +104,7 @@ services:
     security_opt:
       - no-new-privileges:true
     healthcheck:
-      test: ["CMD", "node", "-e", "const http=require('http');const os=require('os');const host=os.hostname();http.get({host,port:3000,path:'/ui'},res=>process.exit(res.statusCode===200?0:1)).on('error',()=>process.exit(1));"]
+      test: ["CMD", "node", "-e", "const http=require('http');const os=require('os');const targets=[{host:os.hostname(),port:3000,path:'/ui'},{host:'127.0.0.1',port:3000,path:'/ui'}];let i=0;const ok=s=>s>=200&&s<400;const probe=()=>{if(i>=targets.length){process.exit(1);return;}const req=http.get(targets[i],res=>{res.resume();process.exit(ok(res.statusCode||0)?0:1);});req.on('error',()=>{i+=1;probe();});};probe();"]
       interval: 20s
       timeout: 5s
       retries: 5
@@ -384,3 +388,4 @@ volumes:
   postgres_data:
   redis_data:
   loki_data:
+  ui_legal_data:
