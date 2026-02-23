@@ -15,6 +15,8 @@ Sell derived competing products
 -->
 
 # SpectraStrike Roadmap – Phases, Sprints, and Commits
+![SpectraStrike Logo](../ui/web/assets/images/SprectraStrike_Logo.png)
+
 
 ## Phase 1: Setup & Environment Initialization (Sprint 1-2)
 
@@ -136,7 +138,7 @@ Sell derived competing products
 - [x] Implement auth views and operator dashboard shell (Web UI)
 - [x] Implement telemetry feed view (Nmap/Metasploit/Manual ingestion) (Web UI)
 - [x] Implement findings and evidence navigation screens (Web UI)
-- [ ] Wire Web UI actions to orchestrator and integration endpoints
+- [x] Wire Web UI actions to orchestrator and integration endpoints
 - [ ] Add Web UI tests (component/unit + basic E2E)
 - [ ] Implement Interactive Terminal UI (Admin TUI) for operational control
 - [ ] Add Admin TUI command workflows (task submission, telemetry watch, integration sync)

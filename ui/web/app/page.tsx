@@ -1,9 +1,18 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function Home() {
   return (
     <main className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-12">
       <header className="spectra-panel bg-surfaceElevated/80 p-8">
+        <Image
+          src="/ui/assets/spectrastrike-logo.png"
+          alt="SpectraStrike logo"
+          width={120}
+          height={80}
+          className="rounded-lg border border-borderSubtle/80"
+          priority
+        />
         <p className="text-xs uppercase tracking-[0.2em] text-telemetry">Sprint 9.6</p>
         <h1 className="mt-3 text-4xl font-bold text-white [font-family:var(--font-display)]">
           SpectraStrike Web Console

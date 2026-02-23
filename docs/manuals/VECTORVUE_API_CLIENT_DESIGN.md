@@ -15,6 +15,8 @@ Sell derived competing products
 -->
 
 # VectorVue API Client Design (Sprint 4)
+![SpectraStrike Logo](../../ui/web/assets/images/SprectraStrike_Logo.png)
+
 
 ## Goal
 Define a secure, testable, and extensible Python API client for delivering SpectraStrike telemetry and findings to VectorVue client and integration APIs.

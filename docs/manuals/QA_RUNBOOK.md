@@ -6,6 +6,8 @@ Change Date: 2033-02-22 -> Apache-2.0
 -->
 
 # SpectraStrike QA Runbook
+![SpectraStrike Logo](../../ui/web/assets/images/SprectraStrike_Logo.png)
+
 
 ## Scope
 

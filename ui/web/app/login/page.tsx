@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -5,6 +6,14 @@ export default function LoginPage() {
     <main className="mx-auto flex min-h-screen w-full max-w-5xl items-center px-6 py-10">
       <section className="grid w-full gap-6 md:grid-cols-[1.2fr_1fr]">
         <article className="spectra-panel bg-surfaceElevated/80 p-8">
+          <Image
+            src="/ui/assets/spectrastrike-logo.png"
+            alt="SpectraStrike logo"
+            width={110}
+            height={73}
+            className="rounded-lg border border-borderSubtle/80"
+            priority
+          />
           <p className="text-xs uppercase tracking-[0.2em] text-telemetry">Authentication</p>
           <h1 className="mt-3 text-4xl font-bold text-white [font-family:var(--font-display)]">
             Operator Access

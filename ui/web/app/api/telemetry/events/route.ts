@@ -1,3 +1,5 @@
+import { proxyToOrchestrator } from "../../../lib/orchestrator-proxy";
+
 const events = [
   {
     event_id: "evt-001",
@@ -28,6 +30,46 @@ const events = [
   },
 ];
 
-export async function GET() {
-  return Response.json({ items: events, next_cursor: null });
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const source = url.searchParams.get("source");
+  const status = url.searchParams.get("status");
+  const cursor = url.searchParams.get("cursor");
+
+  const upstream = await proxyToOrchestrator(
+    `/api/v1/telemetry/events?${new URLSearchParams({
+      ...(source ? { source } : {}),
+      ...(status ? { status } : {}),
+      ...(cursor ? { cursor } : {}),
+      limit: "100",
+    }).toString()}`,
+    { method: "GET" }
+  );
+
+  if (upstream && upstream.ok) {
+    const body = await upstream.json();
+    return Response.json(body, {
+      status: 200,
+      headers: { "cache-control": "no-store" },
+    });
+  }
+
+  const filtered = events.filter((item) => {
+    if (source && item.source !== source) {
+      return false;
+    }
+    if (status && item.status !== status) {
+      return false;
+    }
+    return true;
+  });
+
+  return Response.json(
+    {
+      items: filtered,
+      next_cursor: null,
+      mode: "ui-local-fallback",
+    },
+    { headers: { "cache-control": "no-store" } }
+  );
 }

@@ -15,6 +15,8 @@ Sell derived competing products
 -->
 
 # Security Policy – SpectraStrike
+![SpectraStrike Logo](ui/web/assets/images/SprectraStrike_Logo.png)
+
 
 **Author:** José María Micoli  
 **Intellectual Property Holder:** Nyxera Labs  

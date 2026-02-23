@@ -15,6 +15,8 @@ Sell derived competing products
 -->
 
 # Orchestrator Architecture (Phase 2 Design)
+![SpectraStrike Logo](../../ui/web/assets/images/SprectraStrike_Logo.png)
+
 
 ## Purpose
 The orchestrator is the central control plane for SpectraStrike. It coordinates tool wrappers, enforces AAA policy, records audit trails, and publishes telemetry.

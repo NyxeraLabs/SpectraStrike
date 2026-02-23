@@ -6,6 +6,8 @@ Change Date: 2033-02-22 -> Apache-2.0
 -->
 
 # SpectraStrike UI Architecture and API Contracts (Sprint 9.6 Step 1)
+![SpectraStrike Logo](../../ui/web/assets/images/SprectraStrike_Logo.png)
+
 
 ## 1. Scope
 

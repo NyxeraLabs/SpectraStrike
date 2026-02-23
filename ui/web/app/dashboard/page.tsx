@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { QuickActions } from "../components/quick-actions";
 import { TopNav } from "../components/top-nav";
 
 const kpis = [
@@ -9,19 +10,12 @@ const kpis = [
   { label: "Telemetry Events (24h)", value: "14,382", tone: "text-telemetryGlow" },
 ];
 
-const quickActions = [
-  "Queue Nmap scan",
-  "Trigger Metasploit manual sync",
-  "Review failed broker publishes",
-  "Open audit chain validator",
-];
-
 export default function DashboardPage() {
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-6 py-8">
+    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
       <TopNav />
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {kpis.map((kpi) => (
           <article key={kpi.label} className="spectra-panel p-4">
             <p className="text-xs uppercase tracking-wide text-slate-400">{kpi.label}</p>
@@ -34,13 +28,24 @@ export default function DashboardPage() {
         <article className="spectra-panel p-5">
           <h2 className="text-sm uppercase tracking-[0.2em] text-telemetry">Live Activity</h2>
           <div className="mt-4 space-y-3 text-sm text-slate-300">
-            <p className="spectra-mono text-telemetryGlow">[telemetry] nmap_scan_completed target=10.0.9.0/24</p>
-            <p className="spectra-mono text-success">[task] exploit_dispatch status=queued module=auxiliary/scanner/smb</p>
-            <p className="spectra-mono text-warning">[broker] retry_attempt queue=spectrastrike.telemetry attempt=2</p>
-            <p className="spectra-mono text-critical">[alert] policy_violation source=operator-session</p>
+            <p className="spectra-mono break-all text-telemetryGlow">
+              [telemetry] nmap_scan_completed target=10.0.9.0/24
+            </p>
+            <p className="spectra-mono break-all text-success">
+              [task] exploit_dispatch status=queued module=auxiliary/scanner/smb
+            </p>
+            <p className="spectra-mono break-all text-warning">
+              [broker] retry_attempt queue=spectrastrike.telemetry attempt=2
+            </p>
+            <p className="spectra-mono break-all text-critical">
+              [alert] policy_violation source=operator-session
+            </p>
           </div>
-          <div className="mt-4">
-            <Link href="/dashboard/telemetry" className="spectra-button-primary inline-flex px-4 py-2 text-sm font-semibold">
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              href="/dashboard/telemetry"
+              className="spectra-button-primary inline-flex px-4 py-2 text-sm font-semibold"
+            >
               Open Full Telemetry Feed
             </Link>
           </div>
@@ -48,20 +53,12 @@ export default function DashboardPage() {
 
         <article className="spectra-panel p-5">
           <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">Quick Actions</h2>
-          <div className="mt-4 grid gap-2">
-            {quickActions.map((action) => (
-              <button
-                key={action}
-                type="button"
-                className="spectra-button-secondary flex items-center justify-between px-3 py-2 text-left text-sm"
-              >
-                <span>{action}</span>
-                <span className="text-xs text-slate-400">run</span>
-              </button>
-            ))}
-          </div>
+          <QuickActions />
           <div className="mt-4">
-            <Link href="/dashboard/findings" className="spectra-button-primary inline-flex px-4 py-2 text-sm font-semibold">
+            <Link
+              href="/dashboard/findings"
+              className="spectra-button-primary inline-flex px-4 py-2 text-sm font-semibold"
+            >
               Open Findings Navigator
             </Link>
           </div>
@@ -70,7 +67,7 @@ export default function DashboardPage() {
 
       <section className="spectra-panel p-5">
         <h2 className="text-sm uppercase tracking-[0.2em] text-slate-300">Operator Session</h2>
-        <div className="mt-3 grid gap-2 text-sm text-slate-300 md:grid-cols-3">
+        <div className="mt-3 grid gap-2 text-sm text-slate-300 sm:grid-cols-2 lg:grid-cols-4">
           <p>
             Role: <span className="spectra-mono text-white">red-team-operator</span>
           </p>

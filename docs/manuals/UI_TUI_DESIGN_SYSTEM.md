@@ -6,6 +6,8 @@ Change Date: 2033-02-22 -> Apache-2.0
 -->
 
 # SpectraStrike UI/TUI Design System
+![SpectraStrike Logo](../../ui/web/assets/images/SprectraStrike_Logo.png)
+
 
 ## 1. Palette
 

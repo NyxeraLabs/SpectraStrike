@@ -6,6 +6,8 @@ Change Date: 2033-02-22 -> Apache-2.0
 -->
 
 # SpectraStrike Manuals Index
+![SpectraStrike Logo](../../ui/web/assets/images/SprectraStrike_Logo.png)
+
 
 This index tracks the current, maintained manual set for the implemented codebase.
 

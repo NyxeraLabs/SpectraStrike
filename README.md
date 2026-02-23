@@ -6,6 +6,8 @@ Change Date: 2033-02-22 -> Apache-2.0
 -->
 
 # SpectraStrike
+![SpectraStrike Logo](ui/web/assets/images/SprectraStrike_Logo.png)
+
 
 SpectraStrike is a security orchestration platform for controlled offensive-security operations, with AAA enforcement, auditability, and a hardened local Docker runtime.
 
@@ -27,6 +29,8 @@ SpectraStrike is designed for boutique security teams that require:
 - Auth + shell views: operator login (`/ui/login`) and dashboard shell (`/ui/dashboard`)
 - Telemetry feed view: `/ui/dashboard/telemetry` for Nmap/Metasploit/manual streams
 - Findings + evidence navigation: `/ui/dashboard/findings`, `/ui/dashboard/findings/{id}`, `/ui/dashboard/findings/{id}/evidence`
+- Web UI action wiring: secure BFF endpoints for tasks/manual sync/telemetry with local fallback
+- Responsive UX baseline: mobile-first layouts for login, dashboard, telemetry, findings, and evidence screens
 - Hardened Docker stack: app, nginx, rabbitmq, postgres, redis, loki, vector
 - Security controls:
   - TLS edge with optional mTLS client verification
