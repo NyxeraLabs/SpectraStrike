@@ -18,8 +18,9 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
-import xml.etree.ElementTree as ET
+import re
+from asyncio import run
+from asyncio.subprocess import PIPE, Process, create_subprocess_exec
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -83,6 +84,15 @@ class NmapScanResult:
     summary: dict[str, Any]
 
 
+@dataclass(slots=True)
+class CommandResult:
+    """Minimal command result contract for wrapper runner injection."""
+
+    returncode: int
+    stdout: str
+    stderr: str
+
+
 class NmapWrapper:
     """Wrapper for running Nmap with deterministic parsing behavior."""
 
@@ -90,7 +100,26 @@ class NmapWrapper:
         self,
         runner: Any | None = None,
     ) -> None:
-        self._runner = runner or subprocess.run
+        self._runner = runner or self._run_command
+
+    @staticmethod
+    def _run_command(command: list[str]) -> CommandResult:
+        """Execute nmap command without shell expansion."""
+
+        async def _execute() -> CommandResult:
+            process: Process = await create_subprocess_exec(
+                *command,
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+            stdout_b, stderr_b = await process.communicate()
+            return CommandResult(
+                returncode=process.returncode or 0,
+                stdout=stdout_b.decode("utf-8", errors="replace"),
+                stderr=stderr_b.decode("utf-8", errors="replace"),
+            )
+
+        return run(_execute())
 
     def build_command(self, options: NmapScanOptions) -> list[str]:
         """Build the concrete Nmap command from scan options."""
@@ -123,12 +152,7 @@ class NmapWrapper:
         command = self.build_command(options)
         logger.info("Executing nmap scan command: %s", " ".join(command))
 
-        completed = self._runner(
-            command,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
+        completed = self._runner(command)
 
         if completed.returncode != 0:
             stderr = (completed.stderr or "").strip()
@@ -176,56 +200,55 @@ class NmapWrapper:
         )
 
     def _parse_xml(self, xml_output: str) -> list[NmapScanHost]:
-        try:
-            root = ET.fromstring(xml_output)
-        except ET.ParseError as exc:
-            raise NmapExecutionError(f"failed to parse nmap XML output: {exc}") from exc
-
         parsed_hosts: list[NmapScanHost] = []
-        for host in root.findall("host"):
-            address_node = host.find("address")
-            status_node = host.find("status")
-            address = (
-                address_node.get("addr") if address_node is not None else None
-            ) or "unknown"
-            status = (
-                status_node.get("state") if status_node is not None else None
-            ) or "unknown"
+        host_blocks = re.findall(r"<host\b[^>]*>(.*?)</host>", xml_output, flags=re.S)
+        if not host_blocks:
+            raise NmapExecutionError(
+                "failed to parse nmap XML output: no <host> blocks"
+            )
 
+        for host_block in host_blocks:
+            address_match = re.search(r'<address\b[^>]*\baddr="([^"]+)"', host_block)
+            status_match = re.search(r'<status\b[^>]*\bstate="([^"]+)"', host_block)
+            address = address_match.group(1) if address_match else "unknown"
+            status = status_match.group(1) if status_match else "unknown"
             services: list[dict[str, Any]] = []
             open_ports: list[int] = []
-            ports_node = host.find("ports")
-            if ports_node is not None:
-                for port_node in ports_node.findall("port"):
-                    state_node = port_node.find("state")
-                    state = (
-                        state_node.get("state") if state_node is not None else ""
-                    ) or ""
-                    if state != "open":
-                        continue
-                    port_id_raw = port_node.get("portid", "0")
-                    port_id = int(port_id_raw)
-                    open_ports.append(port_id)
-                    service_node = port_node.find("service")
-                    services.append(
-                        {
-                            "port": port_id,
-                            "protocol": port_node.get("protocol", "unknown"),
-                            "name": (
-                                service_node.get("name")
-                                if service_node is not None and service_node.get("name")
-                                else "unknown"
-                            ),
-                        }
-                    )
+            port_matches = re.findall(
+                r"<port\b([^>]*)>(.*?)</port>",
+                host_block,
+                flags=re.S,
+            )
+            for port_attrs, port_block in port_matches:
+                state_match = re.search(
+                    r'<state\b[^>]*\bstate="([^"]+)"',
+                    port_block,
+                )
+                if not state_match or state_match.group(1) != "open":
+                    continue
+
+                port_id_match = re.search(r'\bportid="([^"]+)"', port_attrs)
+                protocol_match = re.search(r'\bprotocol="([^"]+)"', port_attrs)
+                service_match = re.search(
+                    r'<service\b[^>]*\bname="([^"]+)"',
+                    port_block,
+                )
+                port_id = int(port_id_match.group(1)) if port_id_match else 0
+                open_ports.append(port_id)
+                services.append(
+                    {
+                        "port": port_id,
+                        "protocol": (
+                            protocol_match.group(1) if protocol_match else "unknown"
+                        ),
+                        "name": service_match.group(1) if service_match else "unknown",
+                    }
+                )
 
             os_matches: list[str] = []
-            os_node = host.find("os")
-            if os_node is not None:
-                for os_match in os_node.findall("osmatch"):
-                    name = os_match.get("name")
-                    if name:
-                        os_matches.append(name)
+            for match in re.findall(r'<osmatch\b[^>]*\bname="([^"]+)"', host_block):
+                if match:
+                    os_matches.append(match)
 
             parsed_hosts.append(
                 NmapScanHost(
