@@ -12,7 +12,7 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-.PHONY: help build ui-build secrets-init pki-ensure tls-ensure up up-all ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db security-check license-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
+.PHONY: help build ui-build secrets-init pki-ensure tls-ensure up up-all full-up full-down open-ui open-tui ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db security-check license-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
 
 COMPOSE_DEV = docker compose -f docker-compose.dev.yml
 COMPOSE_PROD = docker compose -f docker-compose.prod.yml
@@ -25,6 +25,10 @@ help:
 	@echo "  tls-ensure        Ensure edge TLS cert/key exists for nginx"
 	@echo "  up                Start dev dockerized stack"
 	@echo "  up-all            Start dev stack + dockerized tool profile"
+	@echo "  full-up           Start full stack (core + tools + admin profile)"
+	@echo "  full-down         Stop full stack (core + tools + admin profile)"
+	@echo "  open-ui           Open Web UI URL in browser (or print URL)"
+	@echo "  open-tui          Launch interactive Admin TUI (break-glass console)"
 	@echo "  ui-up             Start dockerized web UI foundation only"
 	@echo "  ui-admin-shell    Run interactive Admin TUI shell container"
 	@echo "  ui-admin-up       Start Admin TUI service in background (admin profile)"
@@ -106,6 +110,16 @@ up: secrets-init pki-ensure tls-ensure
 
 up-all: secrets-init pki-ensure tls-ensure
 	$(COMPOSE_DEV) --profile tools up -d --build
+
+full-up: secrets-init pki-ensure tls-ensure
+	$(COMPOSE_DEV) --profile tools --profile admin up -d --build
+
+full-down:
+	$(COMPOSE_DEV) --profile tools --profile admin down
+
+open-ui: ui-open
+
+open-tui: ui-admin-shell
 
 ui-up:
 	$(COMPOSE_DEV) up -d --build ui-web
