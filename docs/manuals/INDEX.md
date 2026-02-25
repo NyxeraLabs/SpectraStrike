@@ -18,6 +18,9 @@ This index tracks production manuals and governance documents aligned with curre
 - `docs/manuals/ORCHESTRATOR_ARCHITECTURE.md`
   - Orchestrator design, messaging backbone, and security data-plane behavior.
 
+- `docs/manuals/ARMORY_RUNNER_EXECUTION_FABRIC.md`
+  - Sprint 11-13 Armory registry, universal runner verification, and QA control contracts.
+
 - `docs/manuals/VECTORVUE_API_CLIENT_DESIGN.md`
   - VectorVue client contracts, retry behavior, and integration error model.
 

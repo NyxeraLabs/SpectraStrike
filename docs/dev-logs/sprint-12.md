@@ -11,31 +11,47 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 - Phase: Phase 4
 - Sprint: Sprint 12
-- Status: Planned
-- Primary Architecture Layers: Detection Engine, Telemetry Ingestion
+- Status: Completed
+- Primary Architecture Layers: Universal Runner, Cryptographic Verification, Sandbox Execution
 
 ## Architectural Intent
 
-Integrate Burp headless scanning workflows into orchestrated telemetry operations.
+Build the Universal Edge Runner as a cryptographically enforced Go execution path that only runs approved Armory artifacts under isolated sandbox controls.
 
 ## Implementation Detail
 
-Planned work includes headless runtime setup, target configuration, automated spider and active-scan execution, finding extraction, orchestrator handoff, and wrapper test coverage.
+- Added Go runner module (`src/runner-go`) with:
+  - compact JWS verification (`VerifyHS256JWS`),
+  - execution output -> CloudEvents mapping (`MapToCloudEvent`),
+  - sandbox command contract and execution wrapper.
+- Implemented local JWS verification logic:
+  - HS256 verification path for deterministic QA and CI validation.
+- Implemented signed-tool retrieval policy:
+  - runner resolves only `authorized` Armory digests,
+  - digest mismatch or missing authorization raises hard failure.
+- Implemented sandbox command contract:
+  - `--runtime=runsc` (gVisor runtime target),
+  - AppArmor security profile pinning,
+  - read-only, no-capabilities, no-network defaults.
+- Implemented execution output contract:
+  - captures `stdout`, `stderr`, `exit_code`,
+  - maps to CloudEvents v1.0 payload including `manifest_jws`, `tenant_id`, and task metadata.
 
 ## Security and Control Posture
 
-- AAA scope and authorization boundaries are enforced according to current orchestrator policy.
-- Telemetry and audit events are expected to remain structured, attributable, and export-ready.
-- Integration interfaces are maintained as loosely coupled contracts to preserve VectorVue interoperability.
+- Runner enforces deny-by-default on missing/invalid signatures and unauthorized digests.
+- Tool retrieval and execution are strongly bound to signed manifest hash.
+- Output telemetry keeps manifest linkage for non-repudiation traceability.
 
 ## QA and Validation Evidence
 
-Pre-QA deliverables include deterministic parser contracts and scan-result normalization tests.
+- Added `tests/unit/test_runner_jws_verify.py` for signature verification and forged-token rejection.
+- Added `tests/unit/test_universal_edge_runner.py` for digest authorization and CloudEvents execution contract mapping.
 
 ## Risk Register
 
-Risk centers on scan determinism and target noise management; mitigation includes bounded configuration profiles.
+ES256 verification backend remains pluggable by design and is not hardwired to a single crypto runtime implementation in this sprint.
 
 ## Forward Linkage
 
-Sprint 13 focuses on Burp QA coverage and AAA checks.
+Sprint 13 executes adversarial QA cases for forged signatures, tampered digests, and telemetry contract integrity.

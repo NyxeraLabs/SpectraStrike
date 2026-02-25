@@ -26,10 +26,14 @@ This folder contains per-sprint architecture and implementation logs used for en
 - `docs/dev-logs/sprint-09-7.md`
 - `docs/dev-logs/sprint-09-8.md`
 - `docs/dev-logs/sprint-09-9.md`
+- `docs/dev-logs/sprint-10.md`
+- `docs/dev-logs/sprint-11.md`
+- `docs/dev-logs/sprint-12.md`
+- `docs/dev-logs/sprint-13.md`
 
 ## Planned Sprints
 
-- `docs/dev-logs/sprint-10.md` through `docs/dev-logs/sprint-33.md`
+- `docs/dev-logs/sprint-14.md` through `docs/dev-logs/sprint-33.md`
 
 ## Usage
 

@@ -121,6 +121,29 @@ The orchestrator is the central control plane for SpectraStrike. It coordinates 
 5. Retry with bounded backoff; circuit-break style failure protection.
 6. Tamper-evident audit stream via hash-chained audit event records.
 
+## Armory + Universal Runner (Sprints 11-13)
+1. Armory registry:
+- Internal OCI registry service (`armory-registry`) is deployed in compose.
+- Registry delete operations are disabled for immutable artifact posture.
+2. Armory control service:
+- `pkg.armory.service.ArmoryService` handles ingest pipeline:
+  - upload digesting (`sha256`),
+  - SBOM metadata generation,
+  - vulnerability summary generation,
+  - signing metadata generation,
+  - operator approval gating.
+3. Runner cryptographic gate:
+- `pkg.runner.jws_verify.RunnerJWSVerifier` validates compact JWS before execution admission.
+- Forged signature attempts are hard-failed before any tool resolution.
+4. Signed tool retrieval:
+- `pkg.runner.universal.UniversalEdgeRunner` resolves only approved Armory digests that exactly match `ExecutionManifest.tool_sha256`.
+5. Sandbox profile:
+- Runner command contract enforces `--runtime=runsc`, AppArmor profile pinning, read-only rootfs, dropped capabilities, and no-network baseline.
+6. Execution contract:
+- `stdout`/`stderr`/`exit_code` are mapped into CloudEvents v1.0 via `pkg.runner.cloudevents.map_execution_to_cloudevent`.
+7. QA guarantees:
+- `tests/qa/test_execution_fabric_qa.py` validates forged-JWS rejection, tampered-digest rejection, and CloudEvents output integrity.
+
 ## Testing Strategy (for next tasks)
 1. Unit tests for scheduler ordering and retry behavior.
 2. Unit tests for AAA enforcement on task submission.

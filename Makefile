@@ -12,7 +12,7 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-.PHONY: help build ui-build secrets-init legal-accept-init pki-ensure tls-ensure up up-all full-up full-up-tools full-down open-ui open-tui ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db security-check license-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
+.PHONY: help build ui-build runner-go-build runner-go-test secrets-init legal-accept-init pki-ensure tls-ensure up up-all full-up full-up-tools full-down open-ui open-tui ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db security-check license-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
 
 COMPOSE_DEV = docker compose -f docker-compose.dev.yml
 COMPOSE_PROD = docker compose -f docker-compose.prod.yml
@@ -20,6 +20,9 @@ COMPOSE_PROD = docker compose -f docker-compose.prod.yml
 help:
 	@echo "Available targets:"
 	@echo "  build             Build app image"
+	@echo "  ui-build          Build web UI image"
+	@echo "  runner-go-build   Build Go Universal Runner binary"
+	@echo "  runner-go-test    Run Go Universal Runner unit tests"
 	@echo "  secrets-init      Create missing local secret files with placeholders"
 	@echo "  pki-ensure        Ensure internal mTLS PKI exists for RabbitMQ/Postgres/Redis"
 	@echo "  legal-accept-init Create/update local legal acceptance for self-hosted TUI/UI"
@@ -90,6 +93,12 @@ secrets-init:
 
 ui-build:
 	$(COMPOSE_DEV) build ui-web
+
+runner-go-build:
+	cd src/runner-go && GOCACHE=/tmp/go-cache go build ./...
+
+runner-go-test:
+	cd src/runner-go && GOCACHE=/tmp/go-cache go test ./...
 
 pki-ensure:
 	@if [ ! -f docker/pki/ca.crt ] || [ ! -f docker/pki/rabbitmq/server.crt ] || [ ! -f docker/pki/postgres/server.crt ] || [ ! -f docker/pki/redis/server.crt ] || [ ! -f docker/pki/app/client.crt ]; then \
