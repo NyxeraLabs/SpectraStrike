@@ -78,7 +78,9 @@ class AntiReplayGuard:
                 "manifest timestamp exceeds allowed future clock skew"
             )
 
-    def _check_and_store_nonce(self, *, tenant_id: str, nonce: str, now: datetime) -> None:
+    def _check_and_store_nonce(
+        self, *, tenant_id: str, nonce: str, now: datetime
+    ) -> None:
         key = f"{tenant_id}:{nonce}"
         expiry = now + timedelta(seconds=self._config.nonce_retention_seconds)
 

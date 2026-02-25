@@ -41,10 +41,9 @@ def test_roadmap_sprints_95_96_97_are_marked_complete() -> None:
     content = roadmap_path.read_text(encoding="utf-8")
 
     required_lines = [
-        "### Sprint 9.5 (Week 18): Messaging Backbone (Kafka/RabbitMQ)",
-        "### Sprint 9.6 (Week 18-19): User Interface Foundation (Before Cobalt Strike)",
-        "### Sprint 9.7 (Week 19): Security & Container Platform Hardening "
-        "(Before Cobalt Strike)",
+        "### Sprint 9.5 (Week 18): Messaging Backbone (RabbitMQ baseline)",
+        "### Sprint 9.6 (Week 18-19): User Interface Foundation",
+        "### Sprint 9.7 (Week 19): Security & Container Platform Hardening",
     ]
     for line in required_lines:
         assert line in content, f"missing roadmap milestone: {line}"
