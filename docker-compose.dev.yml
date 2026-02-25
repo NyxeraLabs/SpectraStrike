@@ -297,7 +297,7 @@ services:
       - tools_net
 
   metasploit-tool:
-    image: metasploitframework/metasploit-framework:6.4.58
+    image: ${METASPLOIT_IMAGE:-metasploitframework/metasploit-framework:latest}
     container_name: spectrastrike_metasploit_tool
     init: true
     profiles: ["tools"]

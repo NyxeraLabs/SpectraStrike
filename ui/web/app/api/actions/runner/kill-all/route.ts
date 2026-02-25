@@ -19,8 +19,8 @@ import {
   enforceRateLimit,
   isJsonContentType,
   validateOrigin,
-} from "../../../../../lib/request-guards";
-import { validateAuthenticatedRequest } from "../../../../../lib/auth-store";
+} from "../../../../lib/request-guards";
+import { validateAuthenticatedRequest } from "../../../../lib/auth-store";
 
 type KillAllPayload = {
   reason?: string;
