@@ -185,15 +185,6 @@ class AdminApiClient:
             for item in items
         ]
 
-    def findings(self, access_token: str, limit: int = 10) -> list[dict[str, Any]]:
-        """List findings from the UI API."""
-        response = self._request(
-            "GET",
-            f"/findings?limit={limit}",
-            access_token=access_token,
-        )
-        return [item for item in response.get("items", []) if isinstance(item, dict)]
-
     def submit_task(
         self,
         access_token: str,
@@ -219,5 +210,32 @@ class AdminApiClient:
             "POST",
             "/actions/manual-sync",
             payload={"actor": actor},
+            access_token=access_token,
+        )
+
+    def runner_kill_all(self, access_token: str, reason: str) -> dict[str, Any]:
+        """Execute break-glass kill-all for active runners/microVMs."""
+        return self._request(
+            "POST",
+            "/actions/runner/kill-all",
+            payload={"reason": reason},
+            access_token=access_token,
+        )
+
+    def queue_purge(self, access_token: str, queue: str) -> dict[str, Any]:
+        """Purge a broker queue in emergency containment scenarios."""
+        return self._request(
+            "POST",
+            "/actions/queue/purge",
+            payload={"queue": queue},
+            access_token=access_token,
+        )
+
+    def auth_revoke_tenant(self, access_token: str, tenant_id: str) -> dict[str, Any]:
+        """Revoke all active tenant sessions and block interactive access."""
+        return self._request(
+            "POST",
+            "/actions/auth/revoke-tenant",
+            payload={"tenant_id": tenant_id},
             access_token=access_token,
         )

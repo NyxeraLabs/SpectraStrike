@@ -20,9 +20,9 @@ import { QuickActions } from "../components/quick-actions";
 import { TopNav } from "../components/top-nav";
 
 const kpis = [
-  { label: "Active Tasks", value: "7", tone: "text-info" },
-  { label: "Open Findings", value: "12", tone: "text-warning" },
-  { label: "Critical Findings", value: "2", tone: "text-critical" },
+  { label: "Active Runners", value: "18", tone: "text-info" },
+  { label: "MicroVM Sessions", value: "41", tone: "text-warning" },
+  { label: "Queue Backlog", value: "12", tone: "text-critical" },
   { label: "Telemetry Events (24h)", value: "14,382", tone: "text-telemetryGlow" },
 ];
 
@@ -42,19 +42,19 @@ export default function DashboardPage() {
 
       <section className="grid gap-4 lg:grid-cols-[1.1fr_1fr]">
         <article className="spectra-panel p-5">
-          <h2 className="text-sm uppercase tracking-[0.2em] text-telemetry">Live Activity</h2>
+          <h2 className="text-sm uppercase tracking-[0.2em] text-telemetry">Execution Fabric Feed</h2>
           <div className="mt-4 space-y-3 text-sm text-slate-300">
             <p className="spectra-mono break-all text-telemetryGlow">
               [telemetry] nmap_scan_completed target=10.0.9.0/24
             </p>
             <p className="spectra-mono break-all text-success">
-              [task] exploit_dispatch status=queued module=auxiliary/scanner/smb
+              [runner] microvm_boot status=success runtime=firecracker-sim
             </p>
             <p className="spectra-mono break-all text-warning">
-              [broker] retry_attempt queue=spectrastrike.telemetry attempt=2
+              [queue] backlog depth=12 queue=telemetry.events
             </p>
             <p className="spectra-mono break-all text-critical">
-              [alert] policy_violation source=operator-session
+              [trust] signer_health status=degraded key=spectrastrike-orchestrator-signing
             </p>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -68,14 +68,17 @@ export default function DashboardPage() {
         </article>
 
         <article className="spectra-panel p-5">
-          <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">Quick Actions</h2>
+          <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">Control Actions</h2>
           <QuickActions />
-          <div className="mt-4">
-            <Link
-              href="/dashboard/findings"
-              className="spectra-button-primary inline-flex px-4 py-2 text-sm font-semibold"
-            >
-              Open Findings Navigator
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link href="/dashboard/armory" className="spectra-button-secondary inline-flex px-4 py-2 text-sm font-semibold">
+              Open Armory
+            </Link>
+            <Link href="/dashboard/fleet" className="spectra-button-secondary inline-flex px-4 py-2 text-sm font-semibold">
+              Open Fleet
+            </Link>
+            <Link href="/dashboard/policy-trust" className="spectra-button-primary inline-flex px-4 py-2 text-sm font-semibold">
+              Open Policy & Trust
             </Link>
           </div>
         </article>
@@ -95,6 +98,12 @@ export default function DashboardPage() {
           </p>
           <p>
             Telemetry API: <span className="spectra-mono text-white">GET /api/v1/telemetry/events</span>
+          </p>
+          <p>
+            Fleet API: <span className="spectra-mono text-white">GET /api/fleet/status</span>
+          </p>
+          <p>
+            Armory API: <span className="spectra-mono text-white">POST /api/actions/armory/ingest</span>
           </p>
         </div>
       </section>

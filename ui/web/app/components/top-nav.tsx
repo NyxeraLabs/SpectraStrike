@@ -24,7 +24,9 @@ import { useRouter } from "next/navigation";
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/dashboard/telemetry", label: "Telemetry" },
-  { href: "/dashboard/findings", label: "Findings" }
+  { href: "/dashboard/armory", label: "Armory" },
+  { href: "/dashboard/fleet", label: "Fleet" },
+  { href: "/dashboard/policy-trust", label: "Policy & Trust" },
 ];
 
 export function TopNav() {
@@ -59,7 +61,7 @@ export function TopNav() {
           />
           <p className="text-xs uppercase tracking-[0.2em] text-telemetry">SpectraStrike</p>
         </div>
-        <p className="mt-1 text-sm text-slate-300">Operator Console</p>
+        <p className="mt-1 text-sm text-slate-300">Infrastructure Control Plane</p>
       </div>
       <ul className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
         {navItems.map((item) => (

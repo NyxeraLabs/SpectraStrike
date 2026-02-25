@@ -14,13 +14,9 @@ Offer as a commercial service
 Sell derived competing products
 */
 
-import { findings } from "../../../components/findings-data";
 import { validateAuthenticatedRequest } from "../../../lib/auth-store";
 
-export async function GET(
-  request: Request,
-  context: { params: Promise<{ findingId: string }> }
-) {
+export async function GET(request: Request) {
   const authDecision = await validateAuthenticatedRequest(request);
   if (!authDecision.ok) {
     const status = authDecision.error === "LEGAL_ACCEPTANCE_REQUIRED" ? 403 : 401;
@@ -33,10 +29,19 @@ export async function GET(
     );
   }
 
-  const params = await context.params;
-  const finding = findings.find((item) => item.finding_id === params.findingId);
-  if (!finding) {
-    return Response.json({ error: "not_found" }, { status: 404 });
-  }
-  return Response.json(finding);
+  return Response.json(
+    {
+      opa: {
+        status: "healthy",
+        policy_bundle_version: "2026.02.25.1",
+        last_reload_at: "2026-02-25T17:40:00Z",
+      },
+      vault: {
+        status: "healthy",
+        transit_key: "spectrastrike-orchestrator-signing",
+        latest_version: 3,
+      },
+    },
+    { status: 200 }
+  );
 }

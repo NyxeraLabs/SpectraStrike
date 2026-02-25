@@ -14,8 +14,7 @@ Offer as a commercial service
 Sell derived competing products
 */
 
-import { findings } from "../../components/findings-data";
-import { validateAuthenticatedRequest } from "../../lib/auth-store";
+import { validateAuthenticatedRequest } from "../../../lib/auth-store";
 
 export async function GET(request: Request) {
   const authDecision = await validateAuthenticatedRequest(request);
@@ -29,5 +28,23 @@ export async function GET(request: Request) {
       { status }
     );
   }
-  return Response.json({ items: findings, next_cursor: null });
+
+  return Response.json(
+    {
+      runners: {
+        online: 18,
+        degraded: 2,
+        offline: 1,
+      },
+      microvms: {
+        active: 41,
+        cold_pool: 8,
+      },
+      queues: {
+        telemetry_events_depth: 12,
+        dead_letter_depth: 1,
+      },
+    },
+    { status: 200 }
+  );
 }

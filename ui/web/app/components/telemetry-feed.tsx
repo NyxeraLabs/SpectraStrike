@@ -16,7 +16,6 @@ Sell derived competing products
 
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 
 type TelemetrySource = "nmap" | "metasploit" | "manual";
@@ -235,14 +234,9 @@ export function TelemetryFeedView() {
             );
           })}
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link href="/dashboard/findings" className="spectra-button-secondary px-4 py-2 text-sm font-semibold">
-            Findings
-          </Link>
-          <Link href="/dashboard/findings/FND-2026-001/evidence" className="spectra-button-primary px-4 py-2 text-sm font-semibold">
-            Jump to Evidence
-          </Link>
-        </div>
+        <p className="mt-4 text-xs text-slate-400">
+          Raw operator/debug stream only. Long-term findings and evidence navigation are handled in VectorVue.
+        </p>
       </article>
     </section>
   );

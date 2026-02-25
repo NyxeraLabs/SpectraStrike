@@ -26,7 +26,9 @@ class _ClientStub:
     def __init__(self) -> None:
         self.logout_calls: list[str] = []
         self.submitted_tasks: list[dict[str, Any]] = []
-        self.sync_actors: list[str] = []
+        self.runner_reasons: list[str] = []
+        self.purged_queues: list[str] = []
+        self.revoked_tenants: list[str] = []
         self.telemetry_calls: list[int] = []
 
     def health(self) -> dict[str, str]:
@@ -70,10 +72,6 @@ class _ClientStub:
             )
         ]
 
-    def findings(self, access_token: str, limit: int = 10) -> list[dict[str, str]]:
-        del access_token, limit
-        return []
-
     def submit_task(
         self,
         access_token: str,
@@ -91,10 +89,20 @@ class _ClientStub:
         )
         return {"task_id": "task-1"}
 
-    def manual_sync(self, access_token: str, actor: str) -> dict[str, str]:
+    def runner_kill_all(self, access_token: str, reason: str) -> dict[str, str]:
         del access_token
-        self.sync_actors.append(actor)
-        return {"status": "ok"}
+        self.runner_reasons.append(reason)
+        return {"status": "completed"}
+
+    def queue_purge(self, access_token: str, queue: str) -> dict[str, str]:
+        del access_token
+        self.purged_queues.append(queue)
+        return {"status": "completed"}
+
+    def auth_revoke_tenant(self, access_token: str, tenant_id: str) -> dict[str, str]:
+        del access_token
+        self.revoked_tenants.append(tenant_id)
+        return {"status": "completed"}
 
 
 def test_login_and_logout_commands() -> None:
@@ -146,15 +154,29 @@ def test_task_requires_authentication(capsys: pytest.CaptureFixture[str]) -> Non
     assert "authentication required" in output
 
 
-def test_sync_workflow_uses_default_and_explicit_actor() -> None:
+def test_break_glass_workflows_execute_expected_actions() -> None:
     client = _ClientStub()
     shell = AdminShell(client)  # type: ignore[arg-type]
 
     shell.onecmd("demo")
-    shell.onecmd("sync")
-    shell.onecmd("sync operator-jmicoli")
+    shell.onecmd("runner kill-all")
+    shell.onecmd("queue purge")
+    shell.onecmd("auth revoke-tenant tenant-a")
 
-    assert client.sync_actors == ["ui-admin-operator", "operator-jmicoli"]
+    assert client.runner_reasons == ["operator_break_glass"]
+    assert client.purged_queues == ["telemetry.events"]
+    assert client.revoked_tenants == ["tenant-a"]
+
+
+def test_manifest_submission_accepts_json_parameters() -> None:
+    client = _ClientStub()
+    shell = AdminShell(client)  # type: ignore[arg-type]
+
+    shell.onecmd("demo")
+    shell.onecmd("manifest nmap urn:target:ip:10.0.0.5 '{\"ports\":[443]}'")
+
+    assert len(client.submitted_tasks) == 1
+    assert client.submitted_tasks[0]["target"] == "urn:target:ip:10.0.0.5"
 
 
 def test_telemetry_command_lists_and_clamps_limit() -> None:

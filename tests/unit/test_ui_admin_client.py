@@ -98,4 +98,4 @@ def test_api_error_raises_admin_error() -> None:
     client._session = fake  # type: ignore[attr-defined]
 
     with pytest.raises(AdminApiError):
-        client.findings("token-1")
+        client.auth_revoke_tenant("token-1", "tenant-a")

@@ -137,16 +137,18 @@ Sell derived competing products
 - [x] Add remote operator endpoint configuration (`MSF_RPC_*`, `MSF_MANUAL_*`, `RABBITMQ_*`)
 - [x] Commit messaging backbone
 
-### Sprint 9.6 (Week 18-19): User Interface Foundation
+### Sprint 9.6 (Week 18-19): Infrastructure Control Plane & Armory UI
 - [x] Define UI architecture and API contracts
 - [x] Implement Web UI foundation with Next.js (App Router) + Tailwind CSS
 - [x] Implement auth views and operator dashboard shell (Web UI)
-- [x] Implement telemetry feed view (Nmap/Metasploit/Manual ingestion) (Web UI)
-- [x] Implement findings and evidence navigation screens (Web UI)
-- [x] Wire Web UI actions to orchestrator and integration endpoints
+- [x] Implement raw execution telemetry feed view for operator debugging (Web UI)
+- [x] Implement Armory management screens (tool ingest, SBOM scan, signature approval) (Web UI)
+- [x] Implement Fleet management screens (runner/microVM/queue health) (Web UI)
+- [x] Implement Policy & Trust screens (OPA controls + Vault/HSM signer health) (Web UI)
+- [x] Wire Web UI control actions to orchestrator infrastructure endpoints
 - [x] Add Web UI tests (component/unit + basic E2E)
 -[x] Implement Interactive Terminal UI (Admin TUI) for operational control
-- [x] Add Admin TUI command workflows (task submission, telemetry watch, integration sync)
+- [x] Add Admin TUI command workflows (task/manifest submission, telemetry watch, break-glass controls)
 - [x] Add Admin TUI tests and command-level QA checks
 - [x] Commit UI foundation (Web UI + Admin TUI)
 

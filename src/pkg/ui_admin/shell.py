@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import cmd
+import json
 import logging
 import os
 import shlex
@@ -46,11 +47,11 @@ def _setup_logging() -> None:
 
 
 class AdminShell(cmd.Cmd):
-    """Operator-focused command shell backed by ui-web APIs."""
+    """Break-glass operator shell backed by ui-web infrastructure APIs."""
 
     intro = (
         f"{ANSI_COMMAND}SpectraStrike Admin TUI{ANSI_RESET}\n"
-        "Type 'help' for available commands."
+        "Type 'help' for break-glass and execution-fabric commands."
     )
     prompt = f"{ANSI_COMMAND}spectrastrike-admin>{ANSI_RESET} "
 
@@ -146,30 +147,58 @@ class AdminShell(cmd.Cmd):
         return None
 
     def do_task(self, arg: str) -> bool | None:
-        """task <tool> <target>: Submit an orchestrator task."""
+        """task <tool> <target> [json_parameters]: Submit a task rapidly."""
         token = self._require_auth()
         if token is None:
             return None
         parts = shlex.split(arg)
         if len(parts) < 2:
-            print(f"{ANSI_WARNING}usage: task <tool> <target>{ANSI_RESET}")
+            print(
+                f"{ANSI_WARNING}usage: task <tool> <target> "
+                f"[json_parameters]{ANSI_RESET}"
+            )
             return None
+        parameters: dict[str, Any] = {}
+        if len(parts) > 2:
+            try:
+                loaded = json.loads(parts[2])
+                if not isinstance(loaded, dict):
+                    raise ValueError("parameters JSON must be an object")
+                parameters = loaded
+            except (json.JSONDecodeError, ValueError) as exc:
+                print(f"{ANSI_WARNING}invalid parameters JSON: {exc}{ANSI_RESET}")
+                return None
         response = self._safe_call(
-            self._client.submit_task, token, parts[0], parts[1], {}
+            self._client.submit_task, token, parts[0], parts[1], parameters
         )
         if isinstance(response, dict):
             print(f"{ANSI_SUCCESS}task queued{ANSI_RESET} {response}")
         return None
 
-    def do_sync(self, arg: str) -> bool | None:
-        """sync [actor]: Trigger manual integration sync."""
+    def do_manifest(self, arg: str) -> bool | None:
+        """manifest <tool> <target_urn> <json_parameters>: submit a manifest task."""
         token = self._require_auth()
         if token is None:
             return None
-        actor = shlex.split(arg)[0] if arg.strip() else "ui-admin-operator"
-        response = self._safe_call(self._client.manual_sync, token, actor)
+        parts = shlex.split(arg)
+        if len(parts) < 3:
+            print(
+                f"{ANSI_WARNING}usage: manifest <tool> <target_urn> "
+                f"<json_parameters>{ANSI_RESET}"
+            )
+            return None
+        try:
+            loaded = json.loads(parts[2])
+            if not isinstance(loaded, dict):
+                raise ValueError("manifest parameters must be a JSON object")
+        except (json.JSONDecodeError, ValueError) as exc:
+            print(f"{ANSI_WARNING}invalid manifest JSON: {exc}{ANSI_RESET}")
+            return None
+        response = self._safe_call(
+            self._client.submit_task, token, parts[0], parts[1], loaded
+        )
         if isinstance(response, dict):
-            print(f"{ANSI_SUCCESS}manual sync completed{ANSI_RESET} {response}")
+            print(f"{ANSI_SUCCESS}manifest queued{ANSI_RESET} {response}")
         return None
 
     def do_telemetry(self, arg: str) -> bool | None:
@@ -188,28 +217,48 @@ class AdminShell(cmd.Cmd):
         self._print_telemetry_events(events)
         return None
 
-    def do_findings(self, arg: str) -> bool | None:
-        """findings [limit]: List findings summary."""
+    def do_runner(self, arg: str) -> bool | None:
+        """runner kill-all [reason]: Emergency destroy active runner workloads."""
         token = self._require_auth()
         if token is None:
             return None
-        limit = 10
-        if arg.strip():
-            try:
-                limit = max(1, min(50, int(arg.strip())))
-            except ValueError:
-                print(f"{ANSI_WARNING}limit must be an integer{ANSI_RESET}")
-                return None
-        findings = self._safe_call(self._client.findings, token, limit)
-        if findings is None:
+        parts = shlex.split(arg)
+        if not parts or parts[0] != "kill-all":
+            print(f"{ANSI_WARNING}usage: runner kill-all [reason]{ANSI_RESET}")
             return None
-        for finding in findings:
-            print(
-                f"{ANSI_METADATA}{finding.get('finding_id', 'unknown')}{ANSI_RESET} "
-                f"severity={finding.get('severity', 'unknown')} "
-                f"status={finding.get('status', 'unknown')} "
-                f"title={finding.get('title', 'unknown')}"
-            )
+        reason = parts[1] if len(parts) > 1 else "operator_break_glass"
+        result = self._safe_call(self._client.runner_kill_all, token, reason)
+        if result is not None:
+            print(f"{ANSI_SUCCESS}runner kill-all completed{ANSI_RESET} {result}")
+        return None
+
+    def do_queue(self, arg: str) -> bool | None:
+        """queue purge [queue_name]: Emergency purge rogue broker queue."""
+        token = self._require_auth()
+        if token is None:
+            return None
+        parts = shlex.split(arg)
+        if not parts or parts[0] != "purge":
+            print(f"{ANSI_WARNING}usage: queue purge [queue_name]{ANSI_RESET}")
+            return None
+        queue_name = parts[1] if len(parts) > 1 else "telemetry.events"
+        result = self._safe_call(self._client.queue_purge, token, queue_name)
+        if result is not None:
+            print(f"{ANSI_SUCCESS}queue purged{ANSI_RESET} {result}")
+        return None
+
+    def do_auth(self, arg: str) -> bool | None:
+        """auth revoke-tenant <tenant_id>: Revoke tenant interactive access."""
+        token = self._require_auth()
+        if token is None:
+            return None
+        parts = shlex.split(arg)
+        if len(parts) != 2 or parts[0] != "revoke-tenant":
+            print(f"{ANSI_WARNING}usage: auth revoke-tenant <tenant_id>{ANSI_RESET}")
+            return None
+        result = self._safe_call(self._client.auth_revoke_tenant, token, parts[1])
+        if result is not None:
+            print(f"{ANSI_SUCCESS}tenant revoked{ANSI_RESET} {result}")
         return None
 
     def do_quit(self, arg: str) -> bool:

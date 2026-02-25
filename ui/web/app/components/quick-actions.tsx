@@ -44,14 +44,14 @@ export function QuickActions() {
     return "text-slate-400";
   }, [result.status]);
 
-  async function runTask(tool: string, target: string) {
+  async function runTask(tool: string, target: string, parameters: Record<string, unknown> = {}) {
     setResult({ status: "pending", message: `Submitting ${tool} task...` });
 
     try {
       const response = await fetch("/ui/api/actions/tasks", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ tool, target, parameters: {} }),
+        body: JSON.stringify({ tool, target, parameters }),
       });
 
       if (!response.ok) {
@@ -66,14 +66,14 @@ export function QuickActions() {
     }
   }
 
-  async function runManualSync() {
-    setResult({ status: "pending", message: "Triggering manual sync..." });
+  async function runRunnerKillAll() {
+    setResult({ status: "pending", message: "Issuing break-glass runner shutdown..." });
 
     try {
-      const response = await fetch("/ui/api/actions/manual-sync", {
+      const response = await fetch("/ui/api/actions/runner/kill-all", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ actor: "ui-operator" }),
+        body: JSON.stringify({ reason: "ui_break_glass" }),
       });
 
       if (!response.ok) {
@@ -84,10 +84,10 @@ export function QuickActions() {
       const body = await response.json();
       setResult({
         status: "ok",
-        message: `Manual sync complete (${body.observed_session_events ?? 0} events)`,
+        message: `Runner shutdown complete (${body.destroyed_microvms ?? 0} microVMs)`,
       });
     } catch (error) {
-      setResult({ status: "error", message: `Sync failed: ${(error as Error).message}` });
+      setResult({ status: "error", message: `Runner shutdown failed: ${(error as Error).message}` });
     }
   }
 
@@ -103,26 +103,26 @@ export function QuickActions() {
       </button>
       <button
         type="button"
-        onClick={runManualSync}
+        onClick={() => runTask("armory-ingest", "armory", { mode: "dry_run" })}
         className="spectra-button-secondary flex items-center justify-between px-3 py-2 text-left text-sm"
       >
-        <span>Trigger Metasploit Manual Sync</span>
+        <span>Run Armory Ingest Validation</span>
         <span className="text-xs text-slate-400">run</span>
       </button>
       <button
         type="button"
-        onClick={() => runTask("telemetry-retry", "spectrastrike.telemetry")}
+        onClick={() => runTask("queue-health-check", "telemetry.events", { includeDepth: true })}
         className="spectra-button-secondary flex items-center justify-between px-3 py-2 text-left text-sm"
       >
-        <span>Retry Broker Delivery</span>
+        <span>Check Queue Health</span>
         <span className="text-xs text-slate-400">run</span>
       </button>
       <button
         type="button"
-        onClick={() => runTask("audit-chain-check", "orchestrator")}
+        onClick={runRunnerKillAll}
         className="spectra-button-secondary flex items-center justify-between px-3 py-2 text-left text-sm"
       >
-        <span>Validate Audit Chain</span>
+        <span>Break-Glass: Kill Active Runners</span>
         <span className="text-xs text-slate-400">run</span>
       </button>
 
