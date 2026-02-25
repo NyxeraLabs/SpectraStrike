@@ -87,6 +87,19 @@ The orchestrator is the central control plane for SpectraStrike. It coordinates 
 - RabbitMQ listener configured TLS-only (`5671`) with client-certificate verification.
 - App-side publisher supports CA/cert/key configuration from `RABBITMQ_SSL_*`.
 
+## Cryptographic Signing (Sprint 10)
+1. Signer integration: `pkg.orchestrator.signing.VaultTransitSigner`.
+2. Key management:
+- Transit key metadata and signing operations are delegated to HashiCorp Vault.
+- Optional key bootstrap is supported through `VAULT_TRANSIT_AUTO_CREATE_KEY=true`.
+3. Runtime config:
+- `VAULT_ADDR`, `VAULT_TOKEN`, `VAULT_NAMESPACE`, `VAULT_VERIFY_TLS`.
+- `VAULT_TRANSIT_MOUNT`, `VAULT_TRANSIT_KEY_NAME`, `VAULT_TRANSIT_KEY_TYPE`.
+4. Security controls:
+- HTTPS is required by default (`VAULT_REQUIRE_HTTPS=true`).
+- Token and key material are never logged.
+- Public key retrieval is version-aware for future manifest verification.
+
 ## Security and Reliability Requirements
 1. No secrets in code or logs.
 2. TLS-only transport for outbound telemetry.

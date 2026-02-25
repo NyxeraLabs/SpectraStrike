@@ -29,6 +29,12 @@ from .messaging import (
     TelemetryPublisher,
     TelemetryPublishResult,
 )
+from .signing import (
+    ManifestSigner,
+    VaultTransitConfig,
+    VaultTransitError,
+    VaultTransitSigner,
+)
 from .task_scheduler import OrchestratorTask, TaskScheduler
 from .telemetry_ingestion import TelemetryEvent, TelemetryIngestionPipeline
 
@@ -52,4 +58,8 @@ __all__ = [
     "InMemoryRabbitBroker",
     "RabbitMQTelemetryPublisher",
     "PikaRabbitMQTelemetryPublisher",
+    "ManifestSigner",
+    "VaultTransitConfig",
+    "VaultTransitSigner",
+    "VaultTransitError",
 ]
