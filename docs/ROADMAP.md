@@ -206,7 +206,7 @@ Sell derived competing products
 ### Sprint 10 (Week 21-22): Cryptographic Payload Engine
 - [x] Implement HashiCorp Vault (or HSM equivalent) integration for signing keys.
 - [x] Implement JWS (JSON Web Signature) payload generation in the Orchestrator.
-- [ ] Design Execution Manifest schema (Task Context, Target URN, Tool SHA256, Parameters).
+- [x] Design Execution Manifest schema (Task Context, Target URN, Tool SHA256, Parameters).
 - [ ] Implement Anti-Replay mechanisms (nonce and timestamp validation).
 - [ ] Commit cryptographic engine updates.
 
