@@ -120,10 +120,9 @@ def test_sign_payload_returns_vault_signature() -> None:
     assert signature == "vault:v1:signature-bytes"
     call = session.calls[0]
     assert call["url"].endswith("/v1/transit/sign/orchestrator-signing")
-    assert (
-        call["json"]["input"]
-        == base64.b64encode(b'{"tool":"nmap","target":"10.0.0.5"}').decode("ascii")
-    )
+    assert call["json"]["input"] == base64.b64encode(
+        b'{"tool":"nmap","target":"10.0.0.5"}'
+    ).decode("ascii")
     assert call["json"]["marshaling_algorithm"] == "jws"
     assert call["headers"]["X-Vault-Namespace"] == "core-sec"
 
