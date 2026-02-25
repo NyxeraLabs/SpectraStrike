@@ -15,9 +15,15 @@
 """Orchestrator runtime package."""
 
 from .audit_trail import AuditTrailRecord, OrchestratorAuditTrail
+from .anti_replay import AntiReplayConfig, AntiReplayGuard, AntiReplayValidationError
 from .engine import OrchestratorEngine, TaskSubmissionRequest
 from .event_loop import AsyncEventLoop
 from .jws import CompactJWSGenerator, JWSConfig, JWSPayloadError
+from .manifest import (
+    ExecutionManifest,
+    ExecutionManifestValidationError,
+    ExecutionTaskContext,
+)
 from .messaging import (
     BrokerEnvelope,
     InMemoryRabbitBroker,
@@ -45,6 +51,9 @@ __all__ = [
     "TaskScheduler",
     "TelemetryEvent",
     "TelemetryIngestionPipeline",
+    "AntiReplayConfig",
+    "AntiReplayGuard",
+    "AntiReplayValidationError",
     "AuditTrailRecord",
     "OrchestratorAuditTrail",
     "OrchestratorEngine",
@@ -52,6 +61,9 @@ __all__ = [
     "CompactJWSGenerator",
     "JWSConfig",
     "JWSPayloadError",
+    "ExecutionTaskContext",
+    "ExecutionManifest",
+    "ExecutionManifestValidationError",
     "TelemetryPublisher",
     "TelemetryPublishResult",
     "PublishAttemptResult",
