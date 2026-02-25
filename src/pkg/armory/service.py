@@ -23,7 +23,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Lock
-from typing import Any, Protocol
+from typing import Protocol
 
 
 @dataclass(slots=True)
@@ -80,7 +80,8 @@ class LocalScanner:
         return ("spdx-json", f"sha256:{digest}")
 
     def scan_vulnerabilities(self, *, sbom_digest: str) -> dict[str, int]:
-        # Stable pseudo-risk profile derived from SBOM digest to keep tests deterministic.
+        # Stable pseudo-risk profile derived from SBOM digest to keep
+        # tests deterministic.
         raw = bytes.fromhex(sbom_digest.removeprefix("sha256:"))
         return {
             "critical": raw[0] % 2,
