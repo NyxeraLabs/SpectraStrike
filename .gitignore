@@ -34,3 +34,5 @@ docker/secrets/cosign/*
 # UI web local artifacts
 ui/web/node_modules/
 ui/web/.next/
+
+local_docs/*

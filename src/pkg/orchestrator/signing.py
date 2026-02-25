@@ -151,6 +151,8 @@ class VaultTransitSigner:
         hash_algorithm: str = "sha2-256",
         prehashed: bool = False,
         key_version: int | None = None,
+        signature_algorithm: str | None = None,
+        marshaling_algorithm: str | None = "jws",
     ) -> str:
         """Sign payload bytes with the configured transit key."""
         if not payload:
@@ -166,6 +168,10 @@ class VaultTransitSigner:
         }
         if key_version is not None:
             body["key_version"] = key_version
+        if signature_algorithm:
+            body["signature_algorithm"] = signature_algorithm
+        if marshaling_algorithm:
+            body["marshaling_algorithm"] = marshaling_algorithm
 
         data = self._request("POST", endpoint, body)
         signature = data.get("signature")

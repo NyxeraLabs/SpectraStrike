@@ -99,6 +99,10 @@ The orchestrator is the central control plane for SpectraStrike. It coordinates 
 - HTTPS is required by default (`VAULT_REQUIRE_HTTPS=true`).
 - Token and key material are never logged.
 - Public key retrieval is version-aware for future manifest verification.
+5. JWS generation:
+- Compact JWS payload generation is handled by `pkg.orchestrator.jws.CompactJWSGenerator`.
+- The signing input is canonical JSON (`sort_keys=True`) and encoded as `base64url(header).base64url(payload)`.
+- Signatures from Vault transit are requested with JWS marshaling and normalized into compact JWS signature segment encoding.
 
 ## Security and Reliability Requirements
 1. No secrets in code or logs.

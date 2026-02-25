@@ -124,6 +124,7 @@ def test_sign_payload_returns_vault_signature() -> None:
         call["json"]["input"]
         == base64.b64encode(b'{"tool":"nmap","target":"10.0.0.5"}').decode("ascii")
     )
+    assert call["json"]["marshaling_algorithm"] == "jws"
     assert call["headers"]["X-Vault-Namespace"] == "core-sec"
 
 

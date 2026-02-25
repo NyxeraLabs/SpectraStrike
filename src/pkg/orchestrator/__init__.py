@@ -17,6 +17,7 @@
 from .audit_trail import AuditTrailRecord, OrchestratorAuditTrail
 from .engine import OrchestratorEngine, TaskSubmissionRequest
 from .event_loop import AsyncEventLoop
+from .jws import CompactJWSGenerator, JWSConfig, JWSPayloadError
 from .messaging import (
     BrokerEnvelope,
     InMemoryRabbitBroker,
@@ -48,6 +49,9 @@ __all__ = [
     "OrchestratorAuditTrail",
     "OrchestratorEngine",
     "TaskSubmissionRequest",
+    "CompactJWSGenerator",
+    "JWSConfig",
+    "JWSPayloadError",
     "TelemetryPublisher",
     "TelemetryPublishResult",
     "PublishAttemptResult",
