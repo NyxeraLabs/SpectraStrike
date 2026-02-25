@@ -11,36 +11,31 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 - Phase: Phase 4
 - Sprint: Sprint 13
-- Status: Completed (QA)
-- Primary Architecture Layers: Execution Fabric QA, Tamper Resistance, Telemetry Contract Validation
+- Status: Planned
+- Primary Architecture Layers: Detection Engine, Reporting / Compliance
 
 ## Architectural Intent
 
-Validate that execution is cryptographically and operationally fail-closed under signature forgery and binary tampering, while preserving CloudEvents contract correctness.
+Validate Burp scan coverage quality and AAA alignment in orchestrated execution.
 
 ## Implementation Detail
 
-- Added QA suite `tests/qa/test_execution_fabric_qa.py` covering:
-  - forged JWS signature rejection path,
-  - tampered/missing digest rejection path,
-  - execution `stdout`/`stderr` mapping into CloudEvents output schema.
-- Reused production runner verification and digest-resolution code paths to avoid QA-only logic divergence.
+QA plan includes coverage baselines, telemetry contract validation, and authorization-boundary verification for scan operations.
 
 ## Security and Control Posture
 
-- Forged signatures are rejected before execution admission.
-- Tampered digests fail Armory authorization resolution and cannot execute.
-- Telemetry includes execution status and raw output channels in standardized event data.
+- AAA scope and authorization boundaries are enforced according to current orchestrator policy.
+- Telemetry and audit events are expected to remain structured, attributable, and export-ready.
+- Integration interfaces are maintained as loosely coupled contracts to preserve VectorVue interoperability.
 
 ## QA and Validation Evidence
 
-- QA suite executes deterministic checks without external registry dependencies.
-- Failure expectations are asserted as hard exceptions (`JWSVerificationError`, `RunnerExecutionError`).
+Planned QA suite with representative target fixtures and policy checks.
 
 ## Risk Register
 
-QA currently validates contract integrity for runner-local flows. Full distributed integration (orchestrator -> runner -> broker -> VectorVue) remains a downstream end-to-end validation item.
+Risk is insufficient scan representativeness; mitigation includes curated fixture targets with expected findings baselines.
 
 ## Forward Linkage
 
-Phase 5 starts OPA-backed pre-sign policy checks and network fencing for stricter runtime capability control.
+Sprint 14 starts additional wrapper expansion with Gobuster/DirBuster.
