@@ -21,12 +21,10 @@ import {
   validateOrigin,
 } from "../../../../lib/request-guards";
 import { validateAuthenticatedRequest } from "../../../../lib/auth-store";
-import { ingestArmoryItem } from "../../../../lib/armory-store";
+import { approveArmoryItem } from "../../../../lib/armory-store";
 
-type ArmoryIngestPayload = {
-  tool_name?: string;
-  image_ref?: string;
-  mode?: "dry_run" | "ingest";
+type ApprovePayload = {
+  tool_sha256?: string;
 };
 
 export async function POST(request: Request) {
@@ -51,22 +49,16 @@ export async function POST(request: Request) {
     );
   }
 
-  const payload = (await request.json()) as ArmoryIngestPayload;
-  const ingested = ingestArmoryItem(
-    payload.tool_name ?? "unknown-tool",
-    payload.image_ref ?? "registry.local/unknown:latest"
-  );
-  return Response.json(
-    {
-      status: "accepted",
-      mode: payload.mode ?? "dry_run",
-      tool_name: ingested.tool_name,
-      image_ref: ingested.image_ref,
-      tool_sha256: ingested.tool_sha256,
-      sbom_status: ingested.sbom_status,
-      vuln_scan_status: ingested.vuln_scan_status,
-      signature_status: ingested.signature_status,
-    },
-    { status: 202 }
-  );
+  const payload = (await request.json()) as ApprovePayload;
+  const digest = payload.tool_sha256?.trim() ?? "";
+  if (!digest.startsWith("sha256:")) {
+    return Response.json({ error: "invalid_tool_sha256" }, { status: 400 });
+  }
+
+  const approved = approveArmoryItem(digest, "ui-operator");
+  if (!approved) {
+    return Response.json({ error: "tool_not_found" }, { status: 404 });
+  }
+
+  return Response.json({ status: "approved", item: approved }, { status: 200 });
 }

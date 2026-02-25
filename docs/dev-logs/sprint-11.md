@@ -11,31 +11,46 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 - Phase: Phase 4
 - Sprint: Sprint 11
-- Status: Planned
-- Primary Architecture Layers: Detection Engine, Reporting / Compliance
+- Status: Completed
+- Primary Architecture Layers: Armory Registry, Supply-Chain Security, Operator Control Plane
 
 ## Architectural Intent
 
-Validate Cobalt Strike wrapper behavior and telemetry fidelity under controlled QA scenarios.
+Implement The Armory as an internal immutable tool registry to support BYOT onboarding without trust-on-first-use.
 
 ## Implementation Detail
 
-QA scope targets beacon simulation correctness, telemetry schema conformity, and orchestrator compatibility of Cobalt-derived artifacts.
+- Added internal OCI registry service (`armory-registry`) in dev/prod compose with immutable semantics (`REGISTRY_STORAGE_DELETE_ENABLED=false`).
+- Implemented Python Armory service (`pkg.armory.service`) with deterministic pipeline:
+  - artifact digest (`sha256`) calculation,
+  - SBOM generation contract,
+  - vulnerability scan summary contract,
+  - Cosign/Sigstore-equivalent signing metadata generation.
+- Implemented file-backed registry persistence (`.spectrastrike/armory/registry.json`) and approval workflow for authorized digests.
+- Expanded Web UI Armory controls:
+  - ingest endpoint now emits digest metadata,
+  - approve endpoint to authorize specific digests,
+  - authorized-list endpoint for execution allowlist visibility.
+- Expanded Admin TUI with Armory command set:
+  - `armory ingest <tool_name> <image_ref>`
+  - `armory list`
+  - `armory approve <tool_sha256>`
 
 ## Security and Control Posture
 
-- AAA scope and authorization boundaries are enforced according to current orchestrator policy.
-- Telemetry and audit events are expected to remain structured, attributable, and export-ready.
-- Integration interfaces are maintained as loosely coupled contracts to preserve VectorVue interoperability.
+- Digest-based execution authorization is explicit and deny-by-default.
+- Registry modifications are append/replace-by-digest and approval-gated.
+- Armory actions remain bound to authenticated UI/TUI session controls.
 
 ## QA and Validation Evidence
 
-Planned pytest QA suite and scenario fixtures for beacon outcomes and event contracts.
+- Added `tests/unit/test_armory_service.py` for ingest/approve/authorized retrieval behavior.
+- Extended TUI and client unit coverage for Armory command flow.
 
 ## Risk Register
 
-Risk is false positives from synthetic-only beacon tests; mitigation is mixed fixture and integration validation strategy.
+Current signer and scanner providers are deterministic local adapters pending external Sigstore/Syft/Grype runtime wiring. Contract boundaries are fixed for drop-in replacement.
 
 ## Forward Linkage
 
-Sprint 12 transitions to Burp Suite integration build.
+Sprint 12 consumes authorized Armory digests in the Universal Edge Runner execution path.

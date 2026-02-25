@@ -66,6 +66,18 @@ class _FakeSession:
                     ]
                 },
             )
+        if url.endswith("/actions/armory/authorized"):
+            return _FakeResponse(
+                200,
+                {
+                    "items": [
+                        {
+                            "tool_name": "nmap",
+                            "tool_sha256": "sha256:" + "1" * 64,
+                        }
+                    ]
+                },
+            )
         return _FakeResponse(400, {"error": "bad_request"})
 
 
@@ -99,3 +111,13 @@ def test_api_error_raises_admin_error() -> None:
 
     with pytest.raises(AdminApiError):
         client.auth_revoke_tenant("token-1", "tenant-a")
+
+
+def test_armory_list_authorized_returns_items() -> None:
+    client = AdminApiClient(base_url="http://ui-web:3000/ui/api")
+    fake = _FakeSession()
+    client._session = fake  # type: ignore[attr-defined]
+
+    payload = client.armory_list_authorized("token-1")
+
+    assert len(payload["items"]) == 1

@@ -287,6 +287,35 @@ services:
       - edge_net
       - core_net
 
+  armory-registry:
+    image: registry:2.8.3
+    container_name: spectrastrike_armory_registry_prod
+    init: true
+    restart: unless-stopped
+    environment:
+      - REGISTRY_STORAGE_DELETE_ENABLED=false
+    ports:
+      - "0.0.0.0:${HOST_ARMORY_REGISTRY_PORT:-15000}:5000"
+    volumes:
+      - armory_registry_data:/var/lib/registry
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:5000/v2/"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - core_net
+
   loki:
     image: grafana/loki:3.0.0
     container_name: spectrastrike_loki_prod
@@ -361,3 +390,4 @@ volumes:
   redis_data:
   loki_data:
   ui_legal_data:
+  armory_registry_data:

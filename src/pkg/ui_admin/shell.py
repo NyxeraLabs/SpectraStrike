@@ -261,6 +261,45 @@ class AdminShell(cmd.Cmd):
             print(f"{ANSI_SUCCESS}tenant revoked{ANSI_RESET} {result}")
         return None
 
+    def do_armory(self, arg: str) -> bool | None:
+        """armory ingest <tool_name> <image_ref> | list | approve <tool_sha256>."""
+        token = self._require_auth()
+        if token is None:
+            return None
+        parts = shlex.split(arg)
+        if not parts:
+            print(
+                f"{ANSI_WARNING}usage: armory ingest <tool_name> <image_ref> | "
+                f"list | approve <tool_sha256>{ANSI_RESET}"
+            )
+            return None
+
+        if parts[0] == "ingest" and len(parts) == 3:
+            result = self._safe_call(
+                self._client.armory_ingest, token, parts[1], parts[2]
+            )
+            if result is not None:
+                print(f"{ANSI_SUCCESS}armory ingest accepted{ANSI_RESET} {result}")
+            return None
+
+        if parts[0] == "list" and len(parts) == 1:
+            result = self._safe_call(self._client.armory_list_authorized, token)
+            if result is not None:
+                print(f"{ANSI_METADATA}authorized tools{ANSI_RESET} {result}")
+            return None
+
+        if parts[0] == "approve" and len(parts) == 2:
+            result = self._safe_call(self._client.armory_approve, token, parts[1])
+            if result is not None:
+                print(f"{ANSI_SUCCESS}armory digest approved{ANSI_RESET} {result}")
+            return None
+
+        print(
+            f"{ANSI_WARNING}usage: armory ingest <tool_name> <image_ref> | "
+            f"list | approve <tool_sha256>{ANSI_RESET}"
+        )
+        return None
+
     def do_quit(self, arg: str) -> bool:
         """quit: Exit the admin shell."""
         del arg

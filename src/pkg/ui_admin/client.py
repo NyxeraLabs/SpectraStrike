@@ -239,3 +239,38 @@ class AdminApiClient:
             payload={"tenant_id": tenant_id},
             access_token=access_token,
         )
+
+    def armory_ingest(
+        self,
+        access_token: str,
+        tool_name: str,
+        image_ref: str,
+    ) -> dict[str, Any]:
+        """Trigger Armory ingestion pipeline for a BYOT artifact."""
+        return self._request(
+            "POST",
+            "/actions/armory/ingest",
+            payload={
+                "tool_name": tool_name,
+                "image_ref": image_ref,
+                "mode": "ingest",
+            },
+            access_token=access_token,
+        )
+
+    def armory_list_authorized(self, access_token: str) -> dict[str, Any]:
+        """List authorized Armory tool digests available for execution."""
+        return self._request(
+            "GET",
+            "/actions/armory/authorized",
+            access_token=access_token,
+        )
+
+    def armory_approve(self, access_token: str, tool_sha256: str) -> dict[str, Any]:
+        """Approve one signed digest for runner execution allowlist."""
+        return self._request(
+            "POST",
+            "/actions/armory/approve",
+            payload={"tool_sha256": tool_sha256},
+            access_token=access_token,
+        )

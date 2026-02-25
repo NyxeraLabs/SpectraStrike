@@ -24,6 +24,8 @@ export default function DashboardArmoryPage() {
   const [toolName, setToolName] = useState("nmap-secure");
   const [imageRef, setImageRef] = useState("registry.internal/security/nmap:1.0.0");
   const [status, setStatus] = useState("Ready for ingestion validation.");
+  const [lastDigest, setLastDigest] = useState("");
+  const [authorized, setAuthorized] = useState<Array<{ tool_name: string; tool_sha256: string }>>([]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,12 +44,43 @@ export default function DashboardArmoryPage() {
       if (!response.ok) {
         throw new Error(body.error ?? `HTTP ${response.status}`);
       }
+      setLastDigest(body.tool_sha256 ?? "");
       setStatus(
-        `Ingest accepted. SBOM=${body.sbom_status} scan=${body.vuln_scan_status} signature=${body.signature_status}`
+        `Ingest accepted digest=${body.tool_sha256}. SBOM=${body.sbom_status} scan=${body.vuln_scan_status} signature=${body.signature_status}`
       );
     } catch (error) {
       setStatus(`Armory ingest failed: ${(error as Error).message}`);
     }
+  }
+
+  async function approveLast() {
+    if (!lastDigest) {
+      setStatus("No digest available. Ingest a tool first.");
+      return;
+    }
+    setStatus(`Approving ${lastDigest} ...`);
+    const response = await fetch("/ui/api/actions/armory/approve", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ tool_sha256: lastDigest }),
+    });
+    const body = await response.json();
+    if (!response.ok) {
+      setStatus(`Approval failed: ${body.error ?? `HTTP ${response.status}`}`);
+      return;
+    }
+    setStatus(`Approved digest ${lastDigest} for runner execution.`);
+    await refreshAuthorized();
+  }
+
+  async function refreshAuthorized() {
+    const response = await fetch("/ui/api/actions/armory/authorized");
+    const body = await response.json();
+    if (!response.ok) {
+      setStatus(`List failed: ${body.error ?? `HTTP ${response.status}`}`);
+      return;
+    }
+    setAuthorized((body.items ?? []) as Array<{ tool_name: string; tool_sha256: string }>);
   }
 
   return (
@@ -79,8 +112,36 @@ export default function DashboardArmoryPage() {
             <button type="submit" className="spectra-button-primary px-4 py-2 text-sm font-semibold">
               Ingest + Scan + Sign
             </button>
+            <button
+              type="button"
+              onClick={approveLast}
+              className="rounded-panel border border-borderSubtle bg-bgPrimary px-4 py-2 text-sm text-white"
+            >
+              Approve Last Digest
+            </button>
+            <button
+              type="button"
+              onClick={refreshAuthorized}
+              className="rounded-panel border border-borderSubtle bg-bgPrimary px-4 py-2 text-sm text-white"
+            >
+              Refresh Authorized
+            </button>
           </div>
         </form>
+        <div className="mt-4 rounded-panel border border-borderSubtle bg-bgPrimary/50 p-4">
+          <p className="text-xs uppercase tracking-wide text-slate-400">Authorized Tool Digests</p>
+          {authorized.length === 0 ? (
+            <p className="mt-2 text-xs text-slate-400">No approved digests yet.</p>
+          ) : (
+            <ul className="mt-2 space-y-1 text-xs text-telemetryGlow">
+              {authorized.map((item) => (
+                <li key={item.tool_sha256}>
+                  {item.tool_name} {"->"} {item.tool_sha256}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
         <p className="mt-4 text-xs text-telemetryGlow">{status}</p>
       </section>
     </main>

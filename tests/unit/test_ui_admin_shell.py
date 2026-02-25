@@ -30,6 +30,8 @@ class _ClientStub:
         self.purged_queues: list[str] = []
         self.revoked_tenants: list[str] = []
         self.telemetry_calls: list[int] = []
+        self.armory_ingested: list[dict[str, str]] = []
+        self.armory_approved: list[str] = []
 
     def health(self) -> dict[str, str]:
         return {"status": "ok"}
@@ -103,6 +105,22 @@ class _ClientStub:
         del access_token
         self.revoked_tenants.append(tenant_id)
         return {"status": "completed"}
+
+    def armory_ingest(
+        self, access_token: str, tool_name: str, image_ref: str
+    ) -> dict[str, str]:
+        del access_token
+        self.armory_ingested.append({"tool_name": tool_name, "image_ref": image_ref})
+        return {"status": "accepted"}
+
+    def armory_list_authorized(self, access_token: str) -> dict[str, object]:
+        del access_token
+        return {"items": [{"tool_sha256": "sha256:" + "1" * 64}]}
+
+    def armory_approve(self, access_token: str, tool_sha256: str) -> dict[str, str]:
+        del access_token
+        self.armory_approved.append(tool_sha256)
+        return {"status": "approved"}
 
 
 def test_login_and_logout_commands() -> None:
@@ -198,3 +216,16 @@ def test_telemetry_watch_runs_fixed_cycles(monkeypatch: pytest.MonkeyPatch) -> N
     shell.onecmd("telemetry watch 2 0.1 3")
 
     assert client.telemetry_calls == [2, 2, 2]
+
+
+def test_armory_commands_run_ingest_and_approval() -> None:
+    client = _ClientStub()
+    shell = AdminShell(client)  # type: ignore[arg-type]
+
+    shell.onecmd("demo")
+    shell.onecmd("armory ingest nmap registry.internal/security/nmap:1.0.0")
+    shell.onecmd("armory approve sha256:" + "1" * 64)
+
+    assert len(client.armory_ingested) == 1
+    assert client.armory_ingested[0]["tool_name"] == "nmap"
+    assert len(client.armory_approved) == 1
