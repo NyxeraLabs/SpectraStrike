@@ -212,9 +212,12 @@ Sell derived competing products
 - [x] Implement Anti-Replay mechanisms (nonce and timestamp validation).
 - [x] Commit cryptographic engine updates.
 
-### Sprint 11 (Week 21-22): Cobalt Strike QA
-- [ ] QA: verify beacon behavior (Cobalt Strike)
-- [ ] QA: telemetry integration (Cobalt Strike)
+### Sprint 11 (Week 23-24): The Armory (Tool Registry)
+- [x] Deploy internal, immutable OCI container registry / binary store ("The Armory").
+- [x] Implement tool ingestion pipeline (Upload -> SBOM generation -> Vulnerability Scan).
+- [x] Implement Cosign/Sigstore cryptographic signing for all ingested tools.
+- [x] Create UI/TUI module for registering and managing authorized tools (BYOT support).
+- [x] Commit The Armory infrastructure.
 
 ### Sprint 12 (Week 25-26): The Universal Edge Runner
 - [ ] Build the Universal Runner (lightweight Go or secured Python binary).
