@@ -213,11 +213,11 @@ Sell derived competing products
 - [x] Commit cryptographic engine updates.
 
 ### Sprint 11 (Week 23-24): The Armory (Tool Registry)
-- [ ] Deploy internal, immutable OCI container registry / binary store ("The Armory").
-- [ ] Implement tool ingestion pipeline (Upload -> SBOM generation -> Vulnerability Scan).
-- [ ] Implement Cosign/Sigstore cryptographic signing for all ingested tools.
-- [ ] Create UI/TUI module for registering and managing authorized tools (BYOT support).
-- [ ] Commit The Armory infrastructure.
+- [x] Deploy internal, immutable OCI container registry / binary store ("The Armory").
+- [x] Implement tool ingestion pipeline (Upload -> SBOM generation -> Vulnerability Scan).
+- [x] Implement Cosign/Sigstore cryptographic signing for all ingested tools.
+- [x] Create UI/TUI module for registering and managing authorized tools (BYOT support).
+- [x] Commit The Armory infrastructure.
 
 ### Sprint 12 (Week 25-26): The Universal Edge Runner
 - [ ] Build the Universal Runner (lightweight Go or secured Python binary).
