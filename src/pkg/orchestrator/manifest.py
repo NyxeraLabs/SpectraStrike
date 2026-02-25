@@ -25,6 +25,7 @@ from uuid import uuid4
 _URN_PATTERN = re.compile(r"^urn:[a-z0-9][a-z0-9-]{0,31}:[^\s]+$")
 _SHA256_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 _TASK_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$")
+_NONCE_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{8,128}$")
 
 
 class ExecutionManifestValidationError(ValueError):
@@ -84,6 +85,7 @@ class ExecutionManifest:
     task_context: ExecutionTaskContext
     target_urn: str
     tool_sha256: str
+    nonce: str = field(default_factory=lambda: uuid4().hex)
     parameters: dict[str, Any] = field(default_factory=dict)
     issued_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     manifest_version: str = "1.0.0"
@@ -99,6 +101,10 @@ class ExecutionManifest:
         if not _SHA256_PATTERN.match(self.tool_sha256):
             raise ExecutionManifestValidationError(
                 "tool_sha256 must match sha256:<64 lowercase hex>"
+            )
+        if not _NONCE_PATTERN.match(self.nonce):
+            raise ExecutionManifestValidationError(
+                "nonce must be 8-128 chars (A-Za-z0-9._:-)"
             )
         if not isinstance(self.parameters, dict):
             raise ExecutionManifestValidationError("parameters must be a dictionary")
@@ -119,5 +125,6 @@ class ExecutionManifest:
             "task_context": self.task_context.to_dict(),
             "target_urn": self.target_urn,
             "tool_sha256": self.tool_sha256,
+            "nonce": self.nonce,
             "parameters": dict(self.parameters),
         }

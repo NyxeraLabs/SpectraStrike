@@ -108,6 +108,10 @@ The orchestrator is the central control plane for SpectraStrike. It coordinates 
 - Required fields: `task_context`, `target_urn`, `tool_sha256`, `parameters`.
 - `task_context` enforces tenant and operator attribution (`tenant_id`, `operator_id`) and task lineage (`task_id`, `correlation_id`).
 - `target_urn` and `tool_sha256` are strictly validated before signing to reduce forged/tampered dispatch risk.
+7. Anti-replay controls:
+- `ExecutionManifest` includes a per-request `nonce` and `issued_at` timestamp.
+- `pkg.orchestrator.anti_replay.AntiReplayGuard` validates allowed time window and nonce uniqueness before dispatch.
+- Replay storage is tenant-scoped (`tenant_id + nonce`) to preserve isolation boundaries.
 
 ## Security and Reliability Requirements
 1. No secrets in code or logs.

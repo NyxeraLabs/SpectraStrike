@@ -44,6 +44,7 @@ def _manifest(**overrides: object) -> ExecutionManifest:
         "task_context": _task_context(),
         "target_urn": "urn:target:ip:10.0.0.5",
         "tool_sha256": "sha256:" + ("a" * 64),
+        "nonce": "nonce-0001",
         "parameters": {"ports": [443], "aggressive": True},
         "issued_at": "2026-02-25T00:00:05+00:00",
         "manifest_version": "1.0.0",
@@ -59,6 +60,7 @@ def test_manifest_to_payload_contains_required_sections() -> None:
 
     assert payload["target_urn"] == "urn:target:ip:10.0.0.5"
     assert payload["tool_sha256"] == "sha256:" + ("a" * 64)
+    assert payload["nonce"] == "nonce-0001"
     assert payload["task_context"]["tenant_id"] == "tenant-a"
     assert payload["parameters"]["ports"] == [443]
 
@@ -76,6 +78,11 @@ def test_manifest_requires_sha256_hex_format() -> None:
 def test_manifest_requires_parameters_dict() -> None:
     with pytest.raises(ExecutionManifestValidationError, match="parameters"):
         _manifest(parameters=["--flag"])  # type: ignore[arg-type]
+
+
+def test_manifest_requires_nonce_format() -> None:
+    with pytest.raises(ExecutionManifestValidationError, match="nonce"):
+        _manifest(nonce="x")
 
 
 def test_task_context_requires_operator_and_tenant() -> None:
