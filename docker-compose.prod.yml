@@ -129,6 +129,9 @@ services:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONPATH=/app/src
       - UI_ADMIN_API_BASE_URL=http://ui-web:3000/ui/api
+      - SPECTRASTRIKE_LEGAL_ACCEPTANCE_PATH=/var/lib/spectrastrike/legal/acceptance.json
+    volumes:
+      - ui_legal_data:/var/lib/spectrastrike
     command: ["python", "-m", "pkg.ui_admin.shell", "--base-url", "http://ui-web:3000/ui/api"]
     depends_on:
       ui-web:

@@ -12,7 +12,7 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-.PHONY: help build ui-build secrets-init pki-ensure tls-ensure up up-all full-up full-up-tools full-down open-ui open-tui ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db security-check license-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
+.PHONY: help build ui-build secrets-init legal-accept-init pki-ensure tls-ensure up up-all full-up full-up-tools full-down open-ui open-tui ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db security-check license-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
 
 COMPOSE_DEV = docker compose -f docker-compose.dev.yml
 COMPOSE_PROD = docker compose -f docker-compose.prod.yml
@@ -22,6 +22,7 @@ help:
 	@echo "  build             Build app image"
 	@echo "  secrets-init      Create missing local secret files with placeholders"
 	@echo "  pki-ensure        Ensure internal mTLS PKI exists for RabbitMQ/Postgres/Redis"
+	@echo "  legal-accept-init Create/update local legal acceptance for self-hosted TUI/UI"
 	@echo "  tls-ensure        Ensure edge TLS cert/key exists for nginx"
 	@echo "  up                Start dev dockerized stack"
 	@echo "  up-all            Start dev stack + dockerized tool profile"
@@ -98,6 +99,17 @@ pki-ensure:
 		echo "Internal PKI already present."; \
 	fi
 
+legal-accept-init:
+	@mkdir -p .spectrastrike/legal
+	@printf '%s\n' '{' \
+	  '  "accepted_documents": {' \
+	  '    "eula": "2026.1",' \
+	  '    "aup": "2026.1",' \
+	  '    "privacy": "2026.1"' \
+	  '  }' \
+	  '}' > .spectrastrike/legal/acceptance.json
+	@echo "Legal acceptance written to .spectrastrike/legal/acceptance.json"
+
 tls-ensure:
 	@if [ ! -f docker/nginx/certs/tls.crt ] || [ ! -f docker/nginx/certs/tls.key ] || [ ! -f docker/nginx/certs/ca.crt ]; then \
 		echo "Nginx TLS certs missing. Generating dev certs..."; \
@@ -123,7 +135,7 @@ full-down:
 
 open-ui: ui-open
 
-open-tui: ui-admin-shell
+open-tui: legal-accept-init ui-admin-shell
 
 ui-up:
 	$(COMPOSE_DEV) up -d --build ui-web
