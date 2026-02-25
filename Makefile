@@ -39,6 +39,7 @@ help:
 	@echo "  ui-admin-up       Start Admin TUI service in background (admin profile)"
 	@echo "  ui-admin-logs     Tail Admin TUI service logs"
 	@echo "  ui-open           Open Web UI in default browser (or print URL)"
+	@echo "                    Override URL via UI_BASE_URL if needed"
 	@echo "  down              Stop dev stack"
 	@echo "  ui-down           Stop dockerized web UI foundation"
 	@echo "  down-all          Stop dev stack + tool profile"
@@ -159,8 +160,11 @@ ui-admin-logs:
 	$(COMPOSE_DEV) --profile admin logs -f --tail=100 ui-admin
 
 ui-open:
-	@URL="https://localhost:$${HOST_PROXY_TLS_PORT:-18443}/ui"; \
+	@EDGE_URL="https://localhost:$${HOST_PROXY_TLS_PORT:-18443}/ui"; \
+	DIRECT_URL="http://localhost:3000/ui"; \
+	URL="$${UI_BASE_URL:-$$EDGE_URL}"; \
 	echo "Web UI URL: $$URL"; \
+	echo "Direct UI URL (fallback): $$DIRECT_URL"; \
 	if command -v xdg-open >/dev/null 2>&1; then \
 		xdg-open "$$URL" >/dev/null 2>&1 || true; \
 	elif command -v open >/dev/null 2>&1; then \

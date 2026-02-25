@@ -175,6 +175,22 @@ class AdminShell(cmd.Cmd):
             print(f"{ANSI_SUCCESS}task queued{ANSI_RESET} {response}")
         return None
 
+    def do_sync(self, arg: str) -> bool | None:
+        """sync [actor]: Trigger manual ingestion sync (legacy compatibility)."""
+        token = self._require_auth()
+        if token is None:
+            return None
+        parts = shlex.split(arg)
+        actor = (
+            parts[0]
+            if parts
+            else (self._auth.username if self._auth else "operator")
+        )
+        response = self._safe_call(self._client.manual_sync, token, actor)
+        if isinstance(response, dict):
+            print(f"{ANSI_SUCCESS}manual sync completed{ANSI_RESET} {response}")
+        return None
+
     def do_manifest(self, arg: str) -> bool | None:
         """manifest <tool> <target_urn> <json_parameters>: submit a manifest task."""
         token = self._require_auth()
