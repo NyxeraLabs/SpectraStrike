@@ -208,7 +208,7 @@ Sell derived competing products
 - [x] Implement JWS (JSON Web Signature) payload generation in the Orchestrator.
 - [x] Design Execution Manifest schema (Task Context, Target URN, Tool SHA256, Parameters).
 - [x] Implement Anti-Replay mechanisms (nonce and timestamp validation).
-- [ ] Commit cryptographic engine updates.
+- [x] Commit cryptographic engine updates.
 
 ### Sprint 11 (Week 23-24): The Armory (Tool Registry)
 - [ ] Deploy internal, immutable OCI container registry / binary store ("The Armory").
