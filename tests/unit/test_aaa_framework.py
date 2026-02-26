@@ -26,6 +26,25 @@ from pkg.security.aaa_framework import (
 )
 
 
+class _FakePolicyAuthorizer:
+    def __init__(self, *, deny: bool = False) -> None:
+        self.deny = deny
+        self.last_context: dict[str, object] | None = None
+
+    def authorize_execution(
+        self,
+        *,
+        principal: object,
+        action: str,
+        target: str,
+        context: dict[str, object],
+    ) -> None:
+        del principal, action, target
+        self.last_context = context
+        if self.deny:
+            raise PermissionError("denied")
+
+
 def test_authenticate_success() -> None:
     service = AAAService(users={"alice": "pw"}, role_bindings={"alice": {"operator"}})
 
@@ -108,3 +127,51 @@ def test_authenticate_lockout_after_failed_attempts() -> None:
         service.authenticate("alice", "bad")
     with pytest.raises(AuthenticationError):
         service.authenticate("alice", "pw")
+
+
+def test_authorize_delegates_to_policy_authorizer_when_context_present() -> None:
+    policy = _FakePolicyAuthorizer()
+    service = AAAService(
+        users={"alice": "pw"},
+        role_bindings={"alice": {"operator"}},
+        policy_authorizer=policy,
+    )
+    principal = service.authenticate("alice", "pw")
+
+    service.authorize(
+        principal,
+        required_role="operator",
+        action="execute",
+        target="runner",
+        policy_context={
+            "tenant_id": "tenant-a",
+            "tool_sha256": "sha256:" + ("a" * 64),
+            "target_urn": "urn:target:ip:10.0.0.5",
+        },
+    )
+
+    assert policy.last_context is not None
+    assert policy.last_context["tenant_id"] == "tenant-a"
+
+
+def test_authorize_raises_when_policy_authorizer_denies() -> None:
+    policy = _FakePolicyAuthorizer(deny=True)
+    service = AAAService(
+        users={"alice": "pw"},
+        role_bindings={"alice": {"operator"}},
+        policy_authorizer=policy,
+    )
+    principal = service.authenticate("alice", "pw")
+
+    with pytest.raises(AuthorizationError, match="Policy denied execution"):
+        service.authorize(
+            principal,
+            required_role="operator",
+            action="execute",
+            target="runner",
+            policy_context={
+                "tenant_id": "tenant-a",
+                "tool_sha256": "sha256:" + ("a" * 64),
+                "target_urn": "urn:target:ip:10.0.0.5",
+            },
+        )

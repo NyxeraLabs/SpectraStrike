@@ -21,6 +21,7 @@ from .aaa_framework import (
     AuthenticationError,
     AuthorizationError,
     MFAError,
+    PolicyAuthorizer,
     Principal,
 )
 
@@ -30,6 +31,7 @@ __all__ = [
     "MFAError",
     "AuthorizationError",
     "Principal",
+    "PolicyAuthorizer",
     "AccountingRecord",
     "AAAService",
 ]

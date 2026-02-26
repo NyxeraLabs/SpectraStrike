@@ -67,6 +67,11 @@ class OrchestratorEngine:
             required_role=request.required_role,
             action=request.action,
             target=request.tool,
+            policy_context={
+                "tenant_id": str(request.payload.get("tenant_id", "")),
+                "tool_sha256": str(request.payload.get("tool_sha256", "")),
+                "target_urn": str(request.payload.get("target_urn", "")),
+            },
         )
 
         task = OrchestratorTask(

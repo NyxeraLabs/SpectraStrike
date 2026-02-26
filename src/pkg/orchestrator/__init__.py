@@ -36,7 +36,13 @@ from .messaging import (
     TelemetryPublisher,
     TelemetryPublishResult,
 )
-from .opa import OPAClientError, OPAConfig, OPAAuthorizationError, OPAExecutionAuthorizer
+from .opa import (
+    OPAClientError,
+    OPAConfig,
+    OPAAAAPolicyAdapter,
+    OPAAuthorizationError,
+    OPAExecutionAuthorizer,
+)
 from .signing import (
     ManifestSigner,
     VaultTransitConfig,
@@ -79,6 +85,7 @@ __all__ = [
     "OPAClientError",
     "OPAAuthorizationError",
     "OPAExecutionAuthorizer",
+    "OPAAAAPolicyAdapter",
     "ManifestSigner",
     "VaultTransitConfig",
     "VaultTransitSigner",

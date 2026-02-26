@@ -23,6 +23,8 @@ from urllib.parse import urlparse
 
 import requests
 
+from pkg.security.aaa_framework import Principal
+
 
 class OPAClientError(RuntimeError):
     """Raised when OPA query transport or response handling fails."""
@@ -118,3 +120,28 @@ class OPAExecutionAuthorizer:
     def _join_url(self, path: str) -> str:
         normalized = path if path.startswith("/") else f"/{path}"
         return f"{self._config.url.rstrip('/')}{normalized}"
+
+
+class OPAAAAPolicyAdapter:
+    """AAA adapter that delegates complex execution checks to OPA."""
+
+    def __init__(self, authorizer: OPAExecutionAuthorizer | None = None) -> None:
+        self._authorizer = authorizer or OPAExecutionAuthorizer()
+
+    def authorize_execution(
+        self,
+        *,
+        principal: Principal,
+        action: str,
+        target: str,
+        context: dict[str, Any],
+    ) -> None:
+        del target
+        payload = {
+            "operator_id": principal.principal_id,
+            "tenant_id": str(context.get("tenant_id", "")),
+            "tool_sha256": str(context.get("tool_sha256", "")),
+            "target_urn": str(context.get("target_urn", "")),
+            "action": action,
+        }
+        self._authorizer.authorize(payload)

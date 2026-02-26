@@ -29,20 +29,36 @@ from pkg.security.aaa_framework import (
 )
 
 
-def _engine_with_user(role: str = "operator") -> OrchestratorEngine:
-    aaa = AAAService(users={"alice": "pw"}, role_bindings={"alice": {role}})
+class _DenyPolicyAuthorizer:
+    def authorize_execution(self, **_: object) -> None:
+        raise PermissionError("denied")
+
+
+def _engine_with_user(
+    role: str = "operator",
+    *,
+    policy_authorizer: object | None = None,
+) -> OrchestratorEngine:
+    aaa = AAAService(
+        users={"alice": "pw"},
+        role_bindings={"alice": {role}},
+        policy_authorizer=policy_authorizer,
+    )
     scheduler = TaskScheduler()
     telemetry = TelemetryIngestionPipeline(batch_size=10)
     audit = OrchestratorAuditTrail()
     return OrchestratorEngine(aaa, scheduler, telemetry, audit)
 
 
-def _request(required_role: str = "operator") -> TaskSubmissionRequest:
+def _request(
+    required_role: str = "operator",
+    payload: dict[str, object] | None = None,
+) -> TaskSubmissionRequest:
     return TaskSubmissionRequest(
         source="api",
         tool="nmap",
         action="scan",
-        payload={"target": "127.0.0.1"},
+        payload=payload or {"target": "127.0.0.1"},
         requested_by="alice",
         required_role=required_role,
     )
@@ -69,3 +85,20 @@ def test_submit_task_success_enqueues_and_records() -> None:
 
     assert task.requested_by == "alice"
     assert engine.next_task().task_id == task.task_id
+
+
+def test_submit_task_policy_authorizer_denial() -> None:
+    engine = _engine_with_user(
+        role="operator",
+        policy_authorizer=_DenyPolicyAuthorizer(),
+    )
+    request = _request(
+        payload={
+            "tenant_id": "tenant-a",
+            "tool_sha256": "sha256:" + ("a" * 64),
+            "target_urn": "urn:target:ip:10.0.0.5",
+        }
+    )
+
+    with pytest.raises(AuthorizationError, match="Policy denied execution"):
+        engine.submit_task(request, secret="pw")

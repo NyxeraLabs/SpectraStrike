@@ -19,7 +19,7 @@ from __future__ import annotations
 import hmac
 import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Protocol
 
 from pkg.logging.framework import emit_audit_event
 
@@ -60,6 +60,20 @@ class AccountingRecord:
     details: dict[str, Any] = field(default_factory=dict)
 
 
+class PolicyAuthorizer(Protocol):
+    """External policy engine adapter for complex execution checks."""
+
+    def authorize_execution(
+        self,
+        *,
+        principal: Principal,
+        action: str,
+        target: str,
+        context: dict[str, Any],
+    ) -> None:
+        """Raise PermissionError when policy denies execution."""
+
+
 class AAAService:
     """In-memory AAA service with structured audit logging."""
 
@@ -68,12 +82,14 @@ class AAAService:
         users: dict[str, str],
         role_bindings: dict[str, set[str]],
         mfa_secrets: dict[str, str] | None = None,
+        policy_authorizer: PolicyAuthorizer | None = None,
         max_failed_attempts: int = 5,
         lockout_seconds: int = 300,
     ) -> None:
         self._users = users
         self._role_bindings = role_bindings
         self._mfa_secrets = mfa_secrets or {}
+        self._policy_authorizer = policy_authorizer
         self._max_failed_attempts = max_failed_attempts
         self._lockout_seconds = lockout_seconds
         self._failed_attempts: dict[str, int] = {}
@@ -163,7 +179,12 @@ class AAAService:
             self._failed_attempts[principal_id] = 0
 
     def authorize(
-        self, principal: Principal, required_role: str, action: str, target: str
+        self,
+        principal: Principal,
+        required_role: str,
+        action: str,
+        target: str,
+        policy_context: dict[str, Any] | None = None,
     ) -> None:
         """Authorize a principal for an action based on required role."""
         if required_role not in principal.roles:
@@ -176,6 +197,26 @@ class AAAService:
                 attempted_action=action,
             )
             raise AuthorizationError("Insufficient role")
+
+        if self._policy_authorizer is not None and policy_context is not None:
+            try:
+                self._policy_authorizer.authorize_execution(
+                    principal=principal,
+                    action=action,
+                    target=target,
+                    context=policy_context,
+                )
+            except PermissionError as exc:
+                emit_audit_event(
+                    action="authorize",
+                    actor=principal.principal_id,
+                    target=target,
+                    status="denied",
+                    required_role=required_role,
+                    attempted_action=action,
+                    reason="policy_denied",
+                )
+                raise AuthorizationError("Policy denied execution") from exc
 
         emit_audit_event(
             action="authorize",

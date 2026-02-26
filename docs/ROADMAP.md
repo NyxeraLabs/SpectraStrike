@@ -242,7 +242,7 @@ Sell derived competing products
 - [x] Define standard Rego policy schemas for Operator Capabilities.
 - [x] Implement Orchestrator pre-execution hooks: query OPA before signing any JWS.
 - [x] Develop capability policies based on `[Identity] + [Tenant] +[Tool Hash] + [Target URN]`.
-- [ ] Refactor existing Python AAA to delegate complex execution checks to OPA.
+- [x] Refactor existing Python AAA to delegate complex execution checks to OPA.
 - [ ] Commit OPA Integration.
 
 ### Sprint 15 (Week 30-31): Network Fencing & Blast Radius Control

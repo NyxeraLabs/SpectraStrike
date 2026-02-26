@@ -23,9 +23,11 @@ from requests import RequestException
 from pkg.orchestrator.opa import (
     OPAClientError,
     OPAConfig,
+    OPAAAAPolicyAdapter,
     OPAAuthorizationError,
     OPAExecutionAuthorizer,
 )
+from pkg.security.aaa_framework import Principal
 
 
 @dataclass
@@ -113,3 +115,32 @@ def test_opa_authorizer_raises_client_error_on_transport_failure() -> None:
 
     with pytest.raises(OPAClientError, match="request failed"):
         authorizer.authorize(_payload())
+
+
+def test_opa_aaa_policy_adapter_maps_principal_and_context() -> None:
+    session = FakeSession(
+        [
+            FakeResponse(200, {"result": True}),
+            FakeResponse(200, {"result": True}),
+        ]
+    )
+    adapter = OPAAAAPolicyAdapter(
+        OPAExecutionAuthorizer(_config(), session=session)
+    )
+
+    adapter.authorize_execution(
+        principal=Principal(principal_id="operator-a", roles={"operator"}),
+        action="execute",
+        target="runner",
+        context={
+            "tenant_id": "tenant-a",
+            "tool_sha256": "sha256:" + ("a" * 64),
+            "target_urn": "urn:target:ip:10.0.0.5",
+        },
+    )
+
+    payload = session.calls[0]["json"]["input"]
+    assert payload["operator_id"] == "operator-a"
+    assert payload["tenant_id"] == "tenant-a"
+    assert payload["tool_sha256"].startswith("sha256:")
+    assert payload["target_urn"] == "urn:target:ip:10.0.0.5"
