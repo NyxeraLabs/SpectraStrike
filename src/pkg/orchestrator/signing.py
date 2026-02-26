@@ -144,6 +144,20 @@ class VaultTransitSigner:
             },
         )
 
+    def rotate_signing_key(self) -> dict[str, Any]:
+        """Rotate transit key version for orchestrator signature issuance."""
+        endpoint = self._vault_endpoint(
+            f"/v1/{self._config.mount_path}/keys/{self._config.key_name}/rotate"
+        )
+        return self._request("POST", endpoint, {})
+
+    def read_signing_key_metadata(self) -> dict[str, Any]:
+        """Read raw key metadata to support rotation workflow checks."""
+        endpoint = self._vault_endpoint(
+            f"/v1/{self._config.mount_path}/keys/{self._config.key_name}"
+        )
+        return self._request("GET", endpoint)
+
     def sign_payload(
         self,
         payload: bytes,

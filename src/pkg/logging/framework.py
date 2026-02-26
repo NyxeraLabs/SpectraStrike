@@ -26,8 +26,11 @@ from typing import Any
 
 _DEFAULT_FORMAT = "%(asctime)s %(levelname)s [%(name)s] %(message)s"
 _AUDIT_LOGGER_NAME = "spectrastrike.audit"
+_INTEGRITY_AUDIT_LOGGER_NAME = "spectrastrike.audit.integrity"
 _AUDIT_CHAIN_LOCK = Lock()
 _AUDIT_PREV_HASH = "GENESIS"
+_INTEGRITY_AUDIT_CHAIN_LOCK = Lock()
+_INTEGRITY_AUDIT_PREV_HASH = "GENESIS"
 
 
 def setup_logging(level: int = logging.INFO) -> None:
@@ -57,6 +60,11 @@ def get_audit_logger() -> Logger:
     return logging.getLogger(_AUDIT_LOGGER_NAME)
 
 
+def get_integrity_audit_logger() -> Logger:
+    """Return the dedicated control-plane integrity audit logger."""
+    return logging.getLogger(_INTEGRITY_AUDIT_LOGGER_NAME)
+
+
 def emit_audit_event(
     action: str, actor: str, target: str, status: str, **metadata: Any
 ) -> None:
@@ -83,3 +91,31 @@ def emit_audit_event(
     event["prev_hash"] = prev_hash
     event["event_hash"] = current_hash
     get_audit_logger().info(json.dumps(event, sort_keys=True))
+
+
+def emit_integrity_audit_event(
+    action: str, actor: str, target: str, status: str, **metadata: Any
+) -> None:
+    """Emit tamper-evident audit events for startup integrity enforcement."""
+    global _INTEGRITY_AUDIT_PREV_HASH
+
+    base_event = {
+        "timestamp": datetime.now(UTC).isoformat(),
+        "action": action,
+        "actor": actor,
+        "target": target,
+        "status": status,
+        "metadata": metadata,
+    }
+    with _INTEGRITY_AUDIT_CHAIN_LOCK:
+        prev_hash = _INTEGRITY_AUDIT_PREV_HASH
+        canonical = json.dumps(base_event, sort_keys=True, separators=(",", ":"))
+        current_hash = hashlib.sha256(
+            f"{prev_hash}:{canonical}".encode("utf-8")
+        ).hexdigest()
+        _INTEGRITY_AUDIT_PREV_HASH = current_hash
+
+    event = dict(base_event)
+    event["prev_hash"] = prev_hash
+    event["event_hash"] = current_hash
+    get_integrity_audit_logger().info(json.dumps(event, sort_keys=True))

@@ -16,6 +16,19 @@
 
 from .anti_replay import AntiReplayConfig, AntiReplayGuard, AntiReplayValidationError
 from .audit_trail import AuditTrailRecord, OrchestratorAuditTrail
+from .control_plane_integrity import (
+    ConfigurationSignatureMismatchError,
+    ControlPlaneIntegrityEnforcer,
+    ControlPlaneIntegrityError,
+    ImmutableConfigurationHistory,
+    ImmutableConfigurationHistoryError,
+    PolicyHashMismatchError,
+    RuntimeBinaryHashMismatchError,
+    SignedConfigurationEnvelope,
+    StartupIntegrityConfig,
+    StartupIntegrityResult,
+    UnsignedConfigurationError,
+)
 from .engine import OrchestratorEngine, TaskSubmissionRequest
 from .event_loop import AsyncEventLoop
 from .jws import CompactJWSGenerator, JWSConfig, JWSPayloadError
@@ -56,6 +69,13 @@ from .telemetry_schema import (
     TelemetrySchemaError,
     TelemetrySchemaParser,
 )
+from .vault_hardening import (
+    VaultHardeningError,
+    VaultHardeningWorkflow,
+    VaultRotationResult,
+    VaultUnsealPolicy,
+    VaultUnsealPolicyError,
+)
 
 __all__ = [
     "AsyncEventLoop",
@@ -71,6 +91,17 @@ __all__ = [
     "AntiReplayValidationError",
     "AuditTrailRecord",
     "OrchestratorAuditTrail",
+    "ControlPlaneIntegrityError",
+    "UnsignedConfigurationError",
+    "ConfigurationSignatureMismatchError",
+    "PolicyHashMismatchError",
+    "RuntimeBinaryHashMismatchError",
+    "ImmutableConfigurationHistoryError",
+    "SignedConfigurationEnvelope",
+    "StartupIntegrityConfig",
+    "StartupIntegrityResult",
+    "ImmutableConfigurationHistory",
+    "ControlPlaneIntegrityEnforcer",
     "OrchestratorEngine",
     "TaskSubmissionRequest",
     "CompactJWSGenerator",
@@ -98,4 +129,9 @@ __all__ = [
     "VaultTransitConfig",
     "VaultTransitSigner",
     "VaultTransitError",
+    "VaultUnsealPolicy",
+    "VaultRotationResult",
+    "VaultHardeningError",
+    "VaultUnsealPolicyError",
+    "VaultHardeningWorkflow",
 ]
