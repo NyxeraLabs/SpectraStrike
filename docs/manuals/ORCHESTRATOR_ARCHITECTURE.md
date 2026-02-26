@@ -160,6 +160,22 @@ The orchestrator is the central control plane for SpectraStrike. It coordinates 
 - strict tenant context propagation (`tenant_id` required),
 - unified schema validation before buffering/publishing.
 
+## Control Plane Integrity Hardening (Sprint 19)
+1. Signed startup config gate:
+- `pkg.orchestrator.control_plane_integrity.ControlPlaneIntegrityEnforcer` enforces JWS signature validation before startup acceptance.
+- Unsigned or invalid signatures are hard-rejected.
+2. Policy trust pinning:
+- Startup config must include `policy_sha256` that matches `OPA_POLICY_PINNED_SHA256`.
+- Any mismatch is rejected with integrity audit evidence.
+3. Runtime baseline integrity:
+- Optional startup binary baseline (`SPECTRASTRIKE_ENFORCE_BINARY_HASH=true`) validates SHA-256 against signed envelope value.
+4. Immutable configuration history:
+- `ImmutableConfigurationHistory` stores append-only config versions with hash chaining and duplicate-version rejection.
+5. Integrity audit channel:
+- `pkg.logging.framework.emit_integrity_audit_event` writes hash-chained records to dedicated logger `spectrastrike.audit.integrity`.
+6. Vault hardening workflow:
+- `pkg.orchestrator.vault_hardening.VaultHardeningWorkflow` automates transit key rotation checks and unseal share policy enforcement.
+
 ## Testing Strategy (for next tasks)
 1. Unit tests for scheduler ordering and retry behavior.
 2. Unit tests for AAA enforcement on task submission.

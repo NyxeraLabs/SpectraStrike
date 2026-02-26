@@ -21,7 +21,9 @@ import logging
 
 from pkg.logging.framework import (
     emit_audit_event,
+    emit_integrity_audit_event,
     get_audit_logger,
+    get_integrity_audit_logger,
     get_logger,
     setup_logging,
 )
@@ -67,5 +69,28 @@ def test_emit_audit_event_logs_json(caplog) -> None:  # type: ignore[no-untyped-
     assert payload["actor"] == "tester"
     assert payload["status"] == "success"
     assert payload["metadata"]["source_ip"] == "127.0.0.1"
+    assert payload["prev_hash"]
+    assert payload["event_hash"]
+
+
+def test_emit_integrity_audit_event_logs_json(
+    caplog,  # type: ignore[no-untyped-def]
+) -> None:
+    setup_logging()
+    logger = get_integrity_audit_logger()
+
+    with caplog.at_level(logging.INFO, logger=logger.name):
+        emit_integrity_audit_event(
+            action="startup_integrity",
+            actor="orchestrator",
+            target="control-plane",
+            status="success",
+            config_version="19.0.1",
+        )
+
+    payload = json.loads(caplog.records[-1].message)
+    assert payload["action"] == "startup_integrity"
+    assert payload["target"] == "control-plane"
+    assert payload["metadata"]["config_version"] == "19.0.1"
     assert payload["prev_hash"]
     assert payload["event_hash"]

@@ -168,3 +168,16 @@ def test_auto_create_key_runs_on_init() -> None:
 
     assert len(session.calls) == 1
     assert session.calls[0]["url"].endswith("/v1/transit/keys/orchestrator-signing")
+
+
+def test_rotate_signing_key_calls_rotate_endpoint() -> None:
+    session = FakeSession([FakeResponse(200, {"data": {"latest_version": 3}})])
+    signer = VaultTransitSigner(_config(), session=session)  # type: ignore[arg-type]
+
+    data = signer.rotate_signing_key()
+
+    assert data["latest_version"] == 3
+    assert len(session.calls) == 1
+    assert session.calls[0]["url"].endswith(
+        "/v1/transit/keys/orchestrator-signing/rotate"
+    )

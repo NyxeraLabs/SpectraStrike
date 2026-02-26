@@ -38,6 +38,7 @@ This folder contains per-sprint architecture and implementation logs used for en
 ## Sprint Folders (Task PR Templates)
 
 - `docs/dev-logs/sprint-18/pr-templates/`
+- `docs/dev-logs/sprint-19/pr-templates/`
 
 ## Usage
 
