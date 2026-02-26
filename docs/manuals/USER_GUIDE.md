@@ -241,11 +241,51 @@ In progress:
   - `ui_legal_data:/var/lib/spectrastrike`
 - Verify endpoint:
 
-## 10. BYOT Telemetry SDK
+## 10. Sprint 16.7 Host Integration Smoke
+
+Run integration validation against host-installed offensive tooling and telemetry contracts:
+
+```bash
+export SPECTRASTRIKE_TENANT_ID=tenant-a
+make host-integration-smoke
+```
+
+Optional live-path checks (requires configured endpoints):
+
+```bash
+PYTHONPATH=src .venv/bin/python -m pkg.integration.host_integration_smoke \
+  --tenant-id "$SPECTRASTRIKE_TENANT_ID" \
+  --check-metasploit-rpc \
+  --check-vectorvue
+```
+
+Optional direct VectorVue API smoke:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m pkg.integration.vectorvue.qa_smoke \
+  --base-url "$VECTORVUE_BASE_URL" \
+  --username "$VECTORVUE_USERNAME" \
+  --password "$VECTORVUE_PASSWORD" \
+  --tenant-id "$VECTORVUE_TENANT_ID"
+```
+
+Expected VectorVue integration result during host smoke:
+- `vectorvue_ok=True`
+- `vectorvue_event_status=accepted|replayed`
+- `vectorvue_finding_status=accepted|replayed`
+- `vectorvue_status_poll_status=accepted|partial|replayed`
+
+Required host binaries:
+- `nmap`
+- `msfconsole`
+
+The smoke flow preserves Sprint 16/16.5 controls by enforcing tenant-aware telemetry emission and ingestion.
+
+## 11. BYOT Telemetry SDK
 
 Sprint 16 adds lightweight SDK helpers for BYOT tool authors to emit telemetry in supported schemas.
 
-### 10.1 Python SDK
+### 11.1 Python SDK
 
 Use `pkg.telemetry.sdk`:
 
@@ -261,7 +301,7 @@ payload = build_cloudevent_telemetry(
 )
 ```
 
-### 10.2 Bash SDK
+### 11.2 Bash SDK
 
 Source helper script `scripts/byot_telemetry_sdk.sh`:
 
@@ -275,7 +315,7 @@ byot_emit_internal "tool.scan" "scanner-bot" "urn:target:ip:10.0.0.5" "success" 
 - Local/default path outside containerized runtime:
   - `.spectrastrike/legal/acceptance.json`
 
-## 10. Operational References
+## 12. Operational References
 
 - `README.md`
 - `SECURITY.md`
@@ -285,7 +325,7 @@ byot_emit_internal "tool.scan" "scanner-bot" "urn:target:ip:10.0.0.5" "success" 
 - `docs/kanban-board.csv`
 - `docs/dev-logs/INDEX.md`
 
-## 11. Known QA Constraint (Sprint 9.8)
+## 13. Known QA Constraint (Sprint 9.8)
 
 In restricted network environments, Web UI dependency bootstrap may fail due to DNS resolution issues against the npm registry.
 

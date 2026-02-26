@@ -274,6 +274,15 @@ Sell derived competing products
 - [x] Update operator docs/Makefile hints for tenant-context requirement in interactive workflows.
 - [ ] Commit Sprint 16.6 alignment updates.
 
+### Sprint 16.7 (Week 32.7): Host Toolchain Integration Validation
+- [x] Implement host integration smoke module covering local `nmap` execution and tenant-aware telemetry ingestion checks.
+- [x] Validate host `metasploit` binary presence/version and add optional RPC authentication smoke path.
+- [x] Add optional live VectorVue smoke hook to the same host validation workflow.
+- [x] Enforce VectorVue smoke acceptance contract across event, finding, and ingest-status APIs in host integration validation.
+- [x] Add unit regression coverage for VectorVue smoke pass/fail gating in host integration workflow.
+- [x] Add operator-facing command entrypoint (`make host-integration-smoke`) and QA/User guide documentation.
+- [x] Commit Sprint 16.7 host integration validation.
+
 ### Sprint 17 (Week 33): Zero-Trust QA
 - [ ] QA: Verify OPA rejects unauthorized tool execution attempts.
 -[ ] QA: Verify OPA rejects authorized tools against unauthorized Target URNs.

@@ -12,7 +12,7 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-.PHONY: help build ui-build runner-go-build runner-go-test secrets-init legal-accept-init pki-ensure tls-ensure up up-all full-up full-up-tools full-down open-ui open-tui ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db security-check license-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down
+.PHONY: help build ui-build runner-go-build runner-go-test secrets-init legal-accept-init pki-ensure tls-ensure up up-all full-up full-up-tools full-down open-ui open-tui ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db security-check license-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down host-integration-smoke
 
 COMPOSE_DEV = docker compose -f docker-compose.dev.yml
 COMPOSE_PROD = docker compose -f docker-compose.prod.yml
@@ -57,6 +57,7 @@ help:
 	@echo "  test-ui           Run web UI component/unit tests"
 	@echo "  test-ui-e2e       Run web UI basic Playwright E2E tests"
 	@echo "  qa                Run local and dockerized tests"
+	@echo "  host-integration-smoke Run Sprint 16.7 host toolchain integration smoke"
 	@echo "  full-regression   Run full QA + security + docker test path"
 	@echo "  prod-up           Start production compose stack"
 	@echo "  prod-down         Stop production compose stack"
@@ -217,6 +218,9 @@ test-ui-e2e:
 	npm --prefix ui/web run test:e2e
 
 qa: test test-docker
+
+host-integration-smoke:
+	PYTHONPATH=src .venv/bin/python -m pkg.integration.host_integration_smoke --tenant-id "$${SPECTRASTRIKE_TENANT_ID:?set SPECTRASTRIKE_TENANT_ID}"
 
 full-regression: qa security-gate
 
