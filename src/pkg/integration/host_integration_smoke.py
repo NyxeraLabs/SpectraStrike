@@ -82,17 +82,26 @@ def _require_binary(name: str) -> None:
 
 def _build_vectorvue_config(timeout_seconds: float) -> VectorVueConfig:
     return VectorVueConfig(
-        base_url=os.getenv("VECTORVUE_BASE_URL", "https://127.0.0.1"),
+        base_url=os.getenv(
+            "VECTORVUE_FEDERATION_URL",
+            os.getenv("VECTORVUE_BASE_URL", "https://127.0.0.1"),
+        ),
         username=os.getenv("VECTORVUE_USERNAME", "acme_viewer"),
         password=os.getenv("VECTORVUE_PASSWORD", "AcmeView3r!"),
         tenant_id=os.getenv(
             "VECTORVUE_TENANT_ID", "10000000-0000-0000-0000-000000000001"
         ),
         timeout_seconds=timeout_seconds,
-        verify_tls=os.getenv("VECTORVUE_VERIFY_TLS", "0") == "1",
+        verify_tls=os.getenv("VECTORVUE_VERIFY_TLS", "1") == "1",
         signature_secret=os.getenv("VECTORVUE_SIGNATURE_SECRET"),
-        mtls_client_cert_file=os.getenv("VECTORVUE_MTLS_CLIENT_CERT_FILE"),
-        mtls_client_key_file=os.getenv("VECTORVUE_MTLS_CLIENT_KEY_FILE"),
+        mtls_client_cert_file=os.getenv(
+            "VECTORVUE_FEDERATION_MTLS_CERT_FILE",
+            os.getenv("VECTORVUE_MTLS_CLIENT_CERT_FILE"),
+        ),
+        mtls_client_key_file=os.getenv(
+            "VECTORVUE_FEDERATION_MTLS_KEY_FILE",
+            os.getenv("VECTORVUE_MTLS_CLIENT_KEY_FILE"),
+        ),
         max_retries=1,
         backoff_seconds=0,
     )

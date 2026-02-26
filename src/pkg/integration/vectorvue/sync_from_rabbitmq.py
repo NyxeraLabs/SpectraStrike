@@ -36,17 +36,32 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="also emit a finding payload for every consumed telemetry message",
     )
-    parser.add_argument("--base-url", default=os.getenv("VECTORVUE_BASE_URL", "https://127.0.0.1"))
-    parser.add_argument("--username", default=os.getenv("VECTORVUE_USERNAME", "acme_viewer"))
-    parser.add_argument("--password", default=os.getenv("VECTORVUE_PASSWORD", "AcmeView3r!"))
+    parser.add_argument(
+        "--base-url",
+        default=os.getenv(
+            "VECTORVUE_FEDERATION_URL",
+            os.getenv("VECTORVUE_BASE_URL", "https://127.0.0.1"),
+        ),
+    )
+    parser.add_argument(
+        "--username",
+        default=os.getenv("VECTORVUE_USERNAME", "acme_viewer"),
+    )
+    parser.add_argument(
+        "--password",
+        default=os.getenv("VECTORVUE_PASSWORD", "AcmeView3r!"),
+    )
     parser.add_argument(
         "--tenant-id",
-        default=os.getenv("VECTORVUE_TENANT_ID", "10000000-0000-0000-0000-000000000001"),
+        default=os.getenv(
+            "VECTORVUE_TENANT_ID",
+            "10000000-0000-0000-0000-000000000001",
+        ),
     )
     parser.add_argument(
         "--verify-tls",
         action="store_true",
-        default=os.getenv("VECTORVUE_VERIFY_TLS", "0") == "1",
+        default=os.getenv("VECTORVUE_VERIFY_TLS", "1") == "1",
     )
     parser.add_argument("--timeout-seconds", type=float, default=8.0)
     return parser
@@ -64,8 +79,14 @@ def main() -> int:
         max_retries=1,
         backoff_seconds=0,
         signature_secret=os.getenv("VECTORVUE_SIGNATURE_SECRET"),
-        mtls_client_cert_file=os.getenv("VECTORVUE_MTLS_CLIENT_CERT_FILE"),
-        mtls_client_key_file=os.getenv("VECTORVUE_MTLS_CLIENT_KEY_FILE"),
+        mtls_client_cert_file=os.getenv(
+            "VECTORVUE_FEDERATION_MTLS_CERT_FILE",
+            os.getenv("VECTORVUE_MTLS_CLIENT_CERT_FILE"),
+        ),
+        mtls_client_key_file=os.getenv(
+            "VECTORVUE_FEDERATION_MTLS_KEY_FILE",
+            os.getenv("VECTORVUE_MTLS_CLIENT_KEY_FILE"),
+        ),
     )
     client = VectorVueClient(config)
     client.login()
