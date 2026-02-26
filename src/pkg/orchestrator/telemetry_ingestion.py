@@ -29,6 +29,7 @@ from pkg.orchestrator.messaging import (
     TelemetryPublisher,
     TelemetryPublishResult,
 )
+from pkg.orchestrator.telemetry_schema import TelemetrySchemaParser
 
 logger = get_logger("spectrastrike.orchestrator.telemetry")
 
@@ -53,6 +54,7 @@ class TelemetryIngestionPipeline:
         self,
         batch_size: int = 50,
         publisher: TelemetryPublisher | None = None,
+        schema_parser: TelemetrySchemaParser | None = None,
     ) -> None:
         if batch_size <= 0:
             raise ValueError("batch_size must be greater than zero")
@@ -60,6 +62,7 @@ class TelemetryIngestionPipeline:
         self._buffer: list[TelemetryEvent] = []
         self._lock = Lock()
         self._publisher = publisher
+        self._schema_parser = schema_parser or TelemetrySchemaParser()
 
     def ingest(
         self,
@@ -91,6 +94,23 @@ class TelemetryIngestionPipeline:
             event_type=event_type,
         )
         return event
+
+    def ingest_payload(self, payload: dict[str, Any]) -> TelemetryEvent:
+        """Parse and ingest telemetry from unified schema payloads."""
+        parsed = self._schema_parser.parse(payload)
+        reserved = {"event_type", "actor", "target", "status"}
+        safe_attributes = {
+            key: value
+            for key, value in parsed.attributes.items()
+            if key not in reserved
+        }
+        return self.ingest(
+            event_type=parsed.event_type,
+            actor=parsed.actor,
+            target=parsed.target,
+            status=parsed.status,
+            **safe_attributes,
+        )
 
     def flush_ready(self) -> list[TelemetryEvent]:
         """Flush a full batch when enough events are buffered."""

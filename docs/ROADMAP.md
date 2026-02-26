@@ -253,7 +253,7 @@ Sell derived competing products
 - [x] Commit Network Fencing rules.
 
 ### Sprint 16 (Week 32): Telemetry & CloudEvents Standardization
-- [ ] Implement unified schema parser in Orchestrator for all incoming data.
+- [x] Implement unified schema parser in Orchestrator for all incoming data.
 - [ ] Create Python/Bash SDKs for BYOT developers to easily format their tool outputs.
 - [ ] Ensure `tenant_id` context propagation is strictly enforced in all telemetry.
 - [ ] Commit Telemetry pipelines.

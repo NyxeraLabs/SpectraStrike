@@ -64,3 +64,28 @@ def test_flush_all_returns_all_events() -> None:
 def test_invalid_batch_size_raises() -> None:
     with pytest.raises(ValueError):
         TelemetryIngestionPipeline(batch_size=0)
+
+
+def test_ingest_payload_parses_cloudevent() -> None:
+    pipeline = TelemetryIngestionPipeline(batch_size=10)
+
+    event = pipeline.ingest_payload(
+        {
+            "specversion": "1.0",
+            "type": "com.nyxeralabs.runner.execution.v1",
+            "source": "urn:spectrastrike:runner",
+            "subject": "task-1",
+            "data": {
+                "operator_id": "alice",
+                "target_urn": "urn:target:ip:10.0.0.5",
+                "status": "success",
+                "exit_code": 0,
+            },
+        }
+    )
+
+    assert event.event_type == "com.nyxeralabs.runner.execution.v1"
+    assert event.actor == "alice"
+    assert event.target == "urn:target:ip:10.0.0.5"
+    assert event.status == "success"
+    assert event.attributes["exit_code"] == 0

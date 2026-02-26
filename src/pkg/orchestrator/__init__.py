@@ -51,6 +51,11 @@ from .signing import (
 )
 from .task_scheduler import OrchestratorTask, TaskScheduler
 from .telemetry_ingestion import TelemetryEvent, TelemetryIngestionPipeline
+from .telemetry_schema import (
+    ParsedTelemetryEvent,
+    TelemetrySchemaError,
+    TelemetrySchemaParser,
+)
 
 __all__ = [
     "AsyncEventLoop",
@@ -58,6 +63,9 @@ __all__ = [
     "TaskScheduler",
     "TelemetryEvent",
     "TelemetryIngestionPipeline",
+    "ParsedTelemetryEvent",
+    "TelemetrySchemaError",
+    "TelemetrySchemaParser",
     "AntiReplayConfig",
     "AntiReplayGuard",
     "AntiReplayValidationError",
