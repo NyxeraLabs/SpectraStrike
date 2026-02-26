@@ -156,6 +156,7 @@ class UniversalEdgeRunner:
         return self._policy_manager.apply_policy(
             task_id=manifest.task_context.task_id,
             tenant_id=manifest.task_context.tenant_id,
+            target_urn=manifest.target_urn,
         )
 
     def remove_dynamic_network_policy(self, policy: RunnerNetworkPolicy) -> None:

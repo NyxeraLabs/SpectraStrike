@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import json
+import ipaddress
 import re
 import subprocess
 from dataclasses import dataclass
@@ -57,9 +58,12 @@ class CiliumPolicyManager:
         self._namespace = namespace
         self._command_runner = command_runner or self._default_command_runner
 
-    def build_policy_document(self, *, task_id: str, tenant_id: str) -> dict[str, object]:
-        """Create deny-by-default CiliumNetworkPolicy scoped to runner task labels."""
+    def build_policy_document(
+        self, *, task_id: str, tenant_id: str, target_urn: str
+    ) -> dict[str, object]:
+        """Create policy with egress allowlist restricted to manifest target IP/CIDR."""
         policy_name = self._policy_name(task_id=task_id, tenant_id=tenant_id)
+        target_cidr = self._target_cidr_from_urn(target_urn)
         return {
             "apiVersion": "cilium.io/v2",
             "kind": "CiliumNetworkPolicy",
@@ -73,23 +77,37 @@ class CiliumPolicyManager:
                 },
             },
             "spec": {
-                "description": "Sprint 15 dynamic isolation baseline (deny-by-default)",
+                "description": "Sprint 15 dynamic isolation with target egress allowlist",
                 "endpointSelector": {
                     "matchLabels": {
                         "spectrastrike.io/task-id": task_id,
                         "spectrastrike.io/tenant-id": tenant_id,
                     }
                 },
-                # Empty ingress/egress lists establish a baseline fence for selected
-                # runner endpoints. Task 2 will add authorized target allowlisting.
+                # Deny-by-default ingress plus explicit egress allowlist to the
+                # authorized target defined in manifest target_urn.
                 "ingress": [],
-                "egress": [],
+                "egress": [
+                    {
+                        "toCIDRSet": [
+                            {
+                                "cidr": target_cidr,
+                            }
+                        ]
+                    }
+                ],
             },
         }
 
-    def apply_policy(self, *, task_id: str, tenant_id: str) -> RunnerNetworkPolicy:
+    def apply_policy(
+        self, *, task_id: str, tenant_id: str, target_urn: str
+    ) -> RunnerNetworkPolicy:
         """Apply dynamic Cilium policy for one execution task."""
-        document = self.build_policy_document(task_id=task_id, tenant_id=tenant_id)
+        document = self.build_policy_document(
+            task_id=task_id,
+            tenant_id=tenant_id,
+            target_urn=target_urn,
+        )
         payload = json.dumps(document, ensure_ascii=True, sort_keys=True)
         result = self._command_runner(["kubectl", "apply", "-f", "-"], payload)
         if result.returncode != 0:
@@ -120,6 +138,31 @@ class CiliumPolicyManager:
 
     def _policy_name(self, *, task_id: str, tenant_id: str) -> str:
         return f"ss-runner-{_sanitize(tenant_id)}-{_sanitize(task_id)}"
+
+    @staticmethod
+    def _target_cidr_from_urn(target_urn: str) -> str:
+        prefix = "urn:target:ip:"
+        if target_urn.startswith(prefix):
+            raw = target_urn.removeprefix(prefix).strip()
+            try:
+                ip_obj = ipaddress.ip_address(raw)
+            except ValueError as exc:
+                raise RunnerNetworkPolicyError("target_urn IP is invalid") from exc
+            suffix = "32" if ip_obj.version == 4 else "128"
+            return f"{ip_obj.compressed}/{suffix}"
+
+        cidr_prefix = "urn:target:cidr:"
+        if target_urn.startswith(cidr_prefix):
+            raw = target_urn.removeprefix(cidr_prefix).strip()
+            try:
+                network = ipaddress.ip_network(raw, strict=False)
+            except ValueError as exc:
+                raise RunnerNetworkPolicyError("target_urn CIDR is invalid") from exc
+            return str(network)
+
+        raise RunnerNetworkPolicyError(
+            "target_urn must use urn:target:ip:<addr> or urn:target:cidr:<cidr>"
+        )
 
     @staticmethod
     def _default_command_runner(

@@ -28,13 +28,18 @@ from pkg.runner.network_policy import (
 def test_build_policy_document_contains_dynamic_task_and_tenant_labels() -> None:
     manager = CiliumPolicyManager(namespace="spectra")
 
-    doc = manager.build_policy_document(task_id="task-123", tenant_id="tenant-a")
+    doc = manager.build_policy_document(
+        task_id="task-123",
+        tenant_id="tenant-a",
+        target_urn="urn:target:ip:10.0.0.5",
+    )
 
     assert doc["kind"] == "CiliumNetworkPolicy"
     assert doc["metadata"]["namespace"] == "spectra"
     selector = doc["spec"]["endpointSelector"]["matchLabels"]
     assert selector["spectrastrike.io/task-id"] == "task-123"
     assert selector["spectrastrike.io/tenant-id"] == "tenant-a"
+    assert doc["spec"]["egress"][0]["toCIDRSet"][0]["cidr"] == "10.0.0.5/32"
 
 
 def test_apply_policy_runs_kubectl_apply_with_payload() -> None:
@@ -47,7 +52,11 @@ def test_apply_policy_runs_kubectl_apply_with_payload() -> None:
         return subprocess.CompletedProcess(command, 0, "", "")
 
     manager = CiliumPolicyManager(command_runner=fake_runner)
-    policy = manager.apply_policy(task_id="task-1", tenant_id="tenant-a")
+    policy = manager.apply_policy(
+        task_id="task-1",
+        tenant_id="tenant-a",
+        target_urn="urn:target:ip:10.0.0.5",
+    )
 
     assert isinstance(policy, RunnerNetworkPolicy)
     assert calls[0][0] == ["kubectl", "apply", "-f", "-"]
@@ -86,4 +95,18 @@ def test_apply_policy_raises_on_kubectl_error() -> None:
 
     manager = CiliumPolicyManager(command_runner=fake_runner)
     with pytest.raises(RunnerNetworkPolicyError):
-        manager.apply_policy(task_id="task-1", tenant_id="tenant-a")
+        manager.apply_policy(
+            task_id="task-1",
+            tenant_id="tenant-a",
+            target_urn="urn:target:ip:10.0.0.5",
+        )
+
+
+def test_apply_policy_raises_on_invalid_target_urn() -> None:
+    manager = CiliumPolicyManager()
+    with pytest.raises(RunnerNetworkPolicyError, match="target_urn"):
+        manager.build_policy_document(
+            task_id="task-1",
+            tenant_id="tenant-a",
+            target_urn="urn:target:host:example.org",
+        )

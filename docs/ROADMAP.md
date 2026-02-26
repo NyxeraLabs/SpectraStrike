@@ -247,7 +247,7 @@ Sell derived competing products
 
 ### Sprint 15 (Week 30-31): Network Fencing & Blast Radius Control
 - [x] Implement dynamic eBPF/Cilium network policies for the Universal Runner.
-- [ ] Configure Runner network isolation: Allow outbound *only* to authorized Target IPs defined in Manifest.
+- [x] Configure Runner network isolation: Allow outbound *only* to authorized Target IPs defined in Manifest.
 - [ ] Block lateral movement within internal networks from the execution sandbox.
 - [ ] Implement micro-segmentation for multi-tenant SaaS environments.
 - [ ] Commit Network Fencing rules.

@@ -104,4 +104,5 @@ def test_runner_applies_and_removes_dynamic_network_policy(tmp_path: Path) -> No
     runner.remove_dynamic_network_policy(policy)
 
     assert calls[0][0] == ["kubectl", "apply", "-f", "-"]
+    assert '"cidr": "10.10.10.10/32"' in (calls[0][1] or "")
     assert calls[1][0][0:3] == ["kubectl", "delete", "ciliumnetworkpolicy"]
