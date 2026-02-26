@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 from collections.abc import Iterator
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -165,6 +166,43 @@ def test_send_to_orchestrator_emits_telemetry() -> None:
     assert event.attributes["module_name"] == "unix/ftp/example"
     assert event.attributes["session_count"] == 1
     assert telemetry.buffered_count == 1
+
+
+def test_send_to_orchestrator_uses_sdk_payload_ingest_path() -> None:
+    fake = FakeTransport(
+        [
+            {"result": "success", "token": "tok-1"},
+            {"name": "sample"},
+            {"job_id": 77, "uuid": "u-77"},
+            {"5": {"type": "shell"}},
+            {"data": "shell output"},
+        ]
+    )
+    wrapper = MetasploitWrapper(transport=fake)
+    result = wrapper.execute_exploit(
+        ExploitRequest(
+            module_type="exploit",
+            module_name="unix/ftp/example",
+            target_host="10.0.0.9",
+        )
+    )
+    captured: list[dict[str, object]] = []
+
+    class TelemetrySink:
+        def ingest_payload(self, payload: dict[str, object]) -> object:
+            captured.append(payload)
+            return SimpleNamespace(event_type=payload.get("event_type"), attributes={})
+
+    sink = TelemetrySink()
+    wrapper.send_to_orchestrator(
+        result=result,
+        telemetry=sink,  # type: ignore[arg-type]
+        tenant_id="tenant-a",
+        actor="qa-user",
+    )
+
+    assert captured
+    assert captured[0]["tenant_id"] == "tenant-a"
 
 
 def test_retry_on_transport_failure_then_success() -> None:

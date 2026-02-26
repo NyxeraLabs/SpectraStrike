@@ -258,6 +258,15 @@ Sell derived competing products
 - [x] Ensure `tenant_id` context propagation is strictly enforced in all telemetry.
 - [ ] Commit Telemetry pipelines.
 
+### Sprint 16.5 (Week 32.5): Legacy Wrapper SDK Migration
+- [x] Add explicit deprecation note for legacy direct-wrapper telemetry emission path.
+- [x] Migrate Nmap wrapper telemetry emission to BYOT telemetry SDK + unified schema ingestion.
+- [x] Migrate Metasploit wrapper telemetry emission to BYOT telemetry SDK + unified schema ingestion.
+- [x] Migrate manual Metasploit ingestion connector telemetry emission to BYOT telemetry SDK + unified schema ingestion.
+- [x] Preserve security controls from prior sprints (strict `tenant_id` propagation + schema validation).
+- [x] Add regression tests for SDK-based emission path compatibility.
+- [ ] Commit Sprint 16.5 SDK migration.
+
 ### Sprint 17 (Week 33): Zero-Trust QA
 - [ ] QA: Verify OPA rejects unauthorized tool execution attempts.
 -[ ] QA: Verify OPA rejects authorized tools against unauthorized Target URNs.
