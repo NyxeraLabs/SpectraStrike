@@ -194,7 +194,10 @@ def test_send_to_orchestrator_emits_telemetry_event() -> None:
     telemetry = TelemetryIngestionPipeline(batch_size=10)
 
     event = wrapper.send_to_orchestrator(
-        result=result, telemetry=telemetry, actor="qa-user"
+        result=result,
+        telemetry=telemetry,
+        tenant_id="tenant-a",
+        actor="qa-user",
     )
 
     assert event.event_type == "nmap_scan_completed"

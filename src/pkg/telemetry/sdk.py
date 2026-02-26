@@ -27,6 +27,7 @@ def build_internal_telemetry_event(
     actor: str,
     target: str,
     status: str,
+    tenant_id: str,
     attributes: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build orchestrator-native telemetry payload."""
@@ -35,6 +36,7 @@ def build_internal_telemetry_event(
         "actor": actor,
         "target": target,
         "status": status,
+        "tenant_id": tenant_id,
         "attributes": dict(attributes or {}),
     }
 
@@ -44,11 +46,14 @@ def build_cloudevent_telemetry(
     event_type: str,
     source: str,
     subject: str,
+    tenant_id: str,
     data: dict[str, Any],
     event_id: str | None = None,
     timestamp: str | None = None,
 ) -> dict[str, Any]:
     """Build CloudEvents v1.0 telemetry payload."""
+    event_data = dict(data)
+    event_data["tenant_id"] = tenant_id
     return {
         "id": event_id or str(uuid4()),
         "specversion": "1.0",
@@ -56,7 +61,7 @@ def build_cloudevent_telemetry(
         "source": source,
         "subject": subject,
         "time": timestamp or datetime.now(UTC).isoformat(),
-        "data": dict(data),
+        "data": event_data,
     }
 
 
@@ -66,12 +71,13 @@ def build_legacy_telemetry_event(
     status: str,
     actor: str,
     target: str,
+    tenant_id: str,
     attributes: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build compatibility payload for legacy telemetry producers."""
     return {
         "event": {"type": event_type},
         "result": {"status": status},
-        "context": {"actor": actor, "target": target},
+        "context": {"actor": actor, "target": target, "tenant_id": tenant_id},
         "attributes": dict(attributes or {}),
     }

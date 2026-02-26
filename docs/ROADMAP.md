@@ -255,7 +255,7 @@ Sell derived competing products
 ### Sprint 16 (Week 32): Telemetry & CloudEvents Standardization
 - [x] Implement unified schema parser in Orchestrator for all incoming data.
 - [x] Create Python/Bash SDKs for BYOT developers to easily format their tool outputs.
-- [ ] Ensure `tenant_id` context propagation is strictly enforced in all telemetry.
+- [x] Ensure `tenant_id` context propagation is strictly enforced in all telemetry.
 - [ ] Commit Telemetry pipelines.
 
 ### Sprint 17 (Week 33): Zero-Trust QA

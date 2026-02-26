@@ -58,7 +58,7 @@ def _request(
         source="api",
         tool="nmap",
         action="scan",
-        payload=payload or {"target": "127.0.0.1"},
+        payload=payload or {"target": "127.0.0.1", "tenant_id": "tenant-a"},
         requested_by="alice",
         required_role=required_role,
     )

@@ -292,6 +292,7 @@ class MetasploitWrapper:
         self,
         result: MetasploitExploitResult,
         telemetry: TelemetryIngestionPipeline,
+        tenant_id: str,
         actor: str = "metasploit-wrapper",
     ) -> TelemetryEvent:
         """Emit exploit outcome to orchestrator telemetry pipeline."""
@@ -300,6 +301,7 @@ class MetasploitWrapper:
             actor=actor,
             target="orchestrator",
             status=result.status,
+            tenant_id=tenant_id,
             module_type=result.module_type,
             module_name=result.module_name,
             target_host=result.target_host,

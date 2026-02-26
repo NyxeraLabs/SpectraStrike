@@ -27,9 +27,30 @@ def test_telemetry_flush_publish_consume_flow() -> None:
     publisher = RabbitMQTelemetryPublisher(broker=broker)
     pipeline = TelemetryIngestionPipeline(batch_size=2, publisher=publisher)
 
-    pipeline.ingest("task_submitted", "alice", "nmap", "success", task_id="t1")
-    pipeline.ingest("task_started", "alice", "nmap", "success", task_id="t1")
-    pipeline.ingest("task_completed", "alice", "nmap", "success", task_id="t1")
+    pipeline.ingest(
+        "task_submitted",
+        "alice",
+        "nmap",
+        "success",
+        tenant_id="tenant-a",
+        task_id="t1",
+    )
+    pipeline.ingest(
+        "task_started",
+        "alice",
+        "nmap",
+        "success",
+        tenant_id="tenant-a",
+        task_id="t1",
+    )
+    pipeline.ingest(
+        "task_completed",
+        "alice",
+        "nmap",
+        "success",
+        tenant_id="tenant-a",
+        task_id="t1",
+    )
 
     ready_result = asyncio.run(pipeline.flush_ready_async())
 

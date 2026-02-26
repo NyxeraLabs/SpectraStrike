@@ -106,6 +106,7 @@ class OrchestratorEngine:
             actor=request.requested_by,
             target=request.tool,
             status="success",
+            tenant_id=str(request.payload.get("tenant_id", "")),
             task_id=task.task_id,
             action=request.action,
         )

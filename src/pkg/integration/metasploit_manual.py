@@ -325,6 +325,7 @@ class MetasploitManualIngestor:
 
     def sync(
         self,
+        tenant_id: str,
         actor: str = "red-team-operator",
         checkpoint: IngestionCheckpoint | None = None,
     ) -> IngestionResult:
@@ -343,6 +344,7 @@ class MetasploitManualIngestor:
                 actor=actor,
                 target="metasploit",
                 status="success",
+                tenant_id=tenant_id,
                 session_id=session.session_id,
                 session_type=session.session_type,
                 target_host=session.target_host,
@@ -364,6 +366,7 @@ class MetasploitManualIngestor:
                 actor=actor,
                 target="metasploit",
                 status="success",
+                tenant_id=tenant_id,
                 event_id=event.event_id,
                 session_id=event.session_id,
                 session_event_type=event.event_type,

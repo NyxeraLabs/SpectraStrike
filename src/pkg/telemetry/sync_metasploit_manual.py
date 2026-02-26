@@ -41,6 +41,11 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--username", default=os.getenv("MSF_MANUAL_USERNAME", ""))
     parser.add_argument("--password", default=os.getenv("MSF_MANUAL_PASSWORD", ""))
     parser.add_argument("--actor", default="red-team-operator")
+    parser.add_argument(
+        "--tenant-id",
+        default=os.getenv("SPECTRASTRIKE_TENANT_ID", ""),
+        help="Tenant context required for emitted telemetry events",
+    )
     parser.add_argument("--verify-tls", action="store_true")
     parser.add_argument(
         "--checkpoint-file", default=".state/metasploit_manual_checkpoint.json"
@@ -57,6 +62,10 @@ def main() -> int:
             "username/password required "
             "(or set MSF_MANUAL_USERNAME/MSF_MANUAL_PASSWORD)"
         )
+    if not args.tenant_id:
+        parser.error(
+            "tenant-id required (or set SPECTRASTRIKE_TENANT_ID)"
+        )
     config = MetasploitManualConfig(
         base_url=args.base_url,
         username=args.username,
@@ -69,7 +78,11 @@ def main() -> int:
     store = IngestionCheckpointStore(args.checkpoint_file)
     checkpoint = store.load()
 
-    result = ingestor.sync(actor=args.actor, checkpoint=checkpoint)
+    result = ingestor.sync(
+        tenant_id=args.tenant_id,
+        actor=args.actor,
+        checkpoint=checkpoint,
+    )
     store.save(result.checkpoint)
 
     flushed = telemetry.flush_all()

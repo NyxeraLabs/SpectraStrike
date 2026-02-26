@@ -154,7 +154,11 @@ def test_ingestor_sync_emits_only_unseen_records() -> None:
     ingestor = MetasploitManualIngestor(client, telemetry)
     checkpoint = IngestionCheckpoint(seen_session_ids={"1"}, last_session_event_id="10")
 
-    result = ingestor.sync(actor="qa-user", checkpoint=checkpoint)
+    result = ingestor.sync(
+        tenant_id="tenant-a",
+        actor="qa-user",
+        checkpoint=checkpoint,
+    )
     flushed = telemetry.flush_all()
 
     assert result.observed_sessions == 2
