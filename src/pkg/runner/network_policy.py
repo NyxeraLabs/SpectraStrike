@@ -84,6 +84,25 @@ class CiliumPolicyManager:
                         "spectrastrike.io/tenant-id": tenant_id,
                     }
                 },
+                # Explicit lateral movement blocks toward cluster/node/control-plane
+                # paths regardless of requested target.
+                "egressDeny": [
+                    {
+                        "toEntities": [
+                            "cluster",
+                            "host",
+                            "remote-node",
+                        ]
+                    },
+                    {
+                        "toCIDRSet": [
+                            {"cidr": "127.0.0.0/8"},
+                            {"cidr": "169.254.0.0/16"},
+                            {"cidr": "::1/128"},
+                            {"cidr": "fe80::/10"},
+                        ]
+                    },
+                ],
                 # Deny-by-default ingress plus explicit egress allowlist to the
                 # authorized target defined in manifest target_urn.
                 "ingress": [],
