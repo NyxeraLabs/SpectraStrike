@@ -241,7 +241,7 @@ Sell derived competing products
 - [x] Deploy OPA container alongside the Orchestrator.
 - [x] Define standard Rego policy schemas for Operator Capabilities.
 - [x] Implement Orchestrator pre-execution hooks: query OPA before signing any JWS.
-- [ ] Develop capability policies based on `[Identity] + [Tenant] +[Tool Hash] + [Target URN]`.
+- [x] Develop capability policies based on `[Identity] + [Tenant] +[Tool Hash] + [Target URN]`.
 - [ ] Refactor existing Python AAA to delegate complex execution checks to OPA.
 - [ ] Commit OPA Integration.
 

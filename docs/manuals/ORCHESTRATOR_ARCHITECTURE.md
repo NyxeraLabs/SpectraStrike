@@ -144,6 +144,15 @@ The orchestrator is the central control plane for SpectraStrike. It coordinates 
 7. QA guarantees:
 - `tests/qa/test_execution_fabric_qa.py` validates forged-JWS rejection, tampered-digest rejection, and CloudEvents output integrity.
 
+## OPA Capability Policies (Sprint 14)
+1. Pre-sign authorization:
+- Orchestrator pre-sign flow can query OPA before issuing compact JWS manifests.
+2. Capability tuple model:
+- Policy evaluation uses a tuple match on `operator_id + tenant_id + tool_sha256 + target_urn`.
+3. Policy defaults:
+- `spectrastrike.capabilities.allow` is deny-by-default.
+- Input contract validation is exposed through `spectrastrike.capabilities.input_contract_valid`.
+
 ## Testing Strategy (for next tasks)
 1. Unit tests for scheduler ordering and retry behavior.
 2. Unit tests for AAA enforcement on task submission.

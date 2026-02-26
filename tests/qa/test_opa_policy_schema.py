@@ -39,3 +39,16 @@ def test_capabilities_policy_wires_schema_contract() -> None:
     assert "import data.spectrastrike.schema" in content
     assert "schema_contract :=" in content
     assert "input_contract_valid :=" in content
+
+
+def test_capabilities_policy_is_deny_by_default_and_tuple_based() -> None:
+    capabilities_path = REPO_ROOT / "config/opa/policies/capabilities.rego"
+    content = capabilities_path.read_text(encoding="utf-8")
+
+    assert "default allow := false" in content
+    assert "capability_bindings :=" in content
+    assert "binding.operator_id == input.operator_id" in content
+    assert "binding.tenant_id == input.tenant_id" in content
+    assert "binding.tool_sha256 == input.tool_sha256" in content
+    assert "action_allowed(binding.actions, input.action)" in content
+    assert "target_allowed(binding, input.target_urn)" in content
