@@ -12,18 +12,21 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-"""Sprint 16.7 host integration smoke checks for local toolchain + VectorVue."""
+"""Sprint 16.8 host integration smoke checks for local toolchain + VectorVue."""
 
 from __future__ import annotations
 
 import argparse
+import asyncio
 import os
 import shutil
 import subprocess
 from dataclasses import dataclass, field
 
+from pkg.integration.vectorvue.client import VectorVueClient
 from pkg.integration.vectorvue.config import VectorVueConfig
-from pkg.integration.vectorvue.qa_smoke import run_smoke
+from pkg.integration.vectorvue.rabbitmq_bridge import InMemoryVectorVueBridge
+from pkg.orchestrator.messaging import InMemoryRabbitBroker, RabbitMQTelemetryPublisher
 from pkg.orchestrator.telemetry_ingestion import TelemetryIngestionPipeline
 from pkg.wrappers.metasploit import MetasploitConfig, MetasploitWrapper
 from pkg.wrappers.nmap import NmapScanOptions, NmapWrapper
@@ -35,7 +38,7 @@ class HostIntegrationError(RuntimeError):
 
 @dataclass(slots=True)
 class HostIntegrationResult:
-    """Result summary for sprint 16.7 host integration checks."""
+    """Result summary for sprint 16.8 host integration checks."""
 
     tenant_id: str
     nmap_binary_ok: bool = False
@@ -43,6 +46,7 @@ class HostIntegrationResult:
     telemetry_ingest_ok: bool = False
     metasploit_binary_ok: bool = False
     metasploit_rpc_ok: bool | None = None
+    rabbitmq_publish_ok: bool | None = None
     vectorvue_ok: bool | None = None
     vectorvue_event_status: str | None = None
     vectorvue_finding_status: str | None = None
@@ -99,7 +103,7 @@ def run_host_integration_smoke(
     check_metasploit_rpc: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
-    """Execute host integration smoke path for Sprint 16.7."""
+    """Execute host integration smoke path for Sprint 16.8."""
     resolved_tenant = _must_have_tenant(tenant_id)
     result = HostIntegrationResult(tenant_id=resolved_tenant)
 
@@ -144,24 +148,53 @@ def run_host_integration_smoke(
         result.checks.append("metasploit.rpc")
 
     if check_vectorvue:
-        smoke = run_smoke(_build_vectorvue_config(timeout_seconds))
-        result.vectorvue_event_status = smoke.event_status
-        result.vectorvue_finding_status = smoke.finding_status
-        result.vectorvue_status_poll_status = smoke.status_poll_status
-        result.vectorvue_ok = (
-            bool(smoke.login_ok)
-            and smoke.event_status in {"accepted", "replayed"}
-            and smoke.finding_status in {"accepted", "replayed"}
-            and smoke.status_poll_status in {"accepted", "partial", "replayed"}
+        broker = InMemoryRabbitBroker()
+        publisher = RabbitMQTelemetryPublisher(broker=broker)
+        telemetry_with_broker = TelemetryIngestionPipeline(batch_size=1, publisher=publisher)
+        nmap_wrapper.send_to_orchestrator(
+            nmap_scan,
+            telemetry=telemetry_with_broker,
+            tenant_id=resolved_tenant,
+            actor="host-integration-smoke",
         )
-        result.checks.append("vectorvue.smoke")
+        publish_result = asyncio.run(telemetry_with_broker.flush_all_async())
+        result.rabbitmq_publish_ok = publish_result.published > 0
+        result.checks.append("rabbitmq.publish")
+
+        client = VectorVueClient(_build_vectorvue_config(timeout_seconds))
+        client.login()
+        bridge = InMemoryVectorVueBridge(
+            broker=broker,
+            client=client,
+            emit_findings_for_all=True,
+        )
+        bridge_result = bridge.drain(limit=10)
+        result.vectorvue_event_status = (
+            bridge_result.event_statuses[0] if bridge_result.event_statuses else None
+        )
+        result.vectorvue_finding_status = (
+            bridge_result.finding_statuses[0] if bridge_result.finding_statuses else None
+        )
+        result.vectorvue_status_poll_status = (
+            bridge_result.status_poll_statuses[0]
+            if bridge_result.status_poll_statuses
+            else None
+        )
+        result.vectorvue_ok = (
+            bool(result.rabbitmq_publish_ok)
+            and bridge_result.failed == 0
+            and result.vectorvue_event_status in {"accepted", "replayed"}
+            and result.vectorvue_finding_status in {"accepted", "replayed"}
+            and result.vectorvue_status_poll_status in {"accepted", "partial", "replayed"}
+        )
+        result.checks.append("vectorvue.rabbitmq.bridge")
 
     return result
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Run Sprint 16.7 host integration smoke checks"
+        description="Run Sprint 16.8 host integration smoke checks"
     )
     parser.add_argument(
         "--tenant-id",
@@ -203,6 +236,7 @@ def main() -> int:
         f" telemetry_ingest_ok={result.telemetry_ingest_ok}"
         f" metasploit_binary_ok={result.metasploit_binary_ok}"
         f" metasploit_rpc_ok={result.metasploit_rpc_ok}"
+        f" rabbitmq_publish_ok={result.rabbitmq_publish_ok}"
         f" vectorvue_ok={result.vectorvue_ok}"
         f" vectorvue_event_status={result.vectorvue_event_status}"
         f" vectorvue_finding_status={result.vectorvue_finding_status}"

@@ -24,9 +24,17 @@ from pkg.integration.vectorvue.exceptions import (
     VectorVueTransportError,
 )
 from pkg.integration.vectorvue.models import ResponseEnvelope
+from pkg.integration.vectorvue.rabbitmq_bridge import (
+    BridgeDrainResult,
+    InMemoryVectorVueBridge,
+    PikaVectorVueBridge,
+)
 
 __all__ = [
     "ResponseEnvelope",
+    "BridgeDrainResult",
+    "InMemoryVectorVueBridge",
+    "PikaVectorVueBridge",
     "VectorVueAPIError",
     "VectorVueClient",
     "VectorVueConfig",

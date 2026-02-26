@@ -51,6 +51,16 @@ class _FakeNmapWrapper:
     ) -> _FakeEvent:
         assert telemetry is not None
         assert actor == "host-integration-smoke"
+        ingest = getattr(telemetry, "ingest", None)
+        if callable(ingest):
+            ingest(
+                event_type="nmap_scan_completed",
+                actor=actor,
+                target="orchestrator",
+                status="success",
+                tenant_id=tenant_id,
+                command=["nmap", "127.0.0.1"],
+            )
         return _FakeEvent(event_type="nmap_scan_completed", tenant_id=tenant_id)
 
 
@@ -63,11 +73,72 @@ class _FakeMetasploitWrapper:
 
 
 @dataclass(slots=True)
-class _FakeSmokeResult:
-    login_ok: bool
-    event_status: str
-    finding_status: str
-    status_poll_status: str
+class _FakeBridgeResult:
+    consumed: int
+    forwarded_events: int
+    forwarded_findings: int
+    failed: int
+    event_statuses: list[str]
+    finding_statuses: list[str]
+    status_poll_statuses: list[str]
+
+
+class _FakeVectorVueClient:
+    def __init__(self, _cfg: object) -> None:
+        self._cfg = _cfg
+
+    def login(self) -> str:
+        return "token-1"
+
+
+class _FakeBridgeOK:
+    def __init__(
+        self,
+        *,
+        broker: object,
+        client: object,
+        emit_findings_for_all: bool,
+    ) -> None:
+        assert broker is not None
+        assert client is not None
+        assert emit_findings_for_all is True
+
+    def drain(self, limit: int) -> _FakeBridgeResult:
+        assert limit == 10
+        return _FakeBridgeResult(
+            consumed=1,
+            forwarded_events=1,
+            forwarded_findings=1,
+            failed=0,
+            event_statuses=["accepted"],
+            finding_statuses=["accepted"],
+            status_poll_statuses=["accepted"],
+        )
+
+
+class _FakeBridgeFailure:
+    def __init__(
+        self,
+        *,
+        broker: object,
+        client: object,
+        emit_findings_for_all: bool,
+    ) -> None:
+        assert broker is not None
+        assert client is not None
+        assert emit_findings_for_all is True
+
+    def drain(self, limit: int) -> _FakeBridgeResult:
+        assert limit == 10
+        return _FakeBridgeResult(
+            consumed=1,
+            forwarded_events=1,
+            forwarded_findings=1,
+            failed=0,
+            event_statuses=["accepted"],
+            finding_statuses=["rejected"],
+            status_poll_statuses=["accepted"],
+        )
 
 
 def test_host_smoke_requires_tenant_id() -> None:
@@ -123,13 +194,12 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         _FakeMetasploitWrapper,
     )
     monkeypatch.setattr(
-        "pkg.integration.host_integration_smoke.run_smoke",
-        lambda _cfg: _FakeSmokeResult(
-            login_ok=True,
-            event_status="accepted",
-            finding_status="accepted",
-            status_poll_status="accepted",
-        ),
+        "pkg.integration.host_integration_smoke.VectorVueClient",
+        _FakeVectorVueClient,
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.InMemoryVectorVueBridge",
+        _FakeBridgeOK,
     )
 
     result = run_host_integration_smoke(
@@ -139,12 +209,14 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     )
 
     assert result.metasploit_rpc_ok is True
+    assert result.rabbitmq_publish_ok is True
     assert result.vectorvue_ok is True
     assert result.vectorvue_event_status == "accepted"
     assert result.vectorvue_finding_status == "accepted"
     assert result.vectorvue_status_poll_status == "accepted"
     assert "metasploit.rpc" in result.checks
-    assert "vectorvue.smoke" in result.checks
+    assert "rabbitmq.publish" in result.checks
+    assert "vectorvue.rabbitmq.bridge" in result.checks
 
 
 def test_host_smoke_vectorvue_failure_marks_not_ok(
@@ -162,13 +234,12 @@ def test_host_smoke_vectorvue_failure_marks_not_ok(
         _FakeNmapWrapper,
     )
     monkeypatch.setattr(
-        "pkg.integration.host_integration_smoke.run_smoke",
-        lambda _cfg: _FakeSmokeResult(
-            login_ok=True,
-            event_status="accepted",
-            finding_status="rejected",
-            status_poll_status="accepted",
-        ),
+        "pkg.integration.host_integration_smoke.VectorVueClient",
+        _FakeVectorVueClient,
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.InMemoryVectorVueBridge",
+        _FakeBridgeFailure,
     )
 
     result = run_host_integration_smoke(
@@ -177,6 +248,7 @@ def test_host_smoke_vectorvue_failure_marks_not_ok(
     )
 
     assert result.vectorvue_ok is False
+    assert result.rabbitmq_publish_ok is True
     assert result.vectorvue_event_status == "accepted"
     assert result.vectorvue_finding_status == "rejected"
     assert result.vectorvue_status_poll_status == "accepted"

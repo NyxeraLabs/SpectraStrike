@@ -24,6 +24,9 @@ This index tracks production manuals and governance documents aligned with curre
 - `docs/manuals/VECTORVUE_API_CLIENT_DESIGN.md`
   - VectorVue client contracts, retry behavior, and integration error model.
 
+- `docs/manuals/WHITEPAPER_COMPLIANCE.md`
+  - Sprint-aligned implementation compliance assessment against `docs/WHITEPAPER.md`.
+
 - `docs/manuals/UI_ARCHITECTURE_API_CONTRACTS.md`
   - Sprint 9.6 UI baseline architecture and internal API contracts.
 

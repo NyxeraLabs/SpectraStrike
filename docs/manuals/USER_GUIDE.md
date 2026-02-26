@@ -243,7 +243,8 @@ In progress:
 
 ## 10. Sprint 16.7 Host Integration Smoke
 
-Run integration validation against host-installed offensive tooling and telemetry contracts:
+Run integration validation against host-installed offensive tooling and telemetry contracts.
+Sprint 16.8 uses RabbitMQ broker forwarding for VectorVue validation.
 
 ```bash
 export SPECTRASTRIKE_TENANT_ID=tenant-a
@@ -262,14 +263,11 @@ PYTHONPATH=src .venv/bin/python -m pkg.integration.host_integration_smoke \
 Optional direct VectorVue API smoke:
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m pkg.integration.vectorvue.qa_smoke \
-  --base-url "$VECTORVUE_BASE_URL" \
-  --username "$VECTORVUE_USERNAME" \
-  --password "$VECTORVUE_PASSWORD" \
-  --tenant-id "$VECTORVUE_TENANT_ID"
+make vectorvue-rabbitmq-sync
 ```
 
 Expected VectorVue integration result during host smoke:
+- `rabbitmq_publish_ok=True`
 - `vectorvue_ok=True`
 - `vectorvue_event_status=accepted|replayed`
 - `vectorvue_finding_status=accepted|replayed`

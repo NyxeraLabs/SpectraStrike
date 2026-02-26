@@ -283,6 +283,15 @@ Sell derived competing products
 - [x] Add operator-facing command entrypoint (`make host-integration-smoke`) and QA/User guide documentation.
 - [x] Commit Sprint 16.7 host integration validation.
 
+### Sprint 16.8 (Week 32.8): VectorVue RabbitMQ Bridge Alignment
+- [x] Implement RabbitMQ-to-VectorVue bridge module for broker envelope to API forwarding.
+- [x] Add live bridge CLI entrypoint (`pkg.integration.vectorvue.sync_from_rabbitmq`) and Makefile target (`make vectorvue-rabbitmq-sync`).
+- [x] Migrate host integration VectorVue validation path to RabbitMQ-backed bridge flow.
+- [x] Add regression unit tests for RabbitMQ bridge forwarding and failure handling.
+- [x] Document operator QA flow for broker-backed VectorVue validation.
+- [x] Produce whitepaper compliance check for current implementation status and explicit gaps.
+- [x] Commit Sprint 16.8 RabbitMQ bridge alignment.
+
 ### Sprint 17 (Week 33): Zero-Trust QA
 - [ ] QA: Verify OPA rejects unauthorized tool execution attempts.
 -[ ] QA: Verify OPA rejects authorized tools against unauthorized Target URNs.

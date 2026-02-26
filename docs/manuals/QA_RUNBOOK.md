@@ -109,9 +109,10 @@ Notes:
 If versions differ from `config/legal.config.ts`, access must be blocked with:
 - `LEGAL_ACCEPTANCE_REQUIRED`
 
-### 4.6 Sprint 16.7 host integration smoke
+### 4.6 Sprint 16.7/16.8 host integration smoke
 
-Validate host-installed tooling and integration contracts (tenant-aware telemetry, optional RPC/API live checks):
+Validate host-installed tooling and integration contracts (tenant-aware telemetry, optional RPC/API live checks).
+Sprint 16.8 routes VectorVue validation through RabbitMQ bridge flow.
 
 ```bash
 export SPECTRASTRIKE_TENANT_ID=tenant-a
@@ -123,17 +124,18 @@ PYTHONPATH=src .venv/bin/python -m pkg.integration.host_integration_smoke \
   --check-metasploit-rpc \
   --check-vectorvue
 
-# optional direct VectorVue smoke (API-only)
-PYTHONPATH=src .venv/bin/python -m pkg.integration.vectorvue.qa_smoke \
-  --base-url "$VECTORVUE_BASE_URL" \
-  --username "$VECTORVUE_USERNAME" \
-  --password "$VECTORVUE_PASSWORD" \
-  --tenant-id "$VECTORVUE_TENANT_ID"
+# optional standalone broker drain -> VectorVue API sync
+make vectorvue-rabbitmq-sync
 ```
 
 Expected output shape:
 - `HOST_SMOKE tenant_id=... nmap_binary_ok=True nmap_scan_ok=True telemetry_ingest_ok=True metasploit_binary_ok=True`
-- When `--check-vectorvue` is enabled: `vectorvue_ok=True vectorvue_event_status=accepted|replayed vectorvue_finding_status=accepted|replayed vectorvue_status_poll_status=accepted|partial|replayed`
+- When `--check-vectorvue` is enabled:
+  - `rabbitmq_publish_ok=True`
+  - `vectorvue_ok=True`
+  - `vectorvue_event_status=accepted|replayed`
+  - `vectorvue_finding_status=accepted|replayed`
+  - `vectorvue_status_poll_status=accepted|partial|replayed`
 
 If `--check-metasploit-rpc` is enabled, `MSF_RPC_*` must point to a reachable RPC endpoint.
 If `--check-vectorvue` is enabled, `VECTORVUE_*` credentials and endpoint must be configured.
