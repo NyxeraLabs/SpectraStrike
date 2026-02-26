@@ -84,9 +84,38 @@ class CiliumPolicyManager:
                         "spectrastrike.io/tenant-id": tenant_id,
                     }
                 },
+                # Tenant micro-segmentation: deny cross-tenant east/west traffic.
+                "ingressDeny": [
+                    {
+                        "fromEndpoints": [
+                            {
+                                "matchExpressions": [
+                                    {
+                                        "key": "spectrastrike.io/tenant-id",
+                                        "operator": "NotIn",
+                                        "values": [tenant_id],
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ],
                 # Explicit lateral movement blocks toward cluster/node/control-plane
                 # paths regardless of requested target.
                 "egressDeny": [
+                    {
+                        "toEndpoints": [
+                            {
+                                "matchExpressions": [
+                                    {
+                                        "key": "spectrastrike.io/tenant-id",
+                                        "operator": "NotIn",
+                                        "values": [tenant_id],
+                                    }
+                                ]
+                            }
+                        ]
+                    },
                     {
                         "toEntities": [
                             "cluster",
