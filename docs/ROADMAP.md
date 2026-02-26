@@ -361,13 +361,13 @@ Sell derived competing products
 - [ ] Commit Sprint 22 Unified Execution Fingerprint Binding
 
 ## Sprint 23 (Week 43-44): Federation Channel Enforcement
-- [ ] Enforce single outbound telemetry gateway
-- [ ] Remove any legacy direct API emission paths
-- [ ] Enforce mTLS-only outbound federation
-- [ ] Enforce signed telemetry requirement (no unsigned fallback)
-- [ ] Add replay detection validation at producer side
-- [ ] Implement bounded retry with idempotent fingerprint key
-- [ ] Add federation smoke test suite
+- [x] Enforce single outbound telemetry gateway
+- [x] Remove any legacy direct API emission paths
+- [x] Enforce mTLS-only outbound federation
+- [x] Enforce signed telemetry requirement (no unsigned fallback)
+- [x] Add replay detection validation at producer side
+- [x] Implement bounded retry with idempotent fingerprint key
+- [x] Add federation smoke test suite
 - [ ] Commit Sprint 23 Federation Channel Enforcement
 
 ## Sprint 24 (Week 45-46): Anti-Repudiation Closure

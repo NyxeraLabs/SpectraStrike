@@ -66,13 +66,14 @@ class InMemoryVectorVueBridge:
         client: VectorVueClient,
         queue: str = "telemetry.events",
         emit_findings_for_all: bool = False,
-        allow_legacy_direct_api: bool = False,
+        replay_nonce_ttl_seconds: int = 120,
     ) -> None:
         self._broker = broker
         self._client = client
         self._queue = queue
         self._emit_findings_for_all = emit_findings_for_all
-        self._allow_legacy_direct_api = allow_legacy_direct_api
+        self._replay_nonce_ttl_seconds = replay_nonce_ttl_seconds
+        self._seen_nonces: dict[str, datetime] = {}
 
     def drain(self, limit: int | None = None) -> BridgeDrainResult:
         result = BridgeDrainResult()
@@ -85,36 +86,29 @@ class InMemoryVectorVueBridge:
     def _forward_one(self, envelope: BrokerEnvelope, result: BridgeDrainResult) -> None:
         try:
             payload = _build_federated_payload(envelope)
-            if hasattr(self._client, "send_federated_telemetry") and not self._allow_legacy_direct_api:
-                response = self._client.send_federated_telemetry(  # type: ignore[attr-defined]
-                    payload,
-                    idempotency_key=envelope.idempotency_key,
-                )
-                result.forwarded_events += 1
-                result.event_statuses.append(response.status)
-                # Compatibility placeholders for older host smoke expectations.
-                result.forwarded_findings += 1
-                result.finding_statuses.append(response.status)
-                result.status_poll_statuses.append(response.status)
-                return
-
-            event_response = self._client.send_event(
-                payload["event"],
-                idempotency_key=envelope.idempotency_key,
+            self._validate_replay_nonce(payload["federation_bundle"])
+            response = self._client.send_federated_telemetry(
+                payload,
+                idempotency_key=payload["federation_bundle"]["execution_hash"],
             )
             result.forwarded_events += 1
-            result.event_statuses.append(event_response.status)
-
-            if event_response.request_id:
-                status_response = self._client.get_ingest_status(event_response.request_id)
-                result.status_poll_statuses.append(status_response.status)
-
-            if self._emit_findings_for_all or _should_emit_finding(envelope):
-                finding_response = self._client.send_finding(payload["finding"])
-                result.forwarded_findings += 1
-                result.finding_statuses.append(finding_response.status)
+            result.event_statuses.append(response.status)
+            result.forwarded_findings += 1
+            result.finding_statuses.append(response.status)
+            result.status_poll_statuses.append(response.status)
         except Exception:
             result.failed += 1
+
+    def _validate_replay_nonce(self, bundle: dict[str, str]) -> None:
+        nonce = bundle["nonce"]
+        now = datetime.now(UTC)
+        expired_before = now.timestamp() - self._replay_nonce_ttl_seconds
+        self._seen_nonces = {
+            key: ts for key, ts in self._seen_nonces.items() if ts.timestamp() >= expired_before
+        }
+        if nonce in self._seen_nonces:
+            raise RuntimeError("producer replay detected: nonce already used")
+        self._seen_nonces[nonce] = now
 
 
 class PikaVectorVueBridge:
@@ -127,7 +121,7 @@ class PikaVectorVueBridge:
         connection: RabbitMQConnectionConfig | None = None,
         routing: RabbitRoutingModel | None = None,
         emit_findings_for_all: bool = False,
-        allow_legacy_direct_api: bool = False,
+        replay_nonce_ttl_seconds: int = 120,
     ) -> None:
         if pika is None:
             raise RuntimeError("pika package is required for PikaVectorVueBridge")
@@ -135,7 +129,8 @@ class PikaVectorVueBridge:
         self._connection = connection or RabbitMQConnectionConfig.from_env()
         self._routing = routing or RabbitRoutingModel()
         self._emit_findings_for_all = emit_findings_for_all
-        self._allow_legacy_direct_api = allow_legacy_direct_api
+        self._replay_nonce_ttl_seconds = replay_nonce_ttl_seconds
+        self._seen_nonces: dict[str, datetime] = {}
 
     def drain(self, limit: int = 100) -> BridgeDrainResult:
         if limit <= 0:
@@ -155,36 +150,16 @@ class PikaVectorVueBridge:
                 envelope = _decode_envelope(body)
                 try:
                     payload = _build_federated_payload(envelope)
-                    if hasattr(self._client, "send_federated_telemetry") and not self._allow_legacy_direct_api:
-                        response = self._client.send_federated_telemetry(  # type: ignore[attr-defined]
-                            payload,
-                            idempotency_key=envelope.idempotency_key,
-                        )
-                        result.forwarded_events += 1
-                        result.event_statuses.append(response.status)
-                        result.forwarded_findings += 1
-                        result.finding_statuses.append(response.status)
-                        result.status_poll_statuses.append(response.status)
-                    else:
-                        event_response = self._client.send_event(
-                            payload["event"],
-                            idempotency_key=envelope.idempotency_key,
-                        )
-                        result.forwarded_events += 1
-                        result.event_statuses.append(event_response.status)
-
-                        if event_response.request_id:
-                            status_response = self._client.get_ingest_status(
-                                event_response.request_id
-                            )
-                            result.status_poll_statuses.append(status_response.status)
-
-                        if self._emit_findings_for_all or _should_emit_finding(envelope):
-                            finding_response = self._client.send_finding(
-                                payload["finding"]
-                            )
-                            result.forwarded_findings += 1
-                            result.finding_statuses.append(finding_response.status)
+                    self._validate_replay_nonce(payload["federation_bundle"])
+                    response = self._client.send_federated_telemetry(
+                        payload,
+                        idempotency_key=payload["federation_bundle"]["execution_hash"],
+                    )
+                    result.forwarded_events += 1
+                    result.event_statuses.append(response.status)
+                    result.forwarded_findings += 1
+                    result.finding_statuses.append(response.status)
+                    result.status_poll_statuses.append(response.status)
 
                     channel.basic_ack(delivery_tag=method_frame.delivery_tag)
                 except Exception:
@@ -217,6 +192,17 @@ class PikaVectorVueBridge:
             ssl_options=ssl_options,
         )
         return pika.BlockingConnection(parameters)
+
+    def _validate_replay_nonce(self, bundle: dict[str, str]) -> None:
+        nonce = bundle["nonce"]
+        now = datetime.now(UTC)
+        expired_before = now.timestamp() - self._replay_nonce_ttl_seconds
+        self._seen_nonces = {
+            key: ts for key, ts in self._seen_nonces.items() if ts.timestamp() >= expired_before
+        }
+        if nonce in self._seen_nonces:
+            raise RuntimeError("producer replay detected: nonce already used")
+        self._seen_nonces[nonce] = now
 
 
 def _decode_envelope(body: bytes) -> BrokerEnvelope:

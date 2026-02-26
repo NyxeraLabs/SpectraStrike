@@ -39,6 +39,10 @@ class VectorVueConfig:
     signature_secret: str | None = None
     require_https: bool = True
     tls_pinned_cert_sha256: str | None = None
+    mtls_client_cert_file: str | None = None
+    mtls_client_key_file: str | None = None
+    require_mtls_for_federation: bool = True
+    require_payload_signature_for_federation: bool = True
 
     def __post_init__(self) -> None:
         self._validate()
