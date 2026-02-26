@@ -260,6 +260,14 @@ PYTHONPATH=src .venv/bin/python -m pkg.integration.host_integration_smoke \
   --check-vectorvue
 ```
 
+Recommended local federation values for dockerized SpectraStrike -> VectorVue checks:
+- `SPECTRASTRIKE_TENANT_ID=10000000-0000-0000-0000-000000000001`
+- `VECTORVUE_FEDERATION_URL=https://127.0.0.1`
+- `VECTORVUE_FEDERATION_ENDPOINT=/internal/v1/telemetry`
+- `VECTORVUE_FEDERATION_MTLS_CERT_FILE=/home/xoce/Workspace/VectorVue/deploy/certs/client.crt`
+- `VECTORVUE_FEDERATION_MTLS_KEY_FILE=/home/xoce/Workspace/VectorVue/deploy/certs/client.key`
+- `VECTORVUE_VERIFY_TLS_CA_FILE=/home/xoce/Workspace/VectorVue/deploy/certs/ca.crt`
+
 Optional VectorVue federation gateway smoke:
 
 ```bash
