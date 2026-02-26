@@ -16,9 +16,15 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import hmac
 import json
+import os
+import secrets
+import ssl
+import subprocess
+import tempfile
 import time
 from typing import Any
 from urllib.parse import urljoin
@@ -102,15 +108,20 @@ class VectorVueClient:
     ) -> ResponseEnvelope:
         """Send federated telemetry bundle to the internal gateway endpoint."""
         self._validate_federation_security_preconditions()
-        headers = {}
+        _, body = self._serialize_payload(telemetry)
+        if body is None:
+            raise VectorVueSerializationError("telemetry payload is required")
+        headers = self._build_federation_headers(raw_body=body, telemetry=telemetry)
         if idempotency_key:
             headers["Idempotency-Key"] = idempotency_key
         return self._request(
             method="POST",
             path="/internal/v1/telemetry",
             json_payload=telemetry,
+            include_auth=False,
             extra_headers=headers,
             raise_api_error=True,
+            include_legacy_signature=False,
         )
 
     def _validate_federation_security_preconditions(self) -> None:
@@ -127,11 +138,168 @@ class VectorVueClient:
                 )
         if (
             self._config.require_payload_signature_for_federation
-            and not self._config.signature_secret
+            and not os.getenv("VECTORVUE_FEDERATION_SIGNING_KEY_PATH", "").strip()
         ):
             raise VectorVueSerializationError(
-                "federation outbound requires signed telemetry (signature_secret)"
+                "federation outbound requires signed telemetry (VECTORVUE_FEDERATION_SIGNING_KEY_PATH)"
             )
+
+    def _build_federation_headers(
+        self,
+        *,
+        raw_body: bytes,
+        telemetry: dict[str, Any],
+    ) -> dict[str, str]:
+        timestamp_raw = telemetry.get("timestamp")
+        nonce_raw = telemetry.get("nonce")
+        try:
+            timestamp = str(int(timestamp_raw))
+        except (TypeError, ValueError) as exc:
+            raise VectorVueSerializationError(
+                "federation telemetry requires integer timestamp"
+            ) from exc
+        nonce = str(nonce_raw or "").strip()
+        if not nonce:
+            nonce = secrets.token_urlsafe(18)
+
+        signature = self._sign_federation_payload(
+            timestamp=timestamp,
+            nonce=nonce,
+            raw_body=raw_body,
+        )
+        service_identity = os.getenv(
+            "VECTORVUE_FEDERATION_SERVICE_IDENTITY",
+            "spectrastrike-producer",
+        ).strip()
+        cert_fp = (
+            os.getenv("VECTORVUE_FEDERATION_CLIENT_CERT_SHA256", "")
+            .strip()
+            .replace(":", "")
+            .lower()
+        ) or self._derive_client_cert_sha256()
+        if not service_identity:
+            raise VectorVueTransportError("federation service identity is required")
+        if not cert_fp:
+            raise VectorVueTransportError(
+                "federation client certificate fingerprint is required"
+            )
+
+        return {
+            "X-Service-Identity": service_identity,
+            "X-Client-Cert-Sha256": cert_fp,
+            "X-Telemetry-Timestamp": timestamp,
+            "X-Telemetry-Nonce": nonce,
+            "X-Telemetry-Signature": signature,
+        }
+
+    def _derive_client_cert_sha256(self) -> str:
+        cert_path = self._config.mtls_client_cert_file
+        if not cert_path:
+            return ""
+        try:
+            pem = open(cert_path, "r", encoding="utf-8").read()
+        except OSError as exc:
+            raise VectorVueTransportError(
+                f"failed to read mTLS client cert: {cert_path}"
+            ) from exc
+        try:
+            der = ssl.PEM_cert_to_DER_cert(pem)
+        except ValueError as exc:
+            raise VectorVueTransportError(
+                "failed to parse mTLS client certificate for fingerprint"
+            ) from exc
+        return hashlib.sha256(der).hexdigest().lower()
+
+    def _sign_federation_payload(
+        self,
+        *,
+        timestamp: str,
+        nonce: str,
+        raw_body: bytes,
+    ) -> str:
+        key_path = os.getenv("VECTORVUE_FEDERATION_SIGNING_KEY_PATH", "").strip()
+        if not key_path:
+            raise VectorVueSerializationError(
+                "VECTORVUE_FEDERATION_SIGNING_KEY_PATH is required"
+            )
+        try:
+            key_bytes = open(key_path, "rb").read()
+        except OSError as exc:
+            raise VectorVueSerializationError(
+                f"unable to read federation signing key: {key_path}"
+            ) from exc
+
+        try:
+            from cryptography.hazmat.primitives import serialization
+            from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+                Ed25519PrivateKey,
+            )
+        except ImportError:
+            serialization = None
+            Ed25519PrivateKey = None  # type: ignore[assignment]
+
+        message = f"{timestamp}.{nonce}.".encode("utf-8") + raw_body
+        if serialization is not None and Ed25519PrivateKey is not None:
+            private_key: Any
+            if len(key_bytes) == 32:
+                private_key = Ed25519PrivateKey.from_private_bytes(key_bytes)
+            else:
+                try:
+                    private_key = serialization.load_pem_private_key(
+                        key_bytes,
+                        password=None,
+                    )
+                except ValueError:
+                    private_key = serialization.load_ssh_private_key(
+                        key_bytes,
+                        password=None,
+                    )
+            signature = private_key.sign(message)
+            return base64.b64encode(signature).decode("utf-8")
+
+        return self._sign_with_openssl(key_path=key_path, message=message)
+
+    def _sign_with_openssl(self, *, key_path: str, message: bytes) -> str:
+        with tempfile.NamedTemporaryFile(delete=False) as msg_file:
+            msg_file.write(message)
+            msg_file.flush()
+            msg_path = msg_file.name
+        with tempfile.NamedTemporaryFile(delete=False) as sig_file:
+            sig_path = sig_file.name
+        try:
+            completed = subprocess.run(
+                [
+                    "openssl",
+                    "pkeyutl",
+                    "-sign",
+                    "-inkey",
+                    key_path,
+                    "-rawin",
+                    "-in",
+                    msg_path,
+                    "-out",
+                    sig_path,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            if completed.returncode != 0:
+                detail = (completed.stderr or completed.stdout or "").strip()
+                raise VectorVueSerializationError(
+                    f"openssl federation signing failed: {detail or 'unknown error'}"
+                )
+            signature = open(sig_path, "rb").read()
+            return base64.b64encode(signature).decode("utf-8")
+        finally:
+            try:
+                os.remove(msg_path)
+            except OSError:
+                pass
+            try:
+                os.remove(sig_path)
+            except OSError:
+                pass
 
     def send_events_batch(self, events: list[dict[str, Any]]) -> ResponseEnvelope:
         """Send a batch of telemetry events."""
@@ -209,6 +377,7 @@ class VectorVueClient:
         include_auth: bool = True,
         extra_headers: dict[str, str] | None = None,
         raise_api_error: bool = False,
+        include_legacy_signature: bool = True,
     ) -> ResponseEnvelope:
         payload_text, body = self._serialize_payload(json_payload)
 
@@ -220,7 +389,7 @@ class VectorVueClient:
             token = self._token or self.login()
             headers["Authorization"] = f"Bearer {token}"
 
-        if self._config.signature_secret and body is not None:
+        if include_legacy_signature and self._config.signature_secret and body is not None:
             headers.update(self._build_signature_headers(body))
 
         url = urljoin(self._config.base_url.rstrip("/") + "/", path.lstrip("/"))
@@ -258,6 +427,11 @@ class VectorVueClient:
 
             envelope = self._parse_response(response)
             self._log_outbound_result(path=path, envelope=envelope, attempt=attempt)
+
+            if 300 <= response.status_code < 400:
+                raise VectorVueTransportError(
+                    f"unexpected redirect response {response.status_code} for {path}"
+                )
 
             if response.status_code in _RETRYABLE_STATUSES and attempt < attempts:
                 time.sleep(backoff * (2 ** (attempt - 1)))

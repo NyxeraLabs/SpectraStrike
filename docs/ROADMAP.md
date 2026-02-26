@@ -378,6 +378,14 @@ Sell derived competing products
 - [x] Simulate repudiation attempt and validate detection
 - [x] Commit Sprint 24 Anti-Repudiation Closure
 
+## Phase 5.6 Operational Closure (Dockerized Federation Setup)
+- [x] Configure local federation endpoint to internal gateway route (`/internal/v1/telemetry`)
+- [x] Rotate and align mTLS trust material for local dockerized execution
+- [x] Enforce strict gateway path semantics (reject redirect-based false positives)
+- [x] Validate live `nmap -> SpectraStrike -> VectorVue` federation acceptance
+- [x] Validate live Metasploit telemetry federation acceptance
+- [x] Record non-tracked local audit evidence for acceptance/rejection history
+
 
 # Phase 6: Merkle Ledger Architecture & Append-Only Authority
 

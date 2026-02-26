@@ -89,11 +89,11 @@ class InMemoryVectorVueBridge:
     def _forward_one(self, envelope: BrokerEnvelope, result: BridgeDrainResult) -> None:
         try:
             payload = _build_federated_payload(envelope)
-            self._validate_replay_nonce(payload["federation_bundle"])
+            self._validate_replay_nonce(payload)
             self._record_pre_dispatch_intent(payload)
             response = self._client.send_federated_telemetry(
                 payload,
-                idempotency_key=payload["federation_bundle"]["execution_hash"],
+                idempotency_key=payload["execution_hash"],
             )
             result.forwarded_events += 1
             result.event_statuses.append(response.status)
@@ -103,8 +103,8 @@ class InMemoryVectorVueBridge:
         except Exception:
             result.failed += 1
 
-    def _validate_replay_nonce(self, bundle: dict[str, str]) -> None:
-        nonce = bundle["nonce"]
+    def _validate_replay_nonce(self, payload: dict[str, Any]) -> None:
+        nonce = str(payload["nonce"])
         now = datetime.now(UTC)
         expired_before = now.timestamp() - self._replay_nonce_ttl_seconds
         self._seen_nonces = {
@@ -115,23 +115,20 @@ class InMemoryVectorVueBridge:
         self._seen_nonces[nonce] = now
 
     def _record_pre_dispatch_intent(self, payload: dict[str, Any]) -> None:
-        event = payload["event"]
-        metadata = event["metadata"]
-        attributes = metadata.get("attributes", {})
-        federation = payload["federation_bundle"]
+        attributes = payload["payload"]["attributes"]
         intent = self._intent_ledger.record_pre_dispatch_intent(
-            execution_fingerprint=str(federation["execution_hash"]),
-            operator_id=str(metadata["actor"]),
-            tenant_id=str(metadata["tenant_id"]),
-            dispatch_target=str(event["asset_ref"]),
+            execution_fingerprint=str(payload["execution_hash"]),
+            operator_id=str(payload["operator_id"]),
+            tenant_id=str(payload["tenant_id"]),
+            dispatch_target=str(payload["payload"]["attributes"].get("asset_ref", "orchestrator")),
             manifest_hash=str(attributes.get("manifest_hash", "")),
             tool_hash=str(attributes.get("tool_sha256", "")),
             policy_decision_hash=str(attributes.get("policy_decision_hash", "")),
-            timestamp=str(event["occurred_at"]),
+            timestamp=str(payload["payload"]["observed_at"]),
         )
-        federation["intent_id"] = intent.intent_id
-        federation["intent_hash"] = intent.intent_hash
-        federation["write_ahead"] = True
+        payload["payload"]["attributes"]["intent_id"] = intent.intent_id
+        payload["payload"]["attributes"]["intent_hash"] = intent.intent_hash
+        payload["payload"]["attributes"]["write_ahead"] = True
 
 
 class PikaVectorVueBridge:
@@ -175,11 +172,11 @@ class PikaVectorVueBridge:
                 envelope = _decode_envelope(body)
                 try:
                     payload = _build_federated_payload(envelope)
-                    self._validate_replay_nonce(payload["federation_bundle"])
+                    self._validate_replay_nonce(payload)
                     self._record_pre_dispatch_intent(payload)
                     response = self._client.send_federated_telemetry(
                         payload,
-                        idempotency_key=payload["federation_bundle"]["execution_hash"],
+                        idempotency_key=payload["execution_hash"],
                     )
                     result.forwarded_events += 1
                     result.event_statuses.append(response.status)
@@ -219,8 +216,8 @@ class PikaVectorVueBridge:
         )
         return pika.BlockingConnection(parameters)
 
-    def _validate_replay_nonce(self, bundle: dict[str, str]) -> None:
-        nonce = bundle["nonce"]
+    def _validate_replay_nonce(self, payload: dict[str, Any]) -> None:
+        nonce = str(payload["nonce"])
         now = datetime.now(UTC)
         expired_before = now.timestamp() - self._replay_nonce_ttl_seconds
         self._seen_nonces = {
@@ -231,23 +228,20 @@ class PikaVectorVueBridge:
         self._seen_nonces[nonce] = now
 
     def _record_pre_dispatch_intent(self, payload: dict[str, Any]) -> None:
-        event = payload["event"]
-        metadata = event["metadata"]
-        attributes = metadata.get("attributes", {})
-        federation = payload["federation_bundle"]
+        attributes = payload["payload"]["attributes"]
         intent = self._intent_ledger.record_pre_dispatch_intent(
-            execution_fingerprint=str(federation["execution_hash"]),
-            operator_id=str(metadata["actor"]),
-            tenant_id=str(metadata["tenant_id"]),
-            dispatch_target=str(event["asset_ref"]),
+            execution_fingerprint=str(payload["execution_hash"]),
+            operator_id=str(payload["operator_id"]),
+            tenant_id=str(payload["tenant_id"]),
+            dispatch_target=str(payload["payload"]["attributes"].get("asset_ref", "orchestrator")),
             manifest_hash=str(attributes.get("manifest_hash", "")),
             tool_hash=str(attributes.get("tool_sha256", "")),
             policy_decision_hash=str(attributes.get("policy_decision_hash", "")),
-            timestamp=str(event["occurred_at"]),
+            timestamp=str(payload["payload"]["observed_at"]),
         )
-        federation["intent_id"] = intent.intent_id
-        federation["intent_hash"] = intent.intent_hash
-        federation["write_ahead"] = True
+        payload["payload"]["attributes"]["intent_id"] = intent.intent_id
+        payload["payload"]["attributes"]["intent_hash"] = intent.intent_hash
+        payload["payload"]["attributes"]["write_ahead"] = True
 
 
 def _decode_envelope(body: bytes) -> BrokerEnvelope:
@@ -263,6 +257,51 @@ def _decode_envelope(body: bytes) -> BrokerEnvelope:
         idempotency_key=str(parsed["idempotency_key"]),
         attempt=int(parsed.get("attempt", 1)),
     )
+
+
+def _parse_timestamp_epoch(timestamp_raw: str) -> int:
+    if timestamp_raw.isdigit():
+        return int(timestamp_raw)
+    normalized = timestamp_raw.replace("Z", "+00:00")
+    return int(datetime.fromisoformat(normalized).timestamp())
+
+
+def _to_attr_value(value: Any) -> str | int | float | bool | None:
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    return json.dumps(value, sort_keys=True, separators=(",", ":"))
+
+
+def _canonical_payload_for_gateway(envelope: BrokerEnvelope) -> dict[str, Any]:
+    attrs = dict(envelope.attributes)
+    severity = str(attrs.get("severity", "medium")).lower()
+    mitre_techniques_raw = attrs.get("mitre_techniques", ["T1595"])
+    mitre_tactics_raw = attrs.get("mitre_tactics", ["TA0043"])
+    if not isinstance(mitre_techniques_raw, list) or not mitre_techniques_raw:
+        mitre_techniques_raw = ["T1595"]
+    if not isinstance(mitre_tactics_raw, list):
+        mitre_tactics_raw = ["TA0043"]
+    payload_attributes: dict[str, str | int | float | bool | None] = {
+        "asset_ref": envelope.target,
+    }
+    for key, value in attrs.items():
+        payload_attributes[str(key)] = _to_attr_value(value)
+    return {
+        "event_id": envelope.event_id,
+        "event_type": envelope.event_type.upper(),
+        "source_system": "spectrastrike",
+        "severity": severity,
+        "observed_at": envelope.timestamp,
+        "mitre_techniques": [str(v).upper() for v in mitre_techniques_raw],
+        "mitre_tactics": [str(v).upper() for v in mitre_tactics_raw],
+        "description": str(
+            attrs.get(
+                "message",
+                f"SpectraStrike telemetry event {envelope.event_type} status={envelope.status}",
+            )
+        ),
+        "attributes": payload_attributes,
+    }
 
 
 def _build_event_payload(envelope: BrokerEnvelope) -> dict[str, Any]:
@@ -376,16 +415,27 @@ def _build_federated_payload(envelope: BrokerEnvelope) -> dict[str, Any]:
         attempt=envelope.attempt,
     )
 
+    campaign_id = str(enriched_attributes.get("campaign_id", "cmp-local")).strip()
+    nonce = str(enriched_attributes.get("nonce", envelope.event_id))
+    event_payload = _canonical_payload_for_gateway(enriched_envelope)
+    event_payload["attributes"]["execution_fingerprint"] = execution_fingerprint
+    event_payload["attributes"]["schema_version"] = str(
+        enriched_attributes.get("schema_version", "1.0")
+    )
+
     return {
-        "event": _build_event_payload(enriched_envelope),
-        "finding": _build_finding_payload(enriched_envelope),
-        "federation_bundle": {
-            "operator_id": envelope.actor,
-            "execution_hash": execution_fingerprint,
-            "timestamp": envelope.timestamp,
-            "nonce": str(enriched_attributes.get("nonce", envelope.event_id)),
+        "operator_id": envelope.actor,
+        "campaign_id": campaign_id,
+        "tenant_id": str(enriched_attributes.get("tenant_id", "")),
+        "execution_hash": execution_fingerprint,
+        "timestamp": _parse_timestamp_epoch(envelope.timestamp),
+        "nonce": nonce,
+        "signed_metadata": {
             "tenant_id": str(enriched_attributes.get("tenant_id", "")),
+            "operator_id": envelope.actor,
+            "campaign_id": campaign_id,
         },
+        "payload": event_payload,
     }
 
 
