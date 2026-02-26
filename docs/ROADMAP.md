@@ -238,7 +238,7 @@ Sell derived competing products
 *Goal: Decouple authorization logic from codebase. Enforce strict capability checks.*
 
 ### Sprint 14 (Week 28-29): Open Policy Agent (OPA) Integration
-- [ ] Deploy OPA container alongside the Orchestrator.
+- [x] Deploy OPA container alongside the Orchestrator.
 - [ ] Define standard Rego policy schemas for Operator Capabilities.
 - [ ] Implement Orchestrator pre-execution hooks: query OPA before signing any JWS.
 - [ ] Develop capability policies based on `[Identity] + [Tenant] +[Tool Hash] + [Target URN]`.

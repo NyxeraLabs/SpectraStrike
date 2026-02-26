@@ -54,8 +54,11 @@ services:
       - MSF_MANUAL_BASE_URL=https://metasploit.remote.operator:5443
       - COBALTSTRIKE_HOST=cobalt.remote.operator
       - COBALTSTRIKE_PORT=50050
+      - OPA_URL=http://opa:8181
     command: ["python", "-m", "pkg.orchestrator.run_simulations", "--test"]
     depends_on:
+      opa:
+        condition: service_healthy
       rabbitmq:
         condition: service_healthy
       postgres:
@@ -305,6 +308,39 @@ services:
       - no-new-privileges:true
     healthcheck:
       test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:5000/v2/"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "5"
+    networks:
+      - core_net
+
+  opa:
+    image: openpolicyagent/opa:1.6.0-static
+    container_name: spectrastrike_opa_prod
+    init: true
+    restart: unless-stopped
+    command:
+      [
+        "run",
+        "--server",
+        "--addr=0.0.0.0:8181",
+        "--set=decision_logs.console=true",
+        "/policies",
+      ]
+    volumes:
+      - ./config/opa/policies:/policies:ro
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "opa", "eval", "--format=raw", "1"]
       interval: 20s
       timeout: 5s
       retries: 5
