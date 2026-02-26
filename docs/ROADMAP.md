@@ -220,17 +220,17 @@ Sell derived competing products
 - [x] Commit The Armory infrastructure.
 
 ### Sprint 12 (Week 25-26): The Universal Edge Runner
-- [ ] Build the Universal Runner (lightweight Go or secured Python binary).
-- [ ] Implement local JWS public-key verification logic inside the Runner.
-- [ ] Implement secure retrieval of signed tools from The Armory based on Manifest hash.
-- [ ] Implement strict execution sandboxing using `gVisor` (`runsc`) or Docker AppArmor profiles.
-- [ ] Implement standard execution contract: output capture mapping `stdout`/`stderr` to CloudEvents schema.
-- [ ] Commit the Universal Runner.
+- [x] Build the Universal Runner (lightweight Go or secured Python binary).
+- [x] Implement local JWS public-key verification logic inside the Runner.
+- [x] Implement secure retrieval of signed tools from The Armory based on Manifest hash.
+- [x] Implement strict execution sandboxing using `gVisor` (`runsc`) or Docker AppArmor profiles.
+- [x] Implement standard execution contract: output capture mapping `stdout`/`stderr` to CloudEvents schema.
+- [x] Commit the Universal Runner.
 
 ### Sprint 13 (Week 27): Execution Fabric QA
-- [ ] QA: Attempt execution with forged JWS signatures (must fail).
-- [ ] QA: Attempt execution with tampered tool binaries/hashes (must fail).
--[ ] QA: Verify telemetry output accurately maps to standardized CloudEvents.
+- [x] QA: Attempt execution with forged JWS signatures (must fail).
+- [x] QA: Attempt execution with tampered tool binaries/hashes (must fail).
+- [x] QA: Verify telemetry output accurately maps to standardized CloudEvents.
 
 ---
 
