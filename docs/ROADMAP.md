@@ -376,7 +376,7 @@ Sell derived competing products
 - [x] Implement execution intent verification API
 - [x] Add operator-to-execution audit reconciliation test
 - [x] Simulate repudiation attempt and validate detection
-- [ ] Commit Sprint 24 Anti-Repudiation Closure
+- [x] Commit Sprint 24 Anti-Repudiation Closure
 
 
 # Phase 6: Merkle Ledger Architecture & Append-Only Authority

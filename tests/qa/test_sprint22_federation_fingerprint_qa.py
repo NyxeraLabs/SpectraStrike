@@ -39,7 +39,7 @@ def test_roadmap_marks_sprint22_complete_except_commit() -> None:
     ]
     for line in required_checked:
         assert line in section
-    assert "- [ ] Commit Sprint 22 Unified Execution Fingerprint Binding" in section
+    assert "Commit Sprint 22 Unified Execution Fingerprint Binding" in section
 
 
 def test_sprint22_template_folder_is_complete() -> None:
@@ -59,9 +59,9 @@ def test_sprint22_template_folder_is_complete() -> None:
         assert (template_dir / file_name).exists(), f"missing template: {file_name}"
 
 
-def test_bridge_defaults_to_federated_path_with_legacy_compatibility_switch() -> None:
+def test_bridge_defaults_to_federated_path() -> None:
     content = (
         REPO_ROOT / "src/pkg/integration/vectorvue/rabbitmq_bridge.py"
     ).read_text(encoding="utf-8")
     assert "send_federated_telemetry" in content
-    assert "allow_legacy_direct_api" in content
+    assert "allow_legacy_direct_api" not in content

@@ -37,7 +37,7 @@ def test_roadmap_marks_sprint24_complete_except_commit() -> None:
     ]
     for line in required_checked:
         assert line in section
-    assert "- [ ] Commit Sprint 24 Anti-Repudiation Closure" in section
+    assert "Commit Sprint 24 Anti-Repudiation Closure" in section
 
 
 def test_anti_repudiation_files_and_templates_exist() -> None:

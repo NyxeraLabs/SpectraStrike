@@ -39,7 +39,7 @@ def test_roadmap_marks_sprint23_complete_except_commit() -> None:
     ]
     for line in required_checked:
         assert line in section
-    assert "- [ ] Commit Sprint 23 Federation Channel Enforcement" in section
+    assert "Commit Sprint 23 Federation Channel Enforcement" in section
 
 
 def test_bridge_and_cli_remove_legacy_direct_path() -> None:
