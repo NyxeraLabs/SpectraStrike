@@ -36,6 +36,7 @@ from .messaging import (
     TelemetryPublisher,
     TelemetryPublishResult,
 )
+from .opa import OPAClientError, OPAConfig, OPAAuthorizationError, OPAExecutionAuthorizer
 from .signing import (
     ManifestSigner,
     VaultTransitConfig,
@@ -74,6 +75,10 @@ __all__ = [
     "InMemoryRabbitBroker",
     "RabbitMQTelemetryPublisher",
     "PikaRabbitMQTelemetryPublisher",
+    "OPAConfig",
+    "OPAClientError",
+    "OPAAuthorizationError",
+    "OPAExecutionAuthorizer",
     "ManifestSigner",
     "VaultTransitConfig",
     "VaultTransitSigner",

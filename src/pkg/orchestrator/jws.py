@@ -19,7 +19,7 @@ from __future__ import annotations
 import base64
 import json
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Protocol
 
 from pkg.orchestrator.signing import ManifestSigner
 
@@ -78,17 +78,32 @@ class JWSConfig:
     typ: str = "JWT"
 
 
+class PreExecutionAuthorizer(Protocol):
+    """Protocol for policy hook executed before manifest signing."""
+
+    def authorize(self, payload: dict[str, Any]) -> None:
+        """Raise if payload is not authorized for signing."""
+
+
 class CompactJWSGenerator:
     """Generate compact JWS strings for orchestrator execution payloads."""
 
-    def __init__(self, signer: ManifestSigner, config: JWSConfig | None = None) -> None:
+    def __init__(
+        self,
+        signer: ManifestSigner,
+        config: JWSConfig | None = None,
+        pre_execution_authorizer: PreExecutionAuthorizer | None = None,
+    ) -> None:
         self._signer = signer
         self._config = config or JWSConfig()
+        self._pre_execution_authorizer = pre_execution_authorizer
 
     def generate(self, payload: dict[str, Any]) -> str:
         """Build, sign, and return compact JWS: header.payload.signature."""
         if not payload:
             raise JWSPayloadError("payload must not be empty")
+        if self._pre_execution_authorizer is not None:
+            self._pre_execution_authorizer.authorize(payload)
 
         header: dict[str, Any] = {"alg": self._config.algorithm}
         if self._config.include_typ:

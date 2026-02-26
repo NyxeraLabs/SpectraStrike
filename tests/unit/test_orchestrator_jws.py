@@ -42,6 +42,17 @@ class FakeSigner:
         return "pem"
 
 
+class FakeAuthorizer:
+    def __init__(self, should_raise: bool = False) -> None:
+        self.should_raise = should_raise
+        self.last_payload: dict[str, object] | None = None
+
+    def authorize(self, payload: dict[str, object]) -> None:
+        self.last_payload = payload
+        if self.should_raise:
+            raise PermissionError("denied")
+
+
 def test_generate_compact_jws_with_vault_signature_prefix() -> None:
     signer = FakeSigner("vault:v1:AQI")
     generator = CompactJWSGenerator(
@@ -85,3 +96,24 @@ def test_generate_rejects_invalid_signer_signature() -> None:
 
     with pytest.raises(JWSPayloadError, match="unable to decode"):
         generator.generate({"target_urn": "urn:target:ip:10.0.0.5"})
+
+
+def test_generate_calls_pre_execution_authorizer() -> None:
+    signer = FakeSigner("vault:v1:AQI")
+    authorizer = FakeAuthorizer()
+    generator = CompactJWSGenerator(signer=signer, pre_execution_authorizer=authorizer)
+
+    payload = {"target_urn": "urn:target:ip:10.0.0.5", "tool": "nmap"}
+    token = generator.generate(payload)
+
+    assert token
+    assert authorizer.last_payload == payload
+
+
+def test_generate_raises_when_pre_execution_authorizer_denies() -> None:
+    signer = FakeSigner("vault:v1:AQI")
+    authorizer = FakeAuthorizer(should_raise=True)
+    generator = CompactJWSGenerator(signer=signer, pre_execution_authorizer=authorizer)
+
+    with pytest.raises(PermissionError, match="denied"):
+        generator.generate({"target_urn": "urn:target:ip:10.0.0.5", "tool": "nmap"})
