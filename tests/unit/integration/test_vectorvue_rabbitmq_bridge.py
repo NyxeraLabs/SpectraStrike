@@ -128,9 +128,11 @@ def test_inmemory_bridge_drains_and_forwards_event_and_finding() -> None:
     assert client.last_federated_idempotency_key is not None
     assert len(client.last_federated_idempotency_key) == 64
     assert client.last_federated_payload is not None
-    bundle = client.last_federated_payload["federation_bundle"]  # type: ignore[index]
-    assert bundle["intent_id"].startswith("intent-")  # type: ignore[index]
-    assert len(bundle["intent_hash"]) == 64  # type: ignore[index]
+    payload = client.last_federated_payload
+    assert payload["execution_hash"] == client.last_federated_idempotency_key  # type: ignore[index]
+    attrs = payload["payload"]["attributes"]  # type: ignore[index]
+    assert attrs["intent_id"].startswith("intent-")  # type: ignore[index]
+    assert len(attrs["intent_hash"]) == 64  # type: ignore[index]
 
 
 def test_inmemory_bridge_records_failure_on_api_error() -> None:

@@ -24,3 +24,12 @@ Artifact exchange checklist:
 1. Place client cert/key/CA files outside git-tracked paths.
 2. Deliver SpectraStrike Ed25519 public key to VectorVue.
 3. Register cert fingerprint and operator->tenant mapping in VectorVue gateway.
+
+Local dockerized layout on this host:
+
+- SpectraStrike mTLS client cert/key/CA:
+  - `/home/xoce/Workspace/VectorVue/deploy/certs/client.crt`
+  - `/home/xoce/Workspace/VectorVue/deploy/certs/client.key`
+  - `/home/xoce/Workspace/VectorVue/deploy/certs/ca.crt`
+- SpectraStrike federation signing key:
+  - `/home/xoce/Workspace/VectorVue/deploy/certs/spectrastrike_ed25519.key`

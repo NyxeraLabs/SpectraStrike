@@ -69,13 +69,19 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = _build_parser().parse_args()
+    verify_tls_ca_file = os.getenv("VECTORVUE_VERIFY_TLS_CA_FILE", "").strip()
+    verify_tls: bool | str = (
+        verify_tls_ca_file
+        if verify_tls_ca_file
+        else args.verify_tls
+    )
     config = VectorVueConfig(
         base_url=args.base_url,
         username=args.username,
         password=args.password,
         tenant_id=args.tenant_id,
         timeout_seconds=args.timeout_seconds,
-        verify_tls=args.verify_tls,
+        verify_tls=verify_tls,
         max_retries=1,
         backoff_seconds=0,
         signature_secret=os.getenv("VECTORVUE_SIGNATURE_SECRET"),
