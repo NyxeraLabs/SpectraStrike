@@ -12,7 +12,7 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-name: QA Branch Pipeline
+name: QA
 
 on:
   push:
@@ -21,6 +21,7 @@ on:
   pull_request:
     branches:
       - QA
+  workflow_dispatch:
 
 jobs:
   qa-pipeline:
@@ -41,7 +42,16 @@ jobs:
           venv/bin/python -m pip install -r requirements.txt
 
       - name: Run full end-to-end QA tests
-        run: venv/bin/python -m pytest tests/qa -v
+        run: PYTHONPATH=src venv/bin/python -m pytest tests/qa -v
+
+      - name: Run Sprint 17 carry-over validation (16.5/16.7/16.8)
+        run: |
+          PYTHONPATH=src venv/bin/python -m pytest -q \
+            tests/unit/test_telemetry_sdk.py \
+            tests/unit/test_nmap_wrapper.py \
+            tests/unit/test_metasploit_wrapper.py \
+            tests/unit/test_host_integration_smoke.py \
+            tests/unit/integration/test_vectorvue_rabbitmq_bridge.py
 
       - name: Run orchestrator simulations
         run: PYTHONPATH=src venv/bin/python -m pkg.orchestrator.run_simulations --test

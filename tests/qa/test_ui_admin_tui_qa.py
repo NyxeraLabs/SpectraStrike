@@ -59,13 +59,16 @@ class _QaClientStub:
         tool: str,
         target: str,
         parameters: dict[str, object] | None = None,
+        tenant_id: str | None = None,
     ) -> dict[str, str]:
-        del access_token, tool, target, parameters
+        del access_token, tool, target, parameters, tenant_id
         self.task_calls += 1
         return {"task_id": "qa-task"}
 
-    def manual_sync(self, access_token: str, actor: str) -> dict[str, str]:
-        del access_token, actor
+    def manual_sync(
+        self, access_token: str, actor: str, tenant_id: str | None = None
+    ) -> dict[str, str]:
+        del access_token, actor, tenant_id
         self.sync_calls += 1
         return {"status": "ok"}
 

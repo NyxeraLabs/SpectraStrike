@@ -12,14 +12,19 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-name: Release Pipeline
+name: prod
 
 on:
   push:
     branches:
       - main
+      - prod
     tags:
       - 'v*.*.*'
+  pull_request:
+    branches:
+      - prod
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -45,7 +50,7 @@ jobs:
           venv/bin/python -m pip install -r requirements.txt
 
       - name: Run regression tests
-        run: venv/bin/python -m pytest tests/ -v
+        run: PYTHONPATH=src venv/bin/python -m pytest tests/ -v
 
       - name: Build release Docker containers
         run: |

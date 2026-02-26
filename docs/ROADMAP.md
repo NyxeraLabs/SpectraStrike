@@ -296,6 +296,9 @@ Sell derived competing products
 - [x] QA: Verify OPA rejects unauthorized tool execution attempts.
 - [x] QA: Verify OPA rejects authorized tools against unauthorized Target URNs.
 - [x] QA: Network penetration test of the Runner sandbox (verify containment).
+- [x] QA: Re-validate Sprint 16.5 telemetry SDK migration regressions in Sprint 17 gate.
+- [x] QA: Re-validate Sprint 16.7 host integration smoke regression suite in Sprint 17 gate.
+- [x] QA: Re-validate Sprint 16.8 RabbitMQ bridge regression suite in Sprint 17 gate.
 
 ---
 

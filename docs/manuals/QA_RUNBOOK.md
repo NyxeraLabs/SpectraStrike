@@ -150,6 +150,21 @@ PYTHONPATH=src .venv/bin/pytest -q tests/qa/test_zero_trust_sprint17_qa.py
 
 Expected current result: `3 passed`.
 
+### 4.8 Sprint 17 carry-over validation (16.5/16.7/16.8)
+
+Run carry-over regression checks inside Sprint 17 QA gate:
+
+```bash
+PYTHONPATH=src .venv/bin/pytest -q \
+  tests/unit/test_telemetry_sdk.py \
+  tests/unit/test_nmap_wrapper.py \
+  tests/unit/test_metasploit_wrapper.py \
+  tests/unit/test_host_integration_smoke.py \
+  tests/unit/integration/test_vectorvue_rabbitmq_bridge.py
+```
+
+Expected current result: `28 passed`.
+
 ## 5. Web UI QA Execution Path
 
 ### 5.1 Required dependency bootstrap

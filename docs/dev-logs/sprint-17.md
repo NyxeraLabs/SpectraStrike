@@ -24,6 +24,7 @@ Added explicit Sprint 17 QA suite:
 - OPA denies unauthorized tool hash execution attempts.
 - OPA denies authorized tool execution against unauthorized target URNs.
 - Runner dynamic Cilium policy reflects deny-by-default containment and target egress allowlist.
+- Added carry-over QA gate for Sprint 16.5, 16.7, and 16.8 regressions.
 
 ## Security and Control Posture
 
@@ -38,6 +39,7 @@ Command:
 
 Result:
 - `3 passed`
+- `28 passed` (carry-over validation set for Sprint 16.5/16.7/16.8)
 
 ## Risk Register
 
