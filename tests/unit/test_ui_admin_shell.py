@@ -80,6 +80,7 @@ class _ClientStub:
         tool: str,
         target: str,
         parameters: dict[str, object] | None = None,
+        tenant_id: str | None = None,
     ) -> dict[str, str]:
         self.submitted_tasks.append(
             {
@@ -87,9 +88,17 @@ class _ClientStub:
                 "tool": tool,
                 "target": target,
                 "parameters": parameters,
+                "tenant_id": tenant_id,
             }
         )
         return {"task_id": "task-1"}
+
+    def manual_sync(
+        self, access_token: str, actor: str, tenant_id: str | None = None
+    ) -> dict[str, str]:
+        del access_token
+        self.submitted_tasks.append({"sync_actor": actor, "tenant_id": tenant_id})
+        return {"status": "synced"}
 
     def runner_kill_all(self, access_token: str, reason: str) -> dict[str, str]:
         del access_token
@@ -157,6 +166,7 @@ def test_task_workflow_submits_command_when_authenticated(
     assert len(client.submitted_tasks) == 1
     assert client.submitted_tasks[0]["tool"] == "nmap"
     assert client.submitted_tasks[0]["target"] == "10.0.9.0/24"
+    assert client.submitted_tasks[0]["tenant_id"] == ""
     output = capsys.readouterr().out
     assert "task queued" in output
 
@@ -229,3 +239,15 @@ def test_armory_commands_run_ingest_and_approval() -> None:
     assert len(client.armory_ingested) == 1
     assert client.armory_ingested[0]["tool_name"] == "nmap"
     assert len(client.armory_approved) == 1
+
+
+def test_task_reads_tenant_from_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SPECTRASTRIKE_TENANT_ID", "tenant-a")
+    client = _ClientStub()
+    shell = AdminShell(client)  # type: ignore[arg-type]
+
+    shell.onecmd("demo")
+    shell.onecmd("task nmap 10.0.9.0/24")
+
+    assert client.submitted_tasks[0]["tenant_id"] == "tenant-a"
+    monkeypatch.delenv("SPECTRASTRIKE_TENANT_ID", raising=False)

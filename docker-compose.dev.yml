@@ -54,6 +54,7 @@ services:
       - COBALTSTRIKE_HOST=cobalt.remote.operator
       - COBALTSTRIKE_PORT=50050
       - OPA_URL=http://opa:8181
+      - SPECTRASTRIKE_TENANT_ID=${SPECTRASTRIKE_TENANT_ID:-tenant-a}
     volumes:
       - ./:/app:rw
     command: ["sh", "-c", "python -m pkg.orchestrator.run_simulations --test && sleep infinity"]
@@ -96,6 +97,7 @@ services:
       - NEXT_TELEMETRY_DISABLED=1
       - UI_ALLOWED_ORIGINS=https://localhost:${HOST_PROXY_TLS_PORT:-18443},https://127.0.0.1:${HOST_PROXY_TLS_PORT:-18443},http://localhost:3000,http://127.0.0.1:3000
       - SPECTRASTRIKE_LEGAL_ACCEPTANCE_PATH=/var/lib/spectrastrike/legal/acceptance.json
+      - SPECTRASTRIKE_TENANT_ID=${SPECTRASTRIKE_TENANT_ID:-tenant-a}
     volumes:
       - ui_legal_data:/var/lib/spectrastrike
     depends_on:
@@ -131,6 +133,7 @@ services:
       - PYTHONPATH=/app/src
       - UI_ADMIN_API_BASE_URL=http://ui-web:3000/ui/api
       - SPECTRASTRIKE_LEGAL_ACCEPTANCE_PATH=/var/lib/spectrastrike/legal/acceptance.json
+      - SPECTRASTRIKE_TENANT_ID=${SPECTRASTRIKE_TENANT_ID:-tenant-a}
     volumes:
       - ui_legal_data:/var/lib/spectrastrike
     command: ["python", "-m", "pkg.ui_admin.shell", "--base-url", "http://ui-web:3000/ui/api"]

@@ -59,6 +59,7 @@ class AdminShell(cmd.Cmd):
         super().__init__()
         self._client = client
         self._auth: AuthSession | None = None
+        self._tenant_id = os.getenv("SPECTRASTRIKE_TENANT_ID", "")
 
     def _require_auth(self) -> str | None:
         if self._auth is None:
@@ -169,7 +170,12 @@ class AdminShell(cmd.Cmd):
                 print(f"{ANSI_WARNING}invalid parameters JSON: {exc}{ANSI_RESET}")
                 return None
         response = self._safe_call(
-            self._client.submit_task, token, parts[0], parts[1], parameters
+            self._client.submit_task,
+            token,
+            parts[0],
+            parts[1],
+            parameters,
+            self._tenant_id,
         )
         if isinstance(response, dict):
             print(f"{ANSI_SUCCESS}task queued{ANSI_RESET} {response}")
@@ -186,7 +192,12 @@ class AdminShell(cmd.Cmd):
             if parts
             else (self._auth.username if self._auth else "operator")
         )
-        response = self._safe_call(self._client.manual_sync, token, actor)
+        response = self._safe_call(
+            self._client.manual_sync,
+            token,
+            actor,
+            self._tenant_id,
+        )
         if isinstance(response, dict):
             print(f"{ANSI_SUCCESS}manual sync completed{ANSI_RESET} {response}")
         return None
@@ -211,7 +222,12 @@ class AdminShell(cmd.Cmd):
             print(f"{ANSI_WARNING}invalid manifest JSON: {exc}{ANSI_RESET}")
             return None
         response = self._safe_call(
-            self._client.submit_task, token, parts[0], parts[1], loaded
+            self._client.submit_task,
+            token,
+            parts[0],
+            parts[1],
+            loaded,
+            self._tenant_id,
         )
         if isinstance(response, dict):
             print(f"{ANSI_SUCCESS}manifest queued{ANSI_RESET} {response}")

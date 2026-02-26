@@ -26,6 +26,7 @@ import { proxyToOrchestrator } from "../../../lib/orchestrator-proxy";
 type ManualSyncPayload = {
   actor?: string;
   checkpoint_override?: string;
+  tenant_id?: string;
 };
 
 export async function POST(request: Request) {
@@ -51,13 +52,24 @@ export async function POST(request: Request) {
   }
 
   const payload = (await request.json()) as ManualSyncPayload;
+  const tenantId = payload.tenant_id ?? process.env.SPECTRASTRIKE_TENANT_ID ?? "";
   if (payload.actor && payload.actor.length > 96) {
     return Response.json({ error: "invalid actor" }, { status: 400 });
   }
+  if (!tenantId) {
+    return Response.json({ error: "tenant_id_required" }, { status: 400 });
+  }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(tenantId)) {
+    return Response.json({ error: "invalid tenant_id" }, { status: 400 });
+  }
+  const normalizedPayload: ManualSyncPayload = {
+    ...payload,
+    tenant_id: tenantId,
+  };
 
   const upstream = await proxyToOrchestrator("/api/v1/integrations/metasploit/manual-sync", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(normalizedPayload),
   });
 
   if (upstream) {

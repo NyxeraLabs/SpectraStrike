@@ -27,6 +27,7 @@ type TaskActionPayload = {
   tool: string;
   target: string;
   parameters?: Record<string, unknown>;
+  tenant_id?: string;
 };
 
 function validatePayload(payload: TaskActionPayload): string | null {
@@ -38,6 +39,9 @@ function validatePayload(payload: TaskActionPayload): string | null {
   }
   if (payload.parameters && typeof payload.parameters !== "object") {
     return "invalid parameters";
+  }
+  if (payload.tenant_id && !/^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(payload.tenant_id)) {
+    return "invalid tenant_id";
   }
   return null;
 }
@@ -65,14 +69,22 @@ export async function POST(request: Request) {
   }
 
   const payload = (await request.json()) as TaskActionPayload;
-  const validationError = validatePayload(payload);
+  const tenantId = payload.tenant_id ?? process.env.SPECTRASTRIKE_TENANT_ID ?? "";
+  const normalizedPayload: TaskActionPayload = {
+    ...payload,
+    tenant_id: tenantId,
+  };
+  const validationError = validatePayload(normalizedPayload);
   if (validationError) {
     return Response.json({ error: validationError }, { status: 400 });
+  }
+  if (!tenantId) {
+    return Response.json({ error: "tenant_id_required" }, { status: 400 });
   }
 
   const upstream = await proxyToOrchestrator("/api/v1/tasks", {
     method: "POST",
-    body: JSON.stringify(payload),
+    body: JSON.stringify(normalizedPayload),
   });
 
   if (upstream) {
