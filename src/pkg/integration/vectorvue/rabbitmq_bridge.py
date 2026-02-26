@@ -25,9 +25,10 @@ from typing import Any
 
 from pkg.integration.vectorvue.client import VectorVueClient
 from pkg.logging.framework import emit_integrity_audit_event
+from pkg.orchestrator.anti_repudiation import ExecutionIntentLedger
 from pkg.orchestrator.execution_fingerprint import (
     fingerprint_input_from_envelope,
-    generate_execution_fingerprint,
+    generate_operator_bound_execution_fingerprint,
     validate_fingerprint_before_c2_dispatch,
 )
 from pkg.orchestrator.messaging import (
@@ -67,6 +68,7 @@ class InMemoryVectorVueBridge:
         queue: str = "telemetry.events",
         emit_findings_for_all: bool = False,
         replay_nonce_ttl_seconds: int = 120,
+        intent_ledger: ExecutionIntentLedger | None = None,
     ) -> None:
         self._broker = broker
         self._client = client
@@ -74,6 +76,7 @@ class InMemoryVectorVueBridge:
         self._emit_findings_for_all = emit_findings_for_all
         self._replay_nonce_ttl_seconds = replay_nonce_ttl_seconds
         self._seen_nonces: dict[str, datetime] = {}
+        self._intent_ledger = intent_ledger or ExecutionIntentLedger()
 
     def drain(self, limit: int | None = None) -> BridgeDrainResult:
         result = BridgeDrainResult()
@@ -87,6 +90,7 @@ class InMemoryVectorVueBridge:
         try:
             payload = _build_federated_payload(envelope)
             self._validate_replay_nonce(payload["federation_bundle"])
+            self._record_pre_dispatch_intent(payload)
             response = self._client.send_federated_telemetry(
                 payload,
                 idempotency_key=payload["federation_bundle"]["execution_hash"],
@@ -110,6 +114,25 @@ class InMemoryVectorVueBridge:
             raise RuntimeError("producer replay detected: nonce already used")
         self._seen_nonces[nonce] = now
 
+    def _record_pre_dispatch_intent(self, payload: dict[str, Any]) -> None:
+        event = payload["event"]
+        metadata = event["metadata"]
+        attributes = metadata.get("attributes", {})
+        federation = payload["federation_bundle"]
+        intent = self._intent_ledger.record_pre_dispatch_intent(
+            execution_fingerprint=str(federation["execution_hash"]),
+            operator_id=str(metadata["actor"]),
+            tenant_id=str(metadata["tenant_id"]),
+            dispatch_target=str(event["asset_ref"]),
+            manifest_hash=str(attributes.get("manifest_hash", "")),
+            tool_hash=str(attributes.get("tool_sha256", "")),
+            policy_decision_hash=str(attributes.get("policy_decision_hash", "")),
+            timestamp=str(event["occurred_at"]),
+        )
+        federation["intent_id"] = intent.intent_id
+        federation["intent_hash"] = intent.intent_hash
+        federation["write_ahead"] = True
+
 
 class PikaVectorVueBridge:
     """Bridge adapter for live RabbitMQ queues via pika basic_get polling."""
@@ -122,6 +145,7 @@ class PikaVectorVueBridge:
         routing: RabbitRoutingModel | None = None,
         emit_findings_for_all: bool = False,
         replay_nonce_ttl_seconds: int = 120,
+        intent_ledger: ExecutionIntentLedger | None = None,
     ) -> None:
         if pika is None:
             raise RuntimeError("pika package is required for PikaVectorVueBridge")
@@ -131,6 +155,7 @@ class PikaVectorVueBridge:
         self._emit_findings_for_all = emit_findings_for_all
         self._replay_nonce_ttl_seconds = replay_nonce_ttl_seconds
         self._seen_nonces: dict[str, datetime] = {}
+        self._intent_ledger = intent_ledger or ExecutionIntentLedger()
 
     def drain(self, limit: int = 100) -> BridgeDrainResult:
         if limit <= 0:
@@ -151,6 +176,7 @@ class PikaVectorVueBridge:
                 try:
                     payload = _build_federated_payload(envelope)
                     self._validate_replay_nonce(payload["federation_bundle"])
+                    self._record_pre_dispatch_intent(payload)
                     response = self._client.send_federated_telemetry(
                         payload,
                         idempotency_key=payload["federation_bundle"]["execution_hash"],
@@ -203,6 +229,25 @@ class PikaVectorVueBridge:
         if nonce in self._seen_nonces:
             raise RuntimeError("producer replay detected: nonce already used")
         self._seen_nonces[nonce] = now
+
+    def _record_pre_dispatch_intent(self, payload: dict[str, Any]) -> None:
+        event = payload["event"]
+        metadata = event["metadata"]
+        attributes = metadata.get("attributes", {})
+        federation = payload["federation_bundle"]
+        intent = self._intent_ledger.record_pre_dispatch_intent(
+            execution_fingerprint=str(federation["execution_hash"]),
+            operator_id=str(metadata["actor"]),
+            tenant_id=str(metadata["tenant_id"]),
+            dispatch_target=str(event["asset_ref"]),
+            manifest_hash=str(attributes.get("manifest_hash", "")),
+            tool_hash=str(attributes.get("tool_sha256", "")),
+            policy_decision_hash=str(attributes.get("policy_decision_hash", "")),
+            timestamp=str(event["occurred_at"]),
+        )
+        federation["intent_id"] = intent.intent_id
+        federation["intent_hash"] = intent.intent_hash
+        federation["write_ahead"] = True
 
 
 def _decode_envelope(body: bytes) -> BrokerEnvelope:
@@ -292,7 +337,9 @@ def _build_federated_payload(envelope: BrokerEnvelope) -> dict[str, Any]:
         timestamp=envelope.timestamp,
         attributes=enriched_attributes,
     )
-    computed = generate_execution_fingerprint(fingerprint_input)
+    computed = generate_operator_bound_execution_fingerprint(
+        data=fingerprint_input, operator_id=envelope.actor
+    )
     provided = str(enriched_attributes.get("execution_fingerprint", "")).strip().lower()
     if provided:
         validate_fingerprint_before_c2_dispatch(

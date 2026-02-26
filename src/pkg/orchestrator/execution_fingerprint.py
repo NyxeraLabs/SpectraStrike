@@ -70,6 +70,19 @@ def generate_execution_fingerprint(data: ExecutionFingerprintInput) -> str:
     return hashlib.sha256(data.canonical_json().encode("utf-8")).hexdigest()
 
 
+def generate_operator_bound_execution_fingerprint(
+    *,
+    data: ExecutionFingerprintInput,
+    operator_id: str,
+) -> str:
+    """Generate fingerprint only when explicit operator identity matches input."""
+    if data.operator_id != operator_id:
+        raise ExecutionFingerprintError(
+            "operator_id mismatch: fingerprint input is not bound to claimed operator"
+        )
+    return generate_execution_fingerprint(data)
+
+
 def validate_execution_fingerprint(
     *,
     data: ExecutionFingerprintInput,
