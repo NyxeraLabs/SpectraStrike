@@ -153,6 +153,13 @@ The orchestrator is the central control plane for SpectraStrike. It coordinates 
 - `spectrastrike.capabilities.allow` is deny-by-default.
 - Input contract validation is exposed through `spectrastrike.capabilities.input_contract_valid`.
 
+## Wrapper Telemetry Migration (Sprint 16.5)
+1. Legacy wrapper direct telemetry emission (`telemetry.ingest(...)` in wrappers) is deprecated.
+2. Wrappers emit SDK-built payloads (`pkg.telemetry.sdk`) and submit through unified parser path (`telemetry.ingest_payload(...)`).
+3. Security invariants are preserved by parser/enforcement gates:
+- strict tenant context propagation (`tenant_id` required),
+- unified schema validation before buffering/publishing.
+
 ## Testing Strategy (for next tasks)
 1. Unit tests for scheduler ordering and retry behavior.
 2. Unit tests for AAA enforcement on task submission.

@@ -29,6 +29,7 @@ from pkg.orchestrator.telemetry_ingestion import (
     TelemetryEvent,
     TelemetryIngestionPipeline,
 )
+from pkg.telemetry.sdk import build_internal_telemetry_event
 
 logger = get_logger("spectrastrike.wrappers.nmap")
 
@@ -188,18 +189,21 @@ class NmapWrapper:
         tenant_id: str,
         actor: str = "nmap-wrapper",
     ) -> TelemetryEvent:
-        """Emit normalized scan summary into orchestrator telemetry."""
-        return telemetry.ingest(
+        """Emit normalized scan summary via BYOT telemetry SDK payload."""
+        payload = build_internal_telemetry_event(
             event_type="nmap_scan_completed",
             actor=actor,
             target="orchestrator",
             status="success",
             tenant_id=tenant_id,
-            scan_summary=result.summary,
-            host_count=len(result.hosts),
-            output_format=result.output_format,
-            command=result.command,
+            attributes={
+                "scan_summary": result.summary,
+                "host_count": len(result.hosts),
+                "output_format": result.output_format,
+                "command": result.command,
+            },
         )
+        return telemetry.ingest_payload(payload)
 
     def _parse_xml(self, xml_output: str) -> list[NmapScanHost]:
         parsed_hosts: list[NmapScanHost] = []

@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -195,3 +196,30 @@ def test_missing_credentials_fails_config_validation() -> None:
         MetasploitManualConfig(
             base_url="https://localhost:5443", username="", password=""
         )
+
+
+def test_ingestor_uses_sdk_payload_ingest_path() -> None:
+    session = FakeSession(
+        [
+            FakeResponse(303, {}),
+            FakeResponse(
+                200,
+                {"data": [{"id": 1, "stype": "shell", "target_host": "10.0.0.7"}]},
+            ),
+            FakeResponse(200, {"data": []}),
+        ]
+    )
+    client = MetasploitManualClient(_config(), session=session)
+    captured: list[dict[str, Any]] = []
+
+    class TelemetrySink:
+        def ingest_payload(self, payload: dict[str, Any]) -> object:
+            captured.append(payload)
+            return SimpleNamespace(event_type=payload.get("event_type"), attributes={})
+
+    ingestor = MetasploitManualIngestor(client, TelemetrySink())  # type: ignore[arg-type]
+    result = ingestor.sync(tenant_id="tenant-a", actor="qa-user")
+
+    assert result.emitted_events == 1
+    assert captured
+    assert captured[0]["tenant_id"] == "tenant-a"

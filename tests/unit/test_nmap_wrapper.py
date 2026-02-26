@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import subprocess
+from types import SimpleNamespace
 
 import pytest
 
@@ -204,3 +205,43 @@ def test_send_to_orchestrator_emits_telemetry_event() -> None:
     assert event.actor == "qa-user"
     assert event.attributes["scan_summary"]["total_hosts"] == 1
     assert telemetry.buffered_count == 1
+
+
+def test_send_to_orchestrator_uses_sdk_payload_ingest_path() -> None:
+    xml_output = """<?xml version="1.0"?>
+<nmaprun>
+  <host>
+    <status state="up"/>
+    <address addr="10.0.0.9"/>
+  </host>
+</nmaprun>
+"""
+
+    def fake_runner(*args, **kwargs):  # type: ignore[no-untyped-def]
+        _ = args, kwargs
+        return subprocess.CompletedProcess(
+            args=["nmap"],
+            returncode=0,
+            stdout=xml_output,
+            stderr="",
+        )
+
+    captured: list[dict[str, object]] = []
+
+    class TelemetrySink:
+        def ingest_payload(self, payload: dict[str, object]) -> object:
+            captured.append(payload)
+            return SimpleNamespace(event_type=payload.get("event_type"), attributes={})
+
+    wrapper = NmapWrapper(runner=fake_runner)
+    result = wrapper.run_scan(NmapScanOptions(targets=["10.0.0.9"]))
+    sink = TelemetrySink()
+    wrapper.send_to_orchestrator(
+        result=result,
+        telemetry=sink,  # type: ignore[arg-type]
+        tenant_id="tenant-a",
+        actor="qa-user",
+    )
+
+    assert captured
+    assert captured[0]["tenant_id"] == "tenant-a"

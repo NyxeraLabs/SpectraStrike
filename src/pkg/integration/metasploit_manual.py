@@ -30,6 +30,7 @@ from requests.exceptions import RequestException
 
 from pkg.logging.framework import get_logger
 from pkg.orchestrator.telemetry_ingestion import TelemetryIngestionPipeline
+from pkg.telemetry.sdk import build_internal_telemetry_event
 
 logger = get_logger("spectrastrike.integration.metasploit_manual")
 
@@ -339,17 +340,21 @@ class MetasploitManualIngestor:
         for session in sessions:
             if session.session_id in state.seen_session_ids:
                 continue
-            self._telemetry.ingest(
+            self._telemetry.ingest_payload(
+                build_internal_telemetry_event(
                 event_type="metasploit_manual_session_observed",
                 actor=actor,
                 target="metasploit",
                 status="success",
                 tenant_id=tenant_id,
-                session_id=session.session_id,
-                session_type=session.session_type,
-                target_host=session.target_host,
-                via_exploit=session.via_exploit,
-                source="manual_metasploit",
+                attributes={
+                    "session_id": session.session_id,
+                    "session_type": session.session_type,
+                    "target_host": session.target_host,
+                    "via_exploit": session.via_exploit,
+                    "source": "manual_metasploit",
+                },
+                )
             )
             state.seen_session_ids.add(session.session_id)
             emitted += 1
@@ -361,17 +366,21 @@ class MetasploitManualIngestor:
                 event.event_id
             ) <= self._event_sort_key(state.last_session_event_id):
                 continue
-            self._telemetry.ingest(
+            self._telemetry.ingest_payload(
+                build_internal_telemetry_event(
                 event_type="metasploit_manual_event_observed",
                 actor=actor,
                 target="metasploit",
                 status="success",
                 tenant_id=tenant_id,
-                event_id=event.event_id,
-                session_id=event.session_id,
-                session_event_type=event.event_type,
-                created_at=event.created_at,
-                source="manual_metasploit",
+                attributes={
+                    "event_id": event.event_id,
+                    "session_id": event.session_id,
+                    "session_event_type": event.event_type,
+                    "created_at": event.created_at,
+                    "source": "manual_metasploit",
+                },
+                )
             )
             state.last_session_event_id = event.event_id
             emitted += 1

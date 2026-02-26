@@ -29,6 +29,7 @@ from pkg.orchestrator.telemetry_ingestion import (
     TelemetryEvent,
     TelemetryIngestionPipeline,
 )
+from pkg.telemetry.sdk import build_internal_telemetry_event
 
 logger = get_logger("spectrastrike.wrappers.metasploit")
 
@@ -295,28 +296,31 @@ class MetasploitWrapper:
         tenant_id: str,
         actor: str = "metasploit-wrapper",
     ) -> TelemetryEvent:
-        """Emit exploit outcome to orchestrator telemetry pipeline."""
-        return telemetry.ingest(
+        """Emit exploit outcome via BYOT telemetry SDK payload."""
+        payload = build_internal_telemetry_event(
             event_type="metasploit_exploit_completed",
             actor=actor,
             target="orchestrator",
             status=result.status,
             tenant_id=tenant_id,
-            module_type=result.module_type,
-            module_name=result.module_name,
-            target_host=result.target_host,
-            job_id=result.job_id,
-            uuid=result.uuid,
-            session_count=len(result.sessions),
-            sessions=[
-                {
-                    "session_id": s.session_id,
-                    "session_type": s.session_type,
-                    "output": s.output,
-                }
-                for s in result.sessions
-            ],
+            attributes={
+                "module_type": result.module_type,
+                "module_name": result.module_name,
+                "target_host": result.target_host,
+                "job_id": result.job_id,
+                "uuid": result.uuid,
+                "session_count": len(result.sessions),
+                "sessions": [
+                    {
+                        "session_id": s.session_id,
+                        "session_type": s.session_type,
+                        "output": s.output,
+                    }
+                    for s in result.sessions
+                ],
+            },
         )
+        return telemetry.ingest_payload(payload)
 
     def _rpc_call_with_retry(
         self,
