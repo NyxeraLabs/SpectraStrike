@@ -185,6 +185,7 @@ class NmapWrapper:
         self,
         result: NmapScanResult,
         telemetry: TelemetryIngestionPipeline,
+        tenant_id: str,
         actor: str = "nmap-wrapper",
     ) -> TelemetryEvent:
         """Emit normalized scan summary into orchestrator telemetry."""
@@ -193,6 +194,7 @@ class NmapWrapper:
             actor=actor,
             target="orchestrator",
             status="success",
+            tenant_id=tenant_id,
             scan_summary=result.summary,
             host_count=len(result.hosts),
             output_format=result.output_format,

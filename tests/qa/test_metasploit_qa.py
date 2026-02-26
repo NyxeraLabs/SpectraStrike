@@ -100,7 +100,10 @@ def test_qa_check_telemetry_delivery_metasploit() -> None:
         )
     )
     event = wrapper.send_to_orchestrator(
-        result=result, telemetry=telemetry, actor="qa-bot"
+        result=result,
+        telemetry=telemetry,
+        tenant_id="tenant-a",
+        actor="qa-bot",
     )
     flushed = telemetry.flush_ready()
 

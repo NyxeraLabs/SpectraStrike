@@ -108,7 +108,7 @@ def test_qa_nmap_aaa_enforcement_denies_unauthorized_submit() -> None:
         source="api",
         tool="nmap",
         action="scan",
-        payload={"target": "10.10.0.0/24"},
+        payload={"target": "10.10.0.0/24", "tenant_id": "tenant-a"},
         requested_by="analyst",
         required_role="operator",
     )

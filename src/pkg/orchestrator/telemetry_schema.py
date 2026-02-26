@@ -32,6 +32,7 @@ class ParsedTelemetryEvent:
     actor: str
     target: str
     status: str
+    tenant_id: str
     attributes: dict[str, Any] = field(default_factory=dict)
 
 
@@ -78,6 +79,7 @@ class TelemetrySchemaParser:
             data.get("operator_id"),
             "unknown",
         )
+        tenant_id = self._require_string(data.get("tenant_id"), "tenant_id")
         target = self._first_non_empty(
             data.get("target_urn"),
             data.get("target"),
@@ -92,6 +94,7 @@ class TelemetrySchemaParser:
             actor=actor,
             target=target,
             status=status,
+            tenant_id=tenant_id,
             attributes=attributes,
         )
 
@@ -100,6 +103,14 @@ class TelemetrySchemaParser:
         actor = self._require_string(payload.get("actor"), "actor")
         target = self._require_string(payload.get("target"), "target")
         status = self._require_string(payload.get("status"), "status")
+        tenant_id = self._first_non_empty(
+            payload.get("tenant_id"),
+            payload.get("attributes", {}).get("tenant_id")
+            if isinstance(payload.get("attributes"), dict)
+            else None,
+        )
+        if tenant_id == "unknown":
+            raise TelemetrySchemaError("tenant_id must be present in payload or attributes")
         attributes = payload.get("attributes", {})
         if not isinstance(attributes, dict):
             raise TelemetrySchemaError("attributes must be an object")
@@ -108,6 +119,7 @@ class TelemetrySchemaParser:
             actor=actor,
             target=target,
             status=status,
+            tenant_id=tenant_id,
             attributes=dict(attributes),
         )
 
@@ -125,11 +137,18 @@ class TelemetrySchemaParser:
         actor = self._first_non_empty(context.get("actor"), "unknown")
         target = self._first_non_empty(context.get("target"), "unknown")
         status = self._require_string(result.get("status"), "legacy result.status")
+        tenant_id = self._first_non_empty(
+            context.get("tenant_id"),
+            attrs.get("tenant_id"),
+        )
+        if tenant_id == "unknown":
+            raise TelemetrySchemaError("legacy telemetry missing tenant_id")
         return ParsedTelemetryEvent(
             event_type=event_type,
             actor=actor,
             target=target,
             status=status,
+            tenant_id=tenant_id,
             attributes=dict(attrs),
         )
 

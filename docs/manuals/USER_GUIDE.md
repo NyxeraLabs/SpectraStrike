@@ -145,6 +145,8 @@ Run sync command:
 
 ```bash
 PYTHONPATH=src .venv/bin/python -m pkg.telemetry.sync_metasploit_manual
+# or explicitly provide tenant context:
+PYTHONPATH=src .venv/bin/python -m pkg.telemetry.sync_metasploit_manual --tenant-id tenant-a
 ```
 
 ### 6.3 RabbitMQ publisher
@@ -254,6 +256,7 @@ payload = build_cloudevent_telemetry(
     event_type="com.nyxera.tool.scan.v1",
     source="urn:tool:scanner",
     subject="task-1",
+    tenant_id="tenant-a",
     data={"operator_id": "alice", "target_urn": "urn:target:ip:10.0.0.5", "status": "success"},
 )
 ```
@@ -264,7 +267,7 @@ Source helper script `scripts/byot_telemetry_sdk.sh`:
 
 ```bash
 source scripts/byot_telemetry_sdk.sh
-byot_emit_internal "tool.scan" "scanner-bot" "urn:target:ip:10.0.0.5" "success" '{"ports":[22,443]}'
+byot_emit_internal "tool.scan" "scanner-bot" "urn:target:ip:10.0.0.5" "success" "tenant-a" '{"ports":[22,443]}'
 ```
   - `POST /ui/api/v1/auth/legal/accept`
 - If auth/demo access is blocked, confirm legal decision state reports:

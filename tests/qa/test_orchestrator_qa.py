@@ -44,7 +44,7 @@ def _request(required_role: str = "operator") -> TaskSubmissionRequest:
         source="qa",
         tool="nmap",
         action="scan",
-        payload={"target": "127.0.0.1"},
+        payload={"target": "127.0.0.1", "tenant_id": "tenant-a"},
         requested_by="alice",
         required_role=required_role,
     )

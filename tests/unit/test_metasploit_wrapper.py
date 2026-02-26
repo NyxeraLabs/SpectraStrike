@@ -154,7 +154,10 @@ def test_send_to_orchestrator_emits_telemetry() -> None:
     )
 
     event = wrapper.send_to_orchestrator(
-        result=result, telemetry=telemetry, actor="qa-user"
+        result=result,
+        telemetry=telemetry,
+        tenant_id="tenant-a",
+        actor="qa-user",
     )
 
     assert event.event_type == "metasploit_exploit_completed"

@@ -42,6 +42,7 @@ class TelemetryEvent:
     actor: str
     target: str
     status: str
+    tenant_id: str
     attributes: dict[str, Any] = field(default_factory=dict)
     event_id: str = field(default_factory=lambda: str(uuid4()))
     timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
@@ -70,15 +71,21 @@ class TelemetryIngestionPipeline:
         actor: str,
         target: str,
         status: str,
+        tenant_id: str,
         **attributes: Any,
     ) -> TelemetryEvent:
         """Normalize and ingest a telemetry event into the buffer."""
+        if not tenant_id.strip():
+            raise ValueError("tenant_id is required for telemetry ingestion")
+        normalized = dict(attributes)
+        normalized["tenant_id"] = tenant_id
         event = TelemetryEvent(
             event_type=event_type,
             actor=actor,
             target=target,
             status=status,
-            attributes=attributes,
+            tenant_id=tenant_id,
+            attributes=normalized,
         )
 
         with self._lock:
@@ -92,13 +99,14 @@ class TelemetryIngestionPipeline:
             status=status,
             event_id=event.event_id,
             event_type=event_type,
+            tenant_id=tenant_id,
         )
         return event
 
     def ingest_payload(self, payload: dict[str, Any]) -> TelemetryEvent:
         """Parse and ingest telemetry from unified schema payloads."""
         parsed = self._schema_parser.parse(payload)
-        reserved = {"event_type", "actor", "target", "status"}
+        reserved = {"event_type", "actor", "target", "status", "tenant_id"}
         safe_attributes = {
             key: value
             for key, value in parsed.attributes.items()
@@ -109,6 +117,7 @@ class TelemetryIngestionPipeline:
             actor=parsed.actor,
             target=parsed.target,
             status=parsed.status,
+            tenant_id=parsed.tenant_id,
             **safe_attributes,
         )
 
@@ -187,7 +196,7 @@ class TelemetryIngestionPipeline:
             actor=event.actor,
             target=event.target,
             status=event.status,
-            attributes=dict(event.attributes),
+            attributes={**dict(event.attributes), "tenant_id": event.tenant_id},
             idempotency_key=event.event_id,
             attempt=1,
         )

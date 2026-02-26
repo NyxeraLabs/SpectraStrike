@@ -29,6 +29,7 @@ def test_ingest_increments_buffer() -> None:
         actor="alice",
         target="nmap",
         status="success",
+        tenant_id="tenant-a",
         task_id="task-1",
     )
 
@@ -39,10 +40,16 @@ def test_ingest_increments_buffer() -> None:
 def test_flush_ready_respects_batch_size() -> None:
     pipeline = TelemetryIngestionPipeline(batch_size=2)
 
-    pipeline.ingest("task_started", "alice", "nmap", "success")
+    pipeline.ingest("task_started", "alice", "nmap", "success", tenant_id="tenant-a")
     assert pipeline.flush_ready() == []
 
-    pipeline.ingest("task_completed", "alice", "nmap", "success")
+    pipeline.ingest(
+        "task_completed",
+        "alice",
+        "nmap",
+        "success",
+        tenant_id="tenant-a",
+    )
     batch = pipeline.flush_ready()
 
     assert len(batch) == 2
@@ -52,8 +59,8 @@ def test_flush_ready_respects_batch_size() -> None:
 def test_flush_all_returns_all_events() -> None:
     pipeline = TelemetryIngestionPipeline(batch_size=10)
 
-    pipeline.ingest("event_a", "alice", "module", "success")
-    pipeline.ingest("event_b", "alice", "module", "success")
+    pipeline.ingest("event_a", "alice", "module", "success", tenant_id="tenant-a")
+    pipeline.ingest("event_b", "alice", "module", "success", tenant_id="tenant-a")
 
     batch = pipeline.flush_all()
 
@@ -64,6 +71,12 @@ def test_flush_all_returns_all_events() -> None:
 def test_invalid_batch_size_raises() -> None:
     with pytest.raises(ValueError):
         TelemetryIngestionPipeline(batch_size=0)
+
+
+def test_ingest_requires_tenant_id() -> None:
+    pipeline = TelemetryIngestionPipeline(batch_size=2)
+    with pytest.raises(ValueError, match="tenant_id"):
+        pipeline.ingest("task_started", "alice", "nmap", "success", tenant_id="")
 
 
 def test_ingest_payload_parses_cloudevent() -> None:
@@ -77,6 +90,7 @@ def test_ingest_payload_parses_cloudevent() -> None:
             "subject": "task-1",
             "data": {
                 "operator_id": "alice",
+                "tenant_id": "tenant-a",
                 "target_urn": "urn:target:ip:10.0.0.5",
                 "status": "success",
                 "exit_code": 0,
@@ -88,4 +102,5 @@ def test_ingest_payload_parses_cloudevent() -> None:
     assert event.actor == "alice"
     assert event.target == "urn:target:ip:10.0.0.5"
     assert event.status == "success"
+    assert event.tenant_id == "tenant-a"
     assert event.attributes["exit_code"] == 0

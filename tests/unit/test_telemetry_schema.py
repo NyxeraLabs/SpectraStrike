@@ -31,6 +31,7 @@ def test_parse_cloudevent_payload() -> None:
             "subject": "task-1",
             "data": {
                 "operator_id": "alice",
+                "tenant_id": "tenant-a",
                 "target_urn": "urn:target:ip:10.0.0.5",
                 "status": "success",
                 "exit_code": 0,
@@ -42,6 +43,7 @@ def test_parse_cloudevent_payload() -> None:
     assert parsed.actor == "alice"
     assert parsed.target == "urn:target:ip:10.0.0.5"
     assert parsed.status == "success"
+    assert parsed.tenant_id == "tenant-a"
     assert parsed.attributes["exit_code"] == 0
 
 
@@ -53,11 +55,13 @@ def test_parse_internal_payload() -> None:
             "actor": "alice",
             "target": "nmap",
             "status": "success",
+            "tenant_id": "tenant-a",
             "attributes": {"task_id": "task-1"},
         }
     )
 
     assert parsed.event_type == "task_submitted"
+    assert parsed.tenant_id == "tenant-a"
     assert parsed.attributes["task_id"] == "task-1"
 
 
@@ -67,7 +71,11 @@ def test_parse_legacy_payload() -> None:
         {
             "event": {"type": "legacy_event"},
             "result": {"status": "failed"},
-            "context": {"actor": "legacy-user", "target": "legacy-target"},
+            "context": {
+                "actor": "legacy-user",
+                "target": "legacy-target",
+                "tenant_id": "tenant-a",
+            },
             "attributes": {"error": "boom"},
         }
     )
@@ -76,6 +84,7 @@ def test_parse_legacy_payload() -> None:
     assert parsed.actor == "legacy-user"
     assert parsed.target == "legacy-target"
     assert parsed.status == "failed"
+    assert parsed.tenant_id == "tenant-a"
 
 
 def test_parse_invalid_payload_raises() -> None:
