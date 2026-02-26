@@ -161,7 +161,11 @@ def test_send_event_sets_idempotency_key() -> None:
     assert headers["Authorization"] == "Bearer jwt"
 
 
-def test_send_federated_telemetry_uses_internal_gateway_path() -> None:
+def test_send_federated_telemetry_uses_internal_gateway_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("VECTORVUE_FEDERATION_SIGNING_KEY_PATH", "/tmp/fed-sign.key")
+    monkeypatch.setenv("VECTORVUE_FEDERATION_CLIENT_CERT_SHA256", "a" * 64)
     session = FakeSession(
         [
             FakeResponse(
@@ -178,18 +182,50 @@ def test_send_federated_telemetry_uses_internal_gateway_path() -> None:
         ),
         session=session,
     )
+    monkeypatch.setattr(
+        client,
+        "_sign_federation_payload",
+        lambda **_: "dGVzdC1zaWduYXR1cmU=",
+    )
 
     client.send_federated_telemetry(
-        {"federation_bundle": {"execution_hash": "abc"}},
+        {
+            "operator_id": "op-001",
+            "campaign_id": "cmp-001",
+            "tenant_id": "10000000-0000-0000-0000-000000000001",
+            "execution_hash": "a" * 64,
+            "timestamp": 1700000000,
+            "nonce": "nonce-fed-001",
+            "signed_metadata": {
+                "tenant_id": "10000000-0000-0000-0000-000000000001",
+                "operator_id": "op-001",
+                "campaign_id": "cmp-001",
+            },
+            "payload": {
+                "event_id": "evt-fed-001",
+                "event_type": "PROCESS_ANOMALY",
+                "source_system": "spectrastrike",
+                "severity": "high",
+                "observed_at": "2026-02-26T12:00:00Z",
+                "mitre_techniques": ["T1059.001"],
+                "mitre_tactics": ["TA0002"],
+                "description": "federated test",
+                "attributes": {"asset_ref": "host-a", "schema_version": "1.0"},
+            },
+        },
         idempotency_key="fp-1",
     )
 
     call = session.calls[0]
     assert call["url"].endswith("/internal/v1/telemetry")
     assert call["headers"]["Idempotency-Key"] == "fp-1"
+    assert call["headers"]["X-Service-Identity"] == "spectrastrike-producer"
 
 
-def test_send_federated_telemetry_requires_signature_and_mtls() -> None:
+def test_send_federated_telemetry_requires_signature_and_mtls(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("VECTORVUE_FEDERATION_SIGNING_KEY_PATH", raising=False)
     session = FakeSession([])
     client = VectorVueClient(
         _config_with_creds(
@@ -201,10 +237,16 @@ def test_send_federated_telemetry_requires_signature_and_mtls() -> None:
     )
 
     with pytest.raises(VectorVueSerializationError, match="requires signed telemetry"):
-        client.send_federated_telemetry({"federation_bundle": {"execution_hash": "abc"}})
+        client.send_federated_telemetry({"timestamp": 1, "nonce": "n"})
 
 
-def test_send_federated_telemetry_requires_mtls() -> None:
+def test_send_federated_telemetry_requires_mtls(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    key_path = tmp_path / "fed.key"
+    key_path.write_bytes(b"\x02" * 32)
+    monkeypatch.setenv("VECTORVUE_FEDERATION_SIGNING_KEY_PATH", str(key_path))
     session = FakeSession([])
     client = VectorVueClient(
         _config_with_creds(token="jwt", signature_secret="sig-secret"),
@@ -212,7 +254,7 @@ def test_send_federated_telemetry_requires_mtls() -> None:
     )
 
     with pytest.raises(VectorVueTransportError, match="requires mTLS client cert/key"):
-        client.send_federated_telemetry({"federation_bundle": {"execution_hash": "abc"}})
+        client.send_federated_telemetry({"timestamp": 1, "nonce": "n"})
 
 
 def test_signing_headers_are_added_when_secret_configured(

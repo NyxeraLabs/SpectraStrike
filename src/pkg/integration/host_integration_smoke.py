@@ -81,18 +81,33 @@ def _require_binary(name: str) -> None:
 
 
 def _build_vectorvue_config(timeout_seconds: float) -> VectorVueConfig:
+    verify_tls_ca_file = os.getenv("VECTORVUE_VERIFY_TLS_CA_FILE", "").strip()
+    verify_tls: bool | str = (
+        verify_tls_ca_file
+        if verify_tls_ca_file
+        else os.getenv("VECTORVUE_VERIFY_TLS", "1") == "1"
+    )
     return VectorVueConfig(
-        base_url=os.getenv("VECTORVUE_BASE_URL", "https://127.0.0.1"),
+        base_url=os.getenv(
+            "VECTORVUE_FEDERATION_URL",
+            os.getenv("VECTORVUE_BASE_URL", "https://127.0.0.1"),
+        ),
         username=os.getenv("VECTORVUE_USERNAME", "acme_viewer"),
         password=os.getenv("VECTORVUE_PASSWORD", "AcmeView3r!"),
         tenant_id=os.getenv(
             "VECTORVUE_TENANT_ID", "10000000-0000-0000-0000-000000000001"
         ),
         timeout_seconds=timeout_seconds,
-        verify_tls=os.getenv("VECTORVUE_VERIFY_TLS", "0") == "1",
+        verify_tls=verify_tls,
         signature_secret=os.getenv("VECTORVUE_SIGNATURE_SECRET"),
-        mtls_client_cert_file=os.getenv("VECTORVUE_MTLS_CLIENT_CERT_FILE"),
-        mtls_client_key_file=os.getenv("VECTORVUE_MTLS_CLIENT_KEY_FILE"),
+        mtls_client_cert_file=os.getenv(
+            "VECTORVUE_FEDERATION_MTLS_CERT_FILE",
+            os.getenv("VECTORVUE_MTLS_CLIENT_CERT_FILE"),
+        ),
+        mtls_client_key_file=os.getenv(
+            "VECTORVUE_FEDERATION_MTLS_KEY_FILE",
+            os.getenv("VECTORVUE_MTLS_CLIENT_KEY_FILE"),
+        ),
         max_retries=1,
         backoff_seconds=0,
     )
@@ -109,6 +124,10 @@ def run_host_integration_smoke(
     """Execute host integration smoke path for Sprint 16.8."""
     resolved_tenant = _must_have_tenant(tenant_id)
     result = HostIntegrationResult(tenant_id=resolved_tenant)
+    integration_actor = os.getenv(
+        "HOST_INTEGRATION_ACTOR",
+        "host-integration-smoke",
+    )
 
     _require_binary("nmap")
     _run_command(["nmap", "--version"], timeout_seconds)
@@ -132,7 +151,7 @@ def run_host_integration_smoke(
         nmap_scan,
         telemetry=telemetry,
         tenant_id=resolved_tenant,
-        actor="host-integration-smoke",
+        actor=integration_actor,
     )
     result.telemetry_ingest_ok = (
         event.event_type == "nmap_scan_completed" and event.tenant_id == resolved_tenant
@@ -158,14 +177,13 @@ def run_host_integration_smoke(
             nmap_scan,
             telemetry=telemetry_with_broker,
             tenant_id=resolved_tenant,
-            actor="host-integration-smoke",
+            actor=integration_actor,
         )
         publish_result = asyncio.run(telemetry_with_broker.flush_all_async())
         result.rabbitmq_publish_ok = publish_result.published > 0
         result.checks.append("rabbitmq.publish")
 
         client = VectorVueClient(_build_vectorvue_config(timeout_seconds))
-        client.login()
         bridge = InMemoryVectorVueBridge(
             broker=broker,
             client=client,
