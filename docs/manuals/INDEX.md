@@ -13,7 +13,7 @@ This index tracks production manuals and governance documents aligned with curre
 ## Core Technical Manuals
 
 - `docs/manuals/USER_GUIDE.md`
-  - Operator and platform runbook for deployment, security controls, and workflows.
+  - Operator and platform runbook for deployment, security controls, workflows, and BYOT telemetry SDK usage.
 
 - `docs/manuals/ORCHESTRATOR_ARCHITECTURE.md`
   - Orchestrator design, messaging backbone, and security data-plane behavior.

@@ -238,6 +238,34 @@ In progress:
   - `SPECTRASTRIKE_LEGAL_ACCEPTANCE_PATH=/var/lib/spectrastrike/legal/acceptance.json`
   - `ui_legal_data:/var/lib/spectrastrike`
 - Verify endpoint:
+
+## 10. BYOT Telemetry SDK
+
+Sprint 16 adds lightweight SDK helpers for BYOT tool authors to emit telemetry in supported schemas.
+
+### 10.1 Python SDK
+
+Use `pkg.telemetry.sdk`:
+
+```python
+from pkg.telemetry.sdk import build_cloudevent_telemetry
+
+payload = build_cloudevent_telemetry(
+    event_type="com.nyxera.tool.scan.v1",
+    source="urn:tool:scanner",
+    subject="task-1",
+    data={"operator_id": "alice", "target_urn": "urn:target:ip:10.0.0.5", "status": "success"},
+)
+```
+
+### 10.2 Bash SDK
+
+Source helper script `scripts/byot_telemetry_sdk.sh`:
+
+```bash
+source scripts/byot_telemetry_sdk.sh
+byot_emit_internal "tool.scan" "scanner-bot" "urn:target:ip:10.0.0.5" "success" '{"ports":[22,443]}'
+```
   - `POST /ui/api/v1/auth/legal/accept`
 - If auth/demo access is blocked, confirm legal decision state reports:
   - `LEGAL_ACCEPTANCE_REQUIRED`

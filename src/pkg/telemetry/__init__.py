@@ -12,4 +12,16 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-"""Telemetry package for health and delivery checks."""
+"""Telemetry package for health checks and BYOT telemetry SDK helpers."""
+
+from .sdk import (
+    build_cloudevent_telemetry,
+    build_internal_telemetry_event,
+    build_legacy_telemetry_event,
+)
+
+__all__ = [
+    "build_internal_telemetry_event",
+    "build_cloudevent_telemetry",
+    "build_legacy_telemetry_event",
+]
