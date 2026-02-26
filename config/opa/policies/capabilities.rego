@@ -27,7 +27,7 @@ capability_bindings := [
   },
 ]
 
-allow {
+allow if {
   input_contract_valid
   some i
   binding := capability_bindings[i]
@@ -38,15 +38,15 @@ allow {
   target_allowed(binding, input.target_urn)
 }
 
-action_allowed(actions, action) {
+action_allowed(actions, action) if {
   some i
   lower(actions[i]) == lower(action)
 }
 
-target_allowed(binding, target_urn) {
+target_allowed(binding, target_urn) if {
   binding.target_urn == target_urn
 }
 
-target_allowed(binding, target_urn) {
+target_allowed(binding, target_urn) if {
   startswith(target_urn, binding.target_urn_prefix)
 }
