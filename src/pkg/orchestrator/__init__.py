@@ -30,6 +30,11 @@ from .control_plane_integrity import (
     UnsignedConfigurationError,
 )
 from .engine import OrchestratorEngine, TaskSubmissionRequest
+from .dual_signature import (
+    DualSignatureError,
+    HighRiskManifestDualSigner,
+    ManifestSignatureBundle,
+)
 from .event_loop import AsyncEventLoop
 from .jws import CompactJWSGenerator, JWSConfig, JWSPayloadError
 from .manifest import (
@@ -91,6 +96,9 @@ __all__ = [
     "AntiReplayValidationError",
     "AuditTrailRecord",
     "OrchestratorAuditTrail",
+    "DualSignatureError",
+    "ManifestSignatureBundle",
+    "HighRiskManifestDualSigner",
     "ControlPlaneIntegrityError",
     "UnsignedConfigurationError",
     "ConfigurationSignatureMismatchError",

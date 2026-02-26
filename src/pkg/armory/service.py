@@ -41,6 +41,8 @@ class ArmoryTool:
     authorized: bool = False
     approved_by: str | None = None
     approved_at: str | None = None
+    approval_quorum: int = 2
+    approval_chain: list[str] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -122,6 +124,7 @@ class ArmoryService:
         registry_path: str | None = None,
         scanner: ToolScanner | None = None,
         signer: ToolSigner | None = None,
+        approval_quorum: int = 2,
     ) -> None:
         configured = registry_path or os.getenv(
             "SPECTRASTRIKE_ARMORY_REGISTRY_PATH", ".spectrastrike/armory/registry.json"
@@ -130,6 +133,9 @@ class ArmoryService:
         self._scanner = scanner or LocalScanner()
         self._signer = signer or DefaultToolSigner()
         self._lock = Lock()
+        if approval_quorum < 1:
+            raise ValueError("approval_quorum must be at least 1")
+        self._approval_quorum = approval_quorum
 
     def ingest_tool(
         self, *, tool_name: str, image_ref: str, artifact: bytes
@@ -157,6 +163,7 @@ class ArmoryService:
             sbom_digest=sbom_digest,
             vulnerability_summary=vuln_summary,
             signature_bundle=signature_bundle,
+            approval_quorum=self._approval_quorum,
         )
         with self._lock:
             records = self._read_registry_unlocked()
@@ -175,7 +182,7 @@ class ArmoryService:
         )
 
     def approve_tool(self, *, tool_sha256: str, approver: str) -> ArmoryTool:
-        """Promote signed tool digest into authorized execution set."""
+        """Register an approval and authorize once quorum is reached."""
         if not tool_sha256.startswith("sha256:"):
             raise ValueError("tool_sha256 must start with sha256:")
         if not approver.strip():
@@ -185,9 +192,13 @@ class ArmoryService:
             records = self._read_registry_unlocked()
             for tool in records:
                 if tool.tool_sha256 == tool_sha256:
-                    tool.authorized = True
-                    tool.approved_by = approver
-                    tool.approved_at = datetime.now(UTC).isoformat()
+                    if approver in tool.approval_chain:
+                        raise ValueError("approver already submitted approval")
+                    tool.approval_chain.append(approver)
+                    if len(tool.approval_chain) >= tool.approval_quorum:
+                        tool.authorized = True
+                        tool.approved_by = approver
+                        tool.approved_at = datetime.now(UTC).isoformat()
                     self._write_registry_unlocked(records)
                     return tool
 

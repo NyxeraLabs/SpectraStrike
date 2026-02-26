@@ -45,6 +45,32 @@ class _FakePolicyAuthorizer:
             raise PermissionError("denied")
 
 
+class _FakeHardwareMFAVerifier:
+    def __init__(self, valid_assertion: str) -> None:
+        self.valid_assertion = valid_assertion
+
+    def verify_assertion(
+        self,
+        *,
+        principal_id: str,
+        assertion: str,
+        action: str,
+        target: str,
+    ) -> bool:
+        del principal_id, action, target
+        return assertion == self.valid_assertion
+
+
+class _FakeElevationValidator:
+    def __init__(self, valid_token_id: str) -> None:
+        self.valid_token_id = valid_token_id
+
+    def consume_token(self, *, token_id: str, principal_id: str, role: str) -> None:
+        del principal_id, role
+        if token_id != self.valid_token_id:
+            raise PermissionError("invalid token")
+
+
 def test_authenticate_success() -> None:
     service = AAAService(users={"alice": "pw"}, role_bindings={"alice": {"operator"}})
 
@@ -175,3 +201,64 @@ def test_authorize_raises_when_policy_authorizer_denies() -> None:
                 "target_urn": "urn:target:ip:10.0.0.5",
             },
         )
+
+
+def test_authorize_privileged_requires_hardware_mfa_assertion() -> None:
+    service = AAAService(
+        users={"alice": "pw"},
+        role_bindings={"alice": {"admin"}},
+        hardware_mfa_verifier=_FakeHardwareMFAVerifier("hw-ok"),
+    )
+    principal = service.authenticate("alice", "pw")
+
+    with pytest.raises(MFAError, match="Hardware MFA assertion is required"):
+        service.authorize(
+            principal,
+            required_role="admin",
+            action="approve_ingest",
+            target="armory",
+            policy_context={},
+        )
+
+
+def test_authorize_privileged_accepts_valid_hardware_mfa_assertion() -> None:
+    service = AAAService(
+        users={"alice": "pw"},
+        role_bindings={"alice": {"admin"}},
+        hardware_mfa_verifier=_FakeHardwareMFAVerifier("hw-ok"),
+    )
+    principal = service.authenticate("alice", "pw")
+
+    service.authorize(
+        principal,
+        required_role="admin",
+        action="approve_ingest",
+        target="armory",
+        policy_context={"hardware_mfa_assertion": "hw-ok"},
+    )
+
+
+def test_authorize_privileged_requires_time_bound_elevation_token() -> None:
+    service = AAAService(
+        users={"alice": "pw"},
+        role_bindings={"alice": {"admin"}},
+        elevation_token_validator=_FakeElevationValidator("token-123"),
+    )
+    principal = service.authenticate("alice", "pw")
+
+    with pytest.raises(AuthorizationError, match="Privilege elevation token is required"):
+        service.authorize(
+            principal,
+            required_role="admin",
+            action="approve_ingest",
+            target="armory",
+            policy_context={},
+        )
+
+    service.authorize(
+        principal,
+        required_role="admin",
+        action="approve_ingest",
+        target="armory",
+        policy_context={"elevation_token_id": "token-123"},
+    )
