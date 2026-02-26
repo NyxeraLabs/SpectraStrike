@@ -24,6 +24,7 @@ from pkg.armory.service import ArmoryService, ArmoryTool
 from pkg.orchestrator.manifest import ExecutionManifest
 from pkg.runner.cloudevents import CloudEventEnvelope, map_execution_to_cloudevent
 from pkg.runner.jws_verify import RunnerJWSVerifier
+from pkg.runner.network_policy import CiliumPolicyManager, RunnerNetworkPolicy
 
 
 class RunnerExecutionError(RuntimeError):
@@ -61,11 +62,13 @@ class UniversalEdgeRunner:
         command_runner: (
             Callable[[list[str]], subprocess.CompletedProcess[str]] | None
         ) = None,
+        policy_manager: CiliumPolicyManager | None = None,
     ) -> None:
         self._armory = armory
         self._jws_verifier = jws_verifier or RunnerJWSVerifier()
         self._sandbox = sandbox or RunnerSandboxProfile()
         self._command_runner = command_runner or self._default_command_runner
+        self._policy_manager = policy_manager
 
     def verify_manifest_jws(
         self,
@@ -143,6 +146,23 @@ class UniversalEdgeRunner:
             stderr=completed.stderr,
             event=event,
         )
+
+    def apply_dynamic_network_policy(
+        self, *, manifest: ExecutionManifest
+    ) -> RunnerNetworkPolicy:
+        """Apply per-task dynamic Cilium policy for runner isolation."""
+        if self._policy_manager is None:
+            raise RunnerExecutionError("dynamic network policy manager is not configured")
+        return self._policy_manager.apply_policy(
+            task_id=manifest.task_context.task_id,
+            tenant_id=manifest.task_context.tenant_id,
+        )
+
+    def remove_dynamic_network_policy(self, policy: RunnerNetworkPolicy) -> None:
+        """Remove one previously applied dynamic Cilium policy."""
+        if self._policy_manager is None:
+            raise RunnerExecutionError("dynamic network policy manager is not configured")
+        self._policy_manager.remove_policy(policy)
 
     @staticmethod
     def _default_command_runner(command: list[str]) -> subprocess.CompletedProcess[str]:

@@ -21,6 +21,7 @@ import pytest
 
 from pkg.armory.service import ArmoryService
 from pkg.orchestrator.manifest import ExecutionManifest, ExecutionTaskContext
+from pkg.runner.network_policy import CiliumPolicyManager
 from pkg.runner.universal import RunnerExecutionError, UniversalEdgeRunner
 
 
@@ -79,3 +80,28 @@ def test_build_and_execute_maps_cloudevent_contract(tmp_path: Path) -> None:
     assert payload["stdout"] == "ok"
     assert payload["stderr"] == ""
     assert payload["status"] == "success"
+
+
+def test_runner_applies_and_removes_dynamic_network_policy(tmp_path: Path) -> None:
+    armory = ArmoryService(registry_path=str(tmp_path / "armory.json"))
+    ingested = armory.ingest_tool(
+        tool_name="nmap",
+        image_ref="registry.internal/security/nmap:1.0.0",
+        artifact=b"tool-bytes",
+    )
+    manifest = _manifest(ingested.tool_sha256)
+    calls: list[tuple[list[str], str | None]] = []
+
+    def fake_policy_runner(
+        command: list[str], stdin_payload: str | None
+    ) -> subprocess.CompletedProcess[str]:
+        calls.append((command, stdin_payload))
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    policy_manager = CiliumPolicyManager(command_runner=fake_policy_runner)
+    runner = UniversalEdgeRunner(armory=armory, policy_manager=policy_manager)
+    policy = runner.apply_dynamic_network_policy(manifest=manifest)
+    runner.remove_dynamic_network_policy(policy)
+
+    assert calls[0][0] == ["kubectl", "apply", "-f", "-"]
+    assert calls[1][0][0:3] == ["kubectl", "delete", "ciliumnetworkpolicy"]

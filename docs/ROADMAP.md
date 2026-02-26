@@ -243,10 +243,10 @@ Sell derived competing products
 - [x] Implement Orchestrator pre-execution hooks: query OPA before signing any JWS.
 - [x] Develop capability policies based on `[Identity] + [Tenant] +[Tool Hash] + [Target URN]`.
 - [x] Refactor existing Python AAA to delegate complex execution checks to OPA.
-- [ ] Commit OPA Integration.
+- [x] Commit OPA Integration.
 
 ### Sprint 15 (Week 30-31): Network Fencing & Blast Radius Control
-- [ ] Implement dynamic eBPF/Cilium network policies for the Universal Runner.
+- [x] Implement dynamic eBPF/Cilium network policies for the Universal Runner.
 - [ ] Configure Runner network isolation: Allow outbound *only* to authorized Target IPs defined in Manifest.
 - [ ] Block lateral movement within internal networks from the execution sandbox.
 - [ ] Implement micro-segmentation for multi-tenant SaaS environments.

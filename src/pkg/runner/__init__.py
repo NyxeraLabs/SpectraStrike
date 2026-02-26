@@ -16,6 +16,11 @@
 
 from .cloudevents import CloudEventEnvelope, map_execution_to_cloudevent
 from .jws_verify import JWSVerificationError, RunnerJWSVerifier
+from .network_policy import (
+    CiliumPolicyManager,
+    RunnerNetworkPolicy,
+    RunnerNetworkPolicyError,
+)
 from .universal import (
     RunnerExecutionError,
     RunnerExecutionResult,
@@ -26,6 +31,9 @@ from .universal import (
 __all__ = [
     "JWSVerificationError",
     "RunnerJWSVerifier",
+    "RunnerNetworkPolicyError",
+    "RunnerNetworkPolicy",
+    "CiliumPolicyManager",
     "CloudEventEnvelope",
     "map_execution_to_cloudevent",
     "RunnerSandboxProfile",
