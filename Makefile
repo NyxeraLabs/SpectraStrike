@@ -34,6 +34,7 @@ help:
 	@echo "  full-down         Stop full stack (core + tools + admin profile)"
 	@echo "  open-ui           Open Web UI URL in browser (or print URL)"
 	@echo "  open-tui          Launch interactive Admin TUI (break-glass console)"
+	@echo "                    Requires SPECTRASTRIKE_TENANT_ID for task/sync submission"
 	@echo "  ui-up             Start dockerized web UI foundation only"
 	@echo "  ui-admin-shell    Run interactive Admin TUI shell container"
 	@echo "  ui-admin-up       Start Admin TUI service in background (admin profile)"

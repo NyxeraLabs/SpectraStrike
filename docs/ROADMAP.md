@@ -256,7 +256,7 @@ Sell derived competing products
 - [x] Implement unified schema parser in Orchestrator for all incoming data.
 - [x] Create Python/Bash SDKs for BYOT developers to easily format their tool outputs.
 - [x] Ensure `tenant_id` context propagation is strictly enforced in all telemetry.
-- [ ] Commit Telemetry pipelines.
+- [x] Commit Telemetry pipelines.
 
 ### Sprint 16.5 (Week 32.5): Legacy Wrapper SDK Migration
 - [x] Add explicit deprecation note for legacy direct-wrapper telemetry emission path.
@@ -265,7 +265,14 @@ Sell derived competing products
 - [x] Migrate manual Metasploit ingestion connector telemetry emission to BYOT telemetry SDK + unified schema ingestion.
 - [x] Preserve security controls from prior sprints (strict `tenant_id` propagation + schema validation).
 - [x] Add regression tests for SDK-based emission path compatibility.
-- [ ] Commit Sprint 16.5 SDK migration.
+- [x] Commit Sprint 16.5 SDK migration.
+
+### Sprint 16.6 (Week 32.6): UI/TUI and Runtime Tenant Alignment
+- [x] Update Web UI task and manual-sync action routes to enforce/default `tenant_id`.
+- [x] Update Admin TUI client/shell workflows to propagate `tenant_id` in task and manual sync submissions.
+- [x] Update dev/prod container environment defaults for tenant context propagation (`SPECTRASTRIKE_TENANT_ID`).
+- [x] Update operator docs/Makefile hints for tenant-context requirement in interactive workflows.
+- [ ] Commit Sprint 16.6 alignment updates.
 
 ### Sprint 17 (Week 33): Zero-Trust QA
 - [ ] QA: Verify OPA rejects unauthorized tool execution attempts.

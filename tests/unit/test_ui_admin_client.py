@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
@@ -78,6 +79,10 @@ class _FakeSession:
                     ]
                 },
             )
+        if url.endswith("/actions/tasks"):
+            return _FakeResponse(200, {"task_id": "task-1", "status": "queued"})
+        if url.endswith("/actions/manual-sync"):
+            return _FakeResponse(200, {"status": "synced"})
         return _FakeResponse(400, {"error": "bad_request"})
 
 
@@ -121,3 +126,27 @@ def test_armory_list_authorized_returns_items() -> None:
     payload = client.armory_list_authorized("token-1")
 
     assert len(payload["items"]) == 1
+
+
+def test_submit_task_includes_tenant_id() -> None:
+    client = AdminApiClient(base_url="http://ui-web:3000/ui/api")
+    fake = _FakeSession()
+    client._session = fake  # type: ignore[attr-defined]
+
+    response = client.submit_task("token-1", "nmap", "10.0.0.0/24", {}, "tenant-a")
+
+    assert response["task_id"] == "task-1"
+    payload = json.loads(fake.calls[-1]["data"])
+    assert payload["tenant_id"] == "tenant-a"
+
+
+def test_manual_sync_includes_tenant_id() -> None:
+    client = AdminApiClient(base_url="http://ui-web:3000/ui/api")
+    fake = _FakeSession()
+    client._session = fake  # type: ignore[attr-defined]
+
+    response = client.manual_sync("token-1", "operator-a", "tenant-a")
+
+    assert response["status"] == "synced"
+    payload = json.loads(fake.calls[-1]["data"])
+    assert payload["tenant_id"] == "tenant-a"

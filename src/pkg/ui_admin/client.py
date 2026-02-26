@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from dataclasses import dataclass
 from typing import Any
 
@@ -67,6 +68,7 @@ class AdminApiClient:
     def __init__(self, base_url: str, timeout_seconds: float = 8.0) -> None:
         self._base_url = base_url.rstrip("/")
         self._timeout_seconds = timeout_seconds
+        self._default_tenant_id = os.getenv("SPECTRASTRIKE_TENANT_ID", "")
         self._session = requests.Session()
         self._session.headers.update(
             {
@@ -191,8 +193,12 @@ class AdminApiClient:
         tool: str,
         target: str,
         parameters: dict[str, Any] | None = None,
+        tenant_id: str | None = None,
     ) -> dict[str, Any]:
         """Submit orchestrator task through ui-web BFF endpoint."""
+        resolved_tenant = tenant_id or self._default_tenant_id
+        if not resolved_tenant:
+            raise AdminApiError("tenant_id_required")
         return self._request(
             "POST",
             "/actions/tasks",
@@ -200,16 +206,25 @@ class AdminApiClient:
                 "tool": tool,
                 "target": target,
                 "parameters": parameters or {},
+                "tenant_id": resolved_tenant,
             },
             access_token=access_token,
         )
 
-    def manual_sync(self, access_token: str, actor: str) -> dict[str, Any]:
+    def manual_sync(
+        self,
+        access_token: str,
+        actor: str,
+        tenant_id: str | None = None,
+    ) -> dict[str, Any]:
         """Trigger Metasploit manual sync endpoint."""
+        resolved_tenant = tenant_id or self._default_tenant_id
+        if not resolved_tenant:
+            raise AdminApiError("tenant_id_required")
         return self._request(
             "POST",
             "/actions/manual-sync",
-            payload={"actor": actor},
+            payload={"actor": actor, "tenant_id": resolved_tenant},
             access_token=access_token,
         )
 
