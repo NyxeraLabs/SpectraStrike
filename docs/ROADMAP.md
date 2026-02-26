@@ -249,8 +249,8 @@ Sell derived competing products
 - [x] Implement dynamic eBPF/Cilium network policies for the Universal Runner.
 - [x] Configure Runner network isolation: Allow outbound *only* to authorized Target IPs defined in Manifest.
 - [x] Block lateral movement within internal networks from the execution sandbox.
-- [ ] Implement micro-segmentation for multi-tenant SaaS environments.
-- [ ] Commit Network Fencing rules.
+- [x] Implement micro-segmentation for multi-tenant SaaS environments.
+- [x] Commit Network Fencing rules.
 
 ### Sprint 16 (Week 32): Telemetry & CloudEvents Standardization
 - [ ] Implement unified schema parser in Orchestrator for all incoming data.

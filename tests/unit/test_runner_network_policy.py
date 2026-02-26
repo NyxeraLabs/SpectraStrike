@@ -40,12 +40,24 @@ def test_build_policy_document_contains_dynamic_task_and_tenant_labels() -> None
     assert selector["spectrastrike.io/task-id"] == "task-123"
     assert selector["spectrastrike.io/tenant-id"] == "tenant-a"
     assert doc["spec"]["egress"][0]["toCIDRSet"][0]["cidr"] == "10.0.0.5/32"
-    assert doc["spec"]["egressDeny"][0]["toEntities"] == [
+    ingress_expr = doc["spec"]["ingressDeny"][0]["fromEndpoints"][0]["matchExpressions"][
+        0
+    ]
+    assert ingress_expr["key"] == "spectrastrike.io/tenant-id"
+    assert ingress_expr["operator"] == "NotIn"
+    assert ingress_expr["values"] == ["tenant-a"]
+    egress_tenant_expr = doc["spec"]["egressDeny"][0]["toEndpoints"][0][
+        "matchExpressions"
+    ][0]
+    assert egress_tenant_expr["key"] == "spectrastrike.io/tenant-id"
+    assert egress_tenant_expr["operator"] == "NotIn"
+    assert egress_tenant_expr["values"] == ["tenant-a"]
+    assert doc["spec"]["egressDeny"][1]["toEntities"] == [
         "cluster",
         "host",
         "remote-node",
     ]
-    deny_cidrs = {item["cidr"] for item in doc["spec"]["egressDeny"][1]["toCIDRSet"]}
+    deny_cidrs = {item["cidr"] for item in doc["spec"]["egressDeny"][2]["toCIDRSet"]}
     assert "127.0.0.0/8" in deny_cidrs
     assert "169.254.0.0/16" in deny_cidrs
 
