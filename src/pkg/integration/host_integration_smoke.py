@@ -90,6 +90,9 @@ def _build_vectorvue_config(timeout_seconds: float) -> VectorVueConfig:
         ),
         timeout_seconds=timeout_seconds,
         verify_tls=os.getenv("VECTORVUE_VERIFY_TLS", "0") == "1",
+        signature_secret=os.getenv("VECTORVUE_SIGNATURE_SECRET"),
+        mtls_client_cert_file=os.getenv("VECTORVUE_MTLS_CLIENT_CERT_FILE"),
+        mtls_client_key_file=os.getenv("VECTORVUE_MTLS_CLIENT_KEY_FILE"),
         max_retries=1,
         backoff_seconds=0,
     )

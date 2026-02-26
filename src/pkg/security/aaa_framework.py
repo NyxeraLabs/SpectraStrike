@@ -74,6 +74,27 @@ class PolicyAuthorizer(Protocol):
         """Raise PermissionError when policy denies execution."""
 
 
+class HardwareMFAVerifier(Protocol):
+    """Hardware-backed MFA verifier for privileged authorization gates."""
+
+    def verify_assertion(
+        self,
+        *,
+        principal_id: str,
+        assertion: str,
+        action: str,
+        target: str,
+    ) -> bool:
+        """Return True only when hardware-backed MFA assertion is valid."""
+
+
+class PrivilegeElevationTokenValidator(Protocol):
+    """Validator for time-bound privilege elevation tokens."""
+
+    def consume_token(self, *, token_id: str, principal_id: str, role: str) -> None:
+        """Consume one-time token or raise PermissionError on failure."""
+
+
 class AAAService:
     """In-memory AAA service with structured audit logging."""
 
@@ -83,6 +104,9 @@ class AAAService:
         role_bindings: dict[str, set[str]],
         mfa_secrets: dict[str, str] | None = None,
         policy_authorizer: PolicyAuthorizer | None = None,
+        hardware_mfa_verifier: HardwareMFAVerifier | None = None,
+        privileged_roles: set[str] | None = None,
+        elevation_token_validator: PrivilegeElevationTokenValidator | None = None,
         max_failed_attempts: int = 5,
         lockout_seconds: int = 300,
     ) -> None:
@@ -90,6 +114,11 @@ class AAAService:
         self._role_bindings = role_bindings
         self._mfa_secrets = mfa_secrets or {}
         self._policy_authorizer = policy_authorizer
+        self._hardware_mfa_verifier = hardware_mfa_verifier
+        self._privileged_roles = (
+            set(privileged_roles) if privileged_roles is not None else {"admin"}
+        )
+        self._elevation_token_validator = elevation_token_validator
         self._max_failed_attempts = max_failed_attempts
         self._lockout_seconds = lockout_seconds
         self._failed_attempts: dict[str, int] = {}
@@ -198,6 +227,22 @@ class AAAService:
             )
             raise AuthorizationError("Insufficient role")
 
+        context = policy_context or {}
+        if required_role in self._privileged_roles:
+            self._enforce_hardware_mfa(
+                principal_id=principal.principal_id,
+                action=action,
+                target=target,
+                context=context,
+            )
+            self._enforce_privilege_elevation_token(
+                principal_id=principal.principal_id,
+                required_role=required_role,
+                action=action,
+                target=target,
+                context=context,
+            )
+
         if self._policy_authorizer is not None and policy_context is not None:
             try:
                 self._policy_authorizer.authorize_execution(
@@ -226,6 +271,85 @@ class AAAService:
             required_role=required_role,
             attempted_action=action,
         )
+
+    def _enforce_hardware_mfa(
+        self,
+        *,
+        principal_id: str,
+        action: str,
+        target: str,
+        context: dict[str, Any],
+    ) -> None:
+        if self._hardware_mfa_verifier is None:
+            return
+        assertion = str(context.get("hardware_mfa_assertion", "")).strip()
+        if not assertion:
+            emit_audit_event(
+                action="authorize",
+                actor=principal_id,
+                target=target,
+                status="denied",
+                attempted_action=action,
+                reason="hardware_mfa_required",
+            )
+            raise MFAError("Hardware MFA assertion is required for privileged action")
+        ok = self._hardware_mfa_verifier.verify_assertion(
+            principal_id=principal_id,
+            assertion=assertion,
+            action=action,
+            target=target,
+        )
+        if not ok:
+            emit_audit_event(
+                action="authorize",
+                actor=principal_id,
+                target=target,
+                status="denied",
+                attempted_action=action,
+                reason="hardware_mfa_invalid",
+            )
+            raise MFAError("Hardware MFA assertion is invalid")
+
+    def _enforce_privilege_elevation_token(
+        self,
+        *,
+        principal_id: str,
+        required_role: str,
+        action: str,
+        target: str,
+        context: dict[str, Any],
+    ) -> None:
+        if self._elevation_token_validator is None:
+            return
+        token_id = str(context.get("elevation_token_id", "")).strip()
+        if not token_id:
+            emit_audit_event(
+                action="authorize",
+                actor=principal_id,
+                target=target,
+                status="denied",
+                attempted_action=action,
+                reason="privilege_elevation_token_required",
+            )
+            raise AuthorizationError(
+                "Privilege elevation token is required for privileged action"
+            )
+        try:
+            self._elevation_token_validator.consume_token(
+                token_id=token_id,
+                principal_id=principal_id,
+                role=required_role,
+            )
+        except PermissionError as exc:
+            emit_audit_event(
+                action="authorize",
+                actor=principal_id,
+                target=target,
+                status="denied",
+                attempted_action=action,
+                reason="privilege_elevation_token_invalid",
+            )
+            raise AuthorizationError("Privilege elevation token validation failed") from exc
 
     def account(
         self,

@@ -61,7 +61,8 @@ def test_build_and_execute_maps_cloudevent_contract(tmp_path: Path) -> None:
         image_ref="registry.internal/security/nmap:1.0.0",
         artifact=b"tool-bytes",
     )
-    armory.approve_tool(tool_sha256=ingested.tool_sha256, approver="secops")
+    armory.approve_tool(tool_sha256=ingested.tool_sha256, approver="secops-1")
+    armory.approve_tool(tool_sha256=ingested.tool_sha256, approver="secops-2")
     manifest = _manifest(ingested.tool_sha256)
 
     def fake_runner(command: list[str]) -> subprocess.CompletedProcess[str]:

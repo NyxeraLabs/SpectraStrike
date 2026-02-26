@@ -21,6 +21,10 @@ from typing import Any
 from uuid import uuid4
 
 from pkg.orchestrator.audit_trail import OrchestratorAuditTrail
+from pkg.orchestrator.manifest import (
+    ExecutionManifest,
+    parse_and_validate_manifest_submission,
+)
 from pkg.orchestrator.task_scheduler import OrchestratorTask, TaskScheduler
 from pkg.orchestrator.telemetry_ingestion import TelemetryIngestionPipeline
 from pkg.security.aaa_framework import AAAService
@@ -116,3 +120,7 @@ class OrchestratorEngine:
     def next_task(self) -> OrchestratorTask:
         """Return next scheduled task for execution."""
         return self._scheduler.dequeue()
+
+    def validate_manifest_submission(self, raw_manifest: str) -> ExecutionManifest:
+        """Validate and parse submitted manifest JSON with canonical checks."""
+        return parse_and_validate_manifest_submission(raw_manifest)

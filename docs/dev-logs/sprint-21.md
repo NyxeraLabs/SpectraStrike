@@ -9,33 +9,44 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 ## Program Context
 
-- Phase: Phase 6
+- Phase: Phase 5.5
 - Sprint: Sprint 21
-- Status: Planned
-- Primary Architecture Layers: Telemetry Ingestion, Reporting / Compliance
+- Status: Completed
+- Primary Architecture Layers: Control Plane, Identity and Policy Plane
 
 ## Architectural Intent
 
-Validate cloud and CI/CD data collection fidelity and pipeline reliability.
+Enforce deterministic execution guarantees for manifest serialization, hashing, and schema compatibility.
 
 ## Implementation Detail
 
-QA scope includes provider-specific ingestion assertions, pipeline stability checks, and authorization-policy verification.
+Completed Sprint 21 controls:
+- Added canonical JSON serialization API for execution manifests.
+- Added deterministic SHA-256 manifest hashing API over canonical payloads.
+- Added semantic-version policy enforcement for manifest schema versions.
+- Added strict parser that rejects non-canonical JSON manifest submissions.
+- Added orchestrator runtime validation entrypoint for raw manifest submissions.
+- Added schema regression guard script and CI workflow step.
 
 ## Security and Control Posture
 
-- AAA scope and authorization boundaries are enforced according to current orchestrator policy.
-- Telemetry and audit events are expected to remain structured, attributable, and export-ready.
-- Integration interfaces are maintained as loosely coupled contracts to preserve VectorVue interoperability.
+- Dispatch integrity now relies on deterministic canonical payload and hash behavior.
+- Non-canonical manifest submissions are explicitly denied before execution admission.
+- Schema version acceptance is bounded by semantic-version compatibility policy.
 
 ## QA and Validation Evidence
 
-Planned QA suite includes synthetic provider fixtures and integration-path smoke checks.
+Commands:
+- `PYTHONPATH=src .venv/bin/pytest -q tests/unit/test_orchestrator_manifest.py`
+- `PYTHONPATH=src .venv/bin/pytest -q tests/unit/test_orchestrator_engine_aaa.py`
+- `PYTHONPATH=src .venv/bin/python scripts/manifest_schema_regression.py`
+- `PYTHONPATH=src .venv/bin/pytest -q tests/qa/test_sprint21_deterministic_manifest_qa.py`
 
 ## Risk Register
 
-Risk is non-deterministic provider responses; mitigation via stubbed tests plus controlled live smoke lanes.
+Residual risk:
+- Canonical-submission enforcement currently applies to explicit parser path and must be enforced at every external ingress route using raw manifest intake.
 
 ## Forward Linkage
 
-Sprint 22 moves to mobile/API/web pentest wrappers.
+Sprint 22 proceeds with federation trust closure and unified execution fingerprint binding.

@@ -9,33 +9,49 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 ## Program Context
 
-- Phase: Phase 5
+- Phase: Phase 5.5
 - Sprint: Sprint 19
-- Status: Planned
-- Primary Architecture Layers: Correlation Core, Reporting / Compliance
+- Status: Completed
+- Primary Architecture Layers: Control Plane, Policy Plane, Key and Secret Plane
 
 ## Architectural Intent
 
-Validate AD graph quality and telemetry delivery semantics for BloodHound integrations.
+Harden control-plane integrity gates so startup and cryptographic trust anchors are verifiable and tamper-evident.
 
 ## Implementation Detail
 
-QA focus includes graph shape validation, relationship integrity checks, and telemetry emission verification.
+Completed Sprint 19 controls:
+- Added JWS-based signed startup configuration enforcement (`pkg.orchestrator.control_plane_integrity`).
+- Enforced startup rejection for unsigned/invalid signatures.
+- Added OPA policy hash pinning and explicit mismatch denial handling.
+- Added runtime binary SHA-256 baseline validation against signed envelope.
+- Added append-only immutable configuration version history with hash chaining.
+- Added dedicated tamper-evident integrity audit channel (`spectrastrike.audit.integrity`).
+- Added automated Vault transit signing-key rotation workflow.
+- Added hardened Vault unseal share validation policy (threshold, uniqueness, share quality).
+- Added unit and QA coverage for all above controls.
 
 ## Security and Control Posture
 
-- AAA scope and authorization boundaries are enforced according to current orchestrator policy.
-- Telemetry and audit events are expected to remain structured, attributable, and export-ready.
-- Integration interfaces are maintained as loosely coupled contracts to preserve VectorVue interoperability.
+- Startup trust now requires signed config + pinned policy + binary baseline checks before success path.
+- Integrity-critical events are separately hash chained for tamper-evident auditability.
+- Vault lifecycle controls (rotation/unseal) are now codified as explicit workflows.
 
 ## QA and Validation Evidence
 
-Planned QA matrix includes graph consistency baselines and orchestrator compatibility checks.
+Commands:
+- `PYTHONPATH=src .venv/bin/pytest -q tests/unit/test_control_plane_integrity.py`
+- `PYTHONPATH=src .venv/bin/pytest -q tests/unit/test_vault_hardening.py`
+- `PYTHONPATH=src .venv/bin/pytest -q tests/unit/test_orchestrator_signing.py`
+- `PYTHONPATH=src .venv/bin/pytest -q tests/unit/test_logging_framework.py`
+- `PYTHONPATH=src .venv/bin/pytest -q tests/qa/test_sprint19_control_integrity_qa.py`
 
 ## Risk Register
 
-Risk is graph incompleteness from environment constraints; mitigation through controlled lab fixtures.
+Residual risk:
+- Runtime baseline currently verifies local binary hash and depends on secured deployment pipeline for golden hash provenance.
+- Vault unseal workflow validates policy constraints but does not perform live Vault unseal operations in unit scope.
 
 ## Forward Linkage
 
-Sprint 20 expands into cloud/CI wrappers.
+Sprint 20 advances high-assurance AAA controls (hardware-backed MFA, dual-control approvals, and break-glass hardening).

@@ -260,7 +260,7 @@ PYTHONPATH=src .venv/bin/python -m pkg.integration.host_integration_smoke \
   --check-vectorvue
 ```
 
-Optional direct VectorVue API smoke:
+Optional VectorVue federation gateway smoke:
 
 ```bash
 make vectorvue-rabbitmq-sync

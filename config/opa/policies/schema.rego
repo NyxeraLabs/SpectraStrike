@@ -19,37 +19,37 @@ capability_request_schema := {
 
 required_fields := capability_request_schema.required
 
-missing_fields[field] {
+missing_fields contains field if {
   some i
   field := required_fields[i]
   object.get(input, field, "") == ""
 }
 
-has_required_fields {
+has_required_fields if {
   count(missing_fields) == 0
 }
 
-has_valid_operator_id {
+has_valid_operator_id if {
   regex.match(capability_request_schema.patterns.id, input.operator_id)
 }
 
-has_valid_tenant_id {
+has_valid_tenant_id if {
   regex.match(capability_request_schema.patterns.id, input.tenant_id)
 }
 
-has_valid_tool_sha256 {
+has_valid_tool_sha256 if {
   regex.match(capability_request_schema.patterns.tool_sha256, input.tool_sha256)
 }
 
-has_valid_target_urn {
+has_valid_target_urn if {
   regex.match(capability_request_schema.patterns.target_urn, input.target_urn)
 }
 
-has_valid_action {
+has_valid_action if {
   regex.match(capability_request_schema.patterns.action, lower(input.action))
 }
 
-valid_capability_input {
+valid_capability_input if {
   has_required_fields
   has_valid_operator_id
   has_valid_tenant_id

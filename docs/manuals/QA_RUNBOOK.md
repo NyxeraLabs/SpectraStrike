@@ -124,7 +124,7 @@ PYTHONPATH=src .venv/bin/python -m pkg.integration.host_integration_smoke \
   --check-metasploit-rpc \
   --check-vectorvue
 
-# optional standalone broker drain -> VectorVue API sync
+# optional standalone broker drain -> VectorVue federation gateway sync
 make vectorvue-rabbitmq-sync
 ```
 

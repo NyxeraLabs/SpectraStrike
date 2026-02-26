@@ -35,6 +35,16 @@ This folder contains per-sprint architecture and implementation logs used for en
 
 - `docs/dev-logs/sprint-14.md` through `docs/dev-logs/sprint-33.md`
 
+## Sprint Folders (Task PR Templates)
+
+- `docs/dev-logs/sprint-18/pr-templates/`
+- `docs/dev-logs/sprint-19/pr-templates/`
+- `docs/dev-logs/sprint-20/pr-templates/`
+- `docs/dev-logs/sprint-21/pr-templates/`
+- `docs/dev-logs/sprint-22/pr-templates/`
+- `docs/dev-logs/sprint-23/pr-templates/`
+- `docs/dev-logs/sprint-24/pr-templates/`
+
 ## Usage
 
 Each log captures:

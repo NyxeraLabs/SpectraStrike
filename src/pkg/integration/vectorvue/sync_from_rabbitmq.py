@@ -12,7 +12,7 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-"""CLI bridge for forwarding RabbitMQ telemetry queue items to VectorVue APIs."""
+"""CLI bridge for forwarding RabbitMQ telemetry queue items to VectorVue gateway."""
 
 from __future__ import annotations
 
@@ -63,6 +63,9 @@ def main() -> int:
         verify_tls=args.verify_tls,
         max_retries=1,
         backoff_seconds=0,
+        signature_secret=os.getenv("VECTORVUE_SIGNATURE_SECRET"),
+        mtls_client_cert_file=os.getenv("VECTORVUE_MTLS_CLIENT_CERT_FILE"),
+        mtls_client_key_file=os.getenv("VECTORVUE_MTLS_CLIENT_KEY_FILE"),
     )
     client = VectorVueClient(config)
     client.login()

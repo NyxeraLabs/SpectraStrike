@@ -95,6 +95,44 @@ class VectorVueClient:
             raise_api_error=True,
         )
 
+    def send_federated_telemetry(
+        self,
+        telemetry: dict[str, Any],
+        idempotency_key: str | None = None,
+    ) -> ResponseEnvelope:
+        """Send federated telemetry bundle to the internal gateway endpoint."""
+        self._validate_federation_security_preconditions()
+        headers = {}
+        if idempotency_key:
+            headers["Idempotency-Key"] = idempotency_key
+        return self._request(
+            method="POST",
+            path="/internal/v1/telemetry",
+            json_payload=telemetry,
+            extra_headers=headers,
+            raise_api_error=True,
+        )
+
+    def _validate_federation_security_preconditions(self) -> None:
+        if self._config.require_mtls_for_federation:
+            if not self._config.verify_tls:
+                raise VectorVueTransportError(
+                    "federation outbound requires TLS verification (mTLS mode)"
+                )
+            if not (
+                self._config.mtls_client_cert_file and self._config.mtls_client_key_file
+            ):
+                raise VectorVueTransportError(
+                    "federation outbound requires mTLS client cert/key configuration"
+                )
+        if (
+            self._config.require_payload_signature_for_federation
+            and not self._config.signature_secret
+        ):
+            raise VectorVueSerializationError(
+                "federation outbound requires signed telemetry (signature_secret)"
+            )
+
     def send_events_batch(self, events: list[dict[str, Any]]) -> ResponseEnvelope:
         """Send a batch of telemetry events."""
         self._validate_batch_size(len(events))
@@ -200,6 +238,13 @@ class VectorVueClient:
                     headers=headers,
                     timeout=self._config.timeout_seconds,
                     verify=self._config.verify_tls,
+                    cert=(
+                        self._config.mtls_client_cert_file,
+                        self._config.mtls_client_key_file,
+                    )
+                    if self._config.mtls_client_cert_file
+                    and self._config.mtls_client_key_file
+                    else None,
                 )
                 self._enforce_tls_pin(response)
             except (Timeout, RequestException) as exc:

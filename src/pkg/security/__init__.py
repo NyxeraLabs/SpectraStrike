@@ -24,6 +24,16 @@ from .aaa_framework import (
     PolicyAuthorizer,
     Principal,
 )
+from .high_assurance import (
+    BreakGlassError,
+    BreakGlassRecord,
+    PrivilegeElevationError,
+    PrivilegeElevationService,
+    PrivilegeElevationToken,
+    PrivilegedSessionError,
+    PrivilegedSessionRecorder,
+    SessionRecordingEvent,
+)
 
 __all__ = [
     "AAAError",
@@ -34,4 +44,12 @@ __all__ = [
     "PolicyAuthorizer",
     "AccountingRecord",
     "AAAService",
+    "PrivilegeElevationError",
+    "BreakGlassError",
+    "PrivilegedSessionError",
+    "PrivilegeElevationToken",
+    "BreakGlassRecord",
+    "SessionRecordingEvent",
+    "PrivilegeElevationService",
+    "PrivilegedSessionRecorder",
 ]

@@ -160,6 +160,93 @@ The orchestrator is the central control plane for SpectraStrike. It coordinates 
 - strict tenant context propagation (`tenant_id` required),
 - unified schema validation before buffering/publishing.
 
+## Control Plane Integrity Hardening (Sprint 19)
+1. Signed startup config gate:
+- `pkg.orchestrator.control_plane_integrity.ControlPlaneIntegrityEnforcer` enforces JWS signature validation before startup acceptance.
+- Unsigned or invalid signatures are hard-rejected.
+2. Policy trust pinning:
+- Startup config must include `policy_sha256` that matches `OPA_POLICY_PINNED_SHA256`.
+- Any mismatch is rejected with integrity audit evidence.
+3. Runtime baseline integrity:
+- Optional startup binary baseline (`SPECTRASTRIKE_ENFORCE_BINARY_HASH=true`) validates SHA-256 against signed envelope value.
+4. Immutable configuration history:
+- `ImmutableConfigurationHistory` stores append-only config versions with hash chaining and duplicate-version rejection.
+5. Integrity audit channel:
+- `pkg.logging.framework.emit_integrity_audit_event` writes hash-chained records to dedicated logger `spectrastrike.audit.integrity`.
+6. Vault hardening workflow:
+- `pkg.orchestrator.vault_hardening.VaultHardeningWorkflow` automates transit key rotation checks and unseal share policy enforcement.
+
+## High-Assurance AAA Controls (Sprint 20)
+1. Hardware-backed MFA for privileged actions:
+- `pkg.security.aaa_framework.AAAService` now supports hardware assertion verification via `HardwareMFAVerifier`.
+- Privileged role authorization can require `hardware_mfa_assertion` in policy context.
+2. Time-bound privilege elevation:
+- `pkg.security.high_assurance.PrivilegeElevationService` issues short-lived, one-time elevation tokens.
+- AAA privileged authorization can consume required `elevation_token_id` via validator hook.
+3. Dual-control Armory approval:
+- `pkg.armory.service.ArmoryService` enforces approval quorum (`approval_quorum=2` default) for tool authorization.
+- Distinct approvers are required before a digest is marked authorized.
+4. Dual-signature high-risk manifests:
+- `pkg.orchestrator.dual_signature.HighRiskManifestDualSigner` enforces independent second signature for `high/critical` risk levels.
+5. Break-glass and session recording:
+- Break-glass activation uses irreversible audit flag semantics.
+- `PrivilegedSessionRecorder` provides structured session start/command/end event capture for privileged activity evidence.
+
+## Deterministic Execution Guarantees (Sprint 21)
+1. Canonical manifest serialization:
+- `pkg.orchestrator.manifest.canonical_manifest_json` enforces deterministic compact JSON (`sort_keys=True`, fixed separators).
+2. Deterministic hashing:
+- `pkg.orchestrator.manifest.deterministic_manifest_hash` computes stable SHA-256 over canonical manifest payload.
+3. Schema semantic versioning:
+- `ManifestSchemaVersionPolicy` enforces `MAJOR.MINOR.PATCH` format and supported major compatibility bounds.
+4. Non-canonical submission rejection:
+- `parse_and_validate_manifest_submission` rejects payloads that are not canonical JSON before manifest construction.
+5. Runtime ingress guard:
+- `OrchestratorEngine.validate_manifest_submission` exposes canonical validation path for raw manifest intake.
+6. CI regression guard:
+- `scripts/manifest_schema_regression.py` validates stable schema hash and is executed in CI (`.github/workflows/lint-test.yml`).
+
+## Federation Fingerprint Binding (Sprint 22)
+1. Unified execution fingerprint schema:
+- `manifest_hash + tool_hash + operator_id + tenant_id + policy_decision_hash + timestamp`.
+- Implemented in `pkg.orchestrator.execution_fingerprint.ExecutionFingerprintInput`.
+2. Fingerprint generation and validation:
+- `generate_execution_fingerprint` creates deterministic SHA-256 execution fingerprint.
+- `validate_fingerprint_before_c2_dispatch` enforces pre-dispatch integrity gate.
+3. Tamper-evident fingerprint audit:
+- Fingerprint bind/validate outcomes are emitted to integrity audit channel via `emit_integrity_audit_event`.
+4. VectorVue federation payload binding:
+- RabbitMQ bridge includes `execution_fingerprint` in outgoing telemetry metadata and federation bundle.
+- Bridge uses federated gateway dispatch path (`send_federated_telemetry`).
+
+## Federation Channel Enforcement (Sprint 23)
+1. Single outbound gateway:
+- Bridge dispatch uses only internal federation endpoint (`/internal/v1/telemetry`) via `send_federated_telemetry`.
+2. Legacy path removal:
+- Direct bridge event/finding API emission path is removed from active bridge runtime.
+3. mTLS-only federation:
+- Federation dispatch requires TLS verification plus configured mTLS client cert/key.
+4. Signed telemetry required:
+- Federation dispatch requires payload signature secret configuration; unsigned federation payloads are denied.
+5. Producer replay detection:
+- Bridge tracks nonce replay window and denies duplicate producer nonce usage.
+6. Idempotent bounded retry:
+- Idempotency key for federation dispatch is execution fingerprint hash, aligning retries with deterministic replay-safe semantics.
+
+## Anti-Repudiation Closure (Sprint 24)
+1. Operator-identity-bound fingerprint:
+- Operator identity is required and validated when generating execution fingerprint.
+2. Write-ahead execution intent:
+- Pre-dispatch execution intent records are appended before outbound federation dispatch.
+- Intent records are hash-chained (`prev_hash -> intent_hash`) for tamper evidence.
+3. Execution intent verification API:
+- `verify_execution_intent_api` exposes verification contract for `execution_fingerprint` and optional `operator_id` checks.
+4. Reconciliation and repudiation detection:
+- Operator-to-execution reconciliation confirms immutable attribution.
+- Repudiation attempts (claiming wrong operator) are detected and emitted to integrity audit stream.
+5. Federation bundle intent metadata:
+- Outbound federation bundle now includes `intent_id`, `intent_hash`, and `write_ahead=true`.
+
 ## Testing Strategy (for next tasks)
 1. Unit tests for scheduler ordering and retry behavior.
 2. Unit tests for AAA enforcement on task submission.

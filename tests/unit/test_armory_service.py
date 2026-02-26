@@ -45,10 +45,13 @@ def test_approve_tool_marks_authorized(tmp_path: Path) -> None:
         artifact=b"artifact",
     )
 
-    approved = service.approve_tool(tool_sha256=result.tool_sha256, approver="secops")
+    first = service.approve_tool(tool_sha256=result.tool_sha256, approver="secops-1")
+    assert first.authorized is False
+    approved = service.approve_tool(tool_sha256=result.tool_sha256, approver="secops-2")
 
     assert approved.authorized is True
-    assert approved.approved_by == "secops"
+    assert approved.approved_by == "secops-2"
+    assert approved.approval_chain == ["secops-1", "secops-2"]
     assert len(service.list_tools(authorized_only=True)) == 1
 
 
@@ -62,3 +65,16 @@ def test_get_authorized_tool_rejects_unapproved_digest(tmp_path: Path) -> None:
 
     with pytest.raises(KeyError):
         service.get_authorized_tool(tool_sha256=result.tool_sha256)
+
+
+def test_duplicate_approver_rejected_under_dual_control(tmp_path: Path) -> None:
+    service = ArmoryService(registry_path=str(tmp_path / "armory.json"))
+    result = service.ingest_tool(
+        tool_name="scanner",
+        image_ref="registry.internal/tools/scanner:2.0.0",
+        artifact=b"artifact",
+    )
+
+    service.approve_tool(tool_sha256=result.tool_sha256, approver="secops-1")
+    with pytest.raises(ValueError, match="already submitted"):
+        service.approve_tool(tool_sha256=result.tool_sha256, approver="secops-1")

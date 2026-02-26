@@ -161,6 +161,60 @@ def test_send_event_sets_idempotency_key() -> None:
     assert headers["Authorization"] == "Bearer jwt"
 
 
+def test_send_federated_telemetry_uses_internal_gateway_path() -> None:
+    session = FakeSession(
+        [
+            FakeResponse(
+                202, {"request_id": "fed-1", "status": "accepted", "data": {}, "errors": []}
+            )
+        ]
+    )
+    client = VectorVueClient(
+        _config_with_creds(
+            token="jwt",
+            signature_secret="sig-secret",
+            mtls_client_cert_file="/tmp/client.crt",
+            mtls_client_key_file="/tmp/client.key",
+        ),
+        session=session,
+    )
+
+    client.send_federated_telemetry(
+        {"federation_bundle": {"execution_hash": "abc"}},
+        idempotency_key="fp-1",
+    )
+
+    call = session.calls[0]
+    assert call["url"].endswith("/internal/v1/telemetry")
+    assert call["headers"]["Idempotency-Key"] == "fp-1"
+
+
+def test_send_federated_telemetry_requires_signature_and_mtls() -> None:
+    session = FakeSession([])
+    client = VectorVueClient(
+        _config_with_creds(
+            token="jwt",
+            mtls_client_cert_file="/tmp/client.crt",
+            mtls_client_key_file="/tmp/client.key",
+        ),
+        session=session,
+    )
+
+    with pytest.raises(VectorVueSerializationError, match="requires signed telemetry"):
+        client.send_federated_telemetry({"federation_bundle": {"execution_hash": "abc"}})
+
+
+def test_send_federated_telemetry_requires_mtls() -> None:
+    session = FakeSession([])
+    client = VectorVueClient(
+        _config_with_creds(token="jwt", signature_secret="sig-secret"),
+        session=session,
+    )
+
+    with pytest.raises(VectorVueTransportError, match="requires mTLS client cert/key"):
+        client.send_federated_telemetry({"federation_bundle": {"execution_hash": "abc"}})
+
+
 def test_signing_headers_are_added_when_secret_configured(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

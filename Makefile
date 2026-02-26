@@ -12,7 +12,7 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-.PHONY: help build ui-build runner-go-build runner-go-test secrets-init legal-accept-init pki-ensure tls-ensure up up-all full-up full-up-tools full-down open-ui open-tui ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db security-check license-check tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down host-integration-smoke vectorvue-rabbitmq-sync
+.PHONY: help build ui-build runner-go-build runner-go-test secrets-init legal-accept-init pki-ensure tls-ensure up up-all full-up full-up-tools full-down open-ui open-tui ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db security-check license-check manifest-schema-regression tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down host-integration-smoke vectorvue-rabbitmq-sync
 
 COMPOSE_DEV = docker compose -f docker-compose.dev.yml
 COMPOSE_PROD = docker compose -f docker-compose.prod.yml
@@ -69,6 +69,7 @@ help:
 	@echo "  reset-db          Drop and recreate spectrastrike database in dev postgres container"
 	@echo "  security-check    Validate compose configs and local tests"
 	@echo "  license-check     Validate required BSL license headers"
+	@echo "  manifest-schema-regression Validate deterministic manifest schema/hash regression guard"
 	@echo "  tls-dev-cert      Generate local TLS cert/key for nginx"
 	@echo "  pki-internal      Generate internal CA + service mTLS certs"
 	@echo "  firewall-apply    Apply DOCKER-USER iptables baseline (requires root)"
@@ -253,6 +254,9 @@ security-check:
 
 license-check:
 	.venv/bin/python scripts/check_license_headers.py
+
+manifest-schema-regression:
+	PYTHONPATH=src .venv/bin/python scripts/manifest_schema_regression.py
 
 tls-dev-cert:
 	./docker/scripts/generate_dev_tls.sh
