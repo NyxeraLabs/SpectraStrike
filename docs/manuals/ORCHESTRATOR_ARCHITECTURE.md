@@ -217,7 +217,21 @@ The orchestrator is the central control plane for SpectraStrike. It coordinates 
 - Fingerprint bind/validate outcomes are emitted to integrity audit channel via `emit_integrity_audit_event`.
 4. VectorVue federation payload binding:
 - RabbitMQ bridge includes `execution_fingerprint` in outgoing telemetry metadata and federation bundle.
-- Bridge defaults to federated gateway path (`send_federated_telemetry`) and retains legacy direct API mode only by explicit compatibility toggle.
+- Bridge uses federated gateway dispatch path (`send_federated_telemetry`).
+
+## Federation Channel Enforcement (Sprint 23)
+1. Single outbound gateway:
+- Bridge dispatch uses only internal federation endpoint (`/internal/v1/telemetry`) via `send_federated_telemetry`.
+2. Legacy path removal:
+- Direct bridge event/finding API emission path is removed from active bridge runtime.
+3. mTLS-only federation:
+- Federation dispatch requires TLS verification plus configured mTLS client cert/key.
+4. Signed telemetry required:
+- Federation dispatch requires payload signature secret configuration; unsigned federation payloads are denied.
+5. Producer replay detection:
+- Bridge tracks nonce replay window and denies duplicate producer nonce usage.
+6. Idempotent bounded retry:
+- Idempotency key for federation dispatch is execution fingerprint hash, aligning retries with deterministic replay-safe semantics.
 
 ## Testing Strategy (for next tasks)
 1. Unit tests for scheduler ordering and retry behavior.

@@ -124,12 +124,8 @@ PYTHONPATH=src .venv/bin/python -m pkg.integration.host_integration_smoke \
   --check-metasploit-rpc \
   --check-vectorvue
 
-# optional standalone broker drain -> VectorVue federation gateway sync (default)
+# optional standalone broker drain -> VectorVue federation gateway sync
 make vectorvue-rabbitmq-sync
-
-# deprecated compatibility path only (legacy direct API)
-PYTHONPATH=src .venv/bin/python -m pkg.integration.vectorvue.sync_from_rabbitmq \
-  --allow-legacy-direct-api
 ```
 
 Expected output shape:

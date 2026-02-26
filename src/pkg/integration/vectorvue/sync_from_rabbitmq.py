@@ -36,11 +36,6 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="also emit a finding payload for every consumed telemetry message",
     )
-    parser.add_argument(
-        "--allow-legacy-direct-api",
-        action="store_true",
-        help="use deprecated direct VectorVue events/findings endpoints",
-    )
     parser.add_argument("--base-url", default=os.getenv("VECTORVUE_BASE_URL", "https://127.0.0.1"))
     parser.add_argument("--username", default=os.getenv("VECTORVUE_USERNAME", "acme_viewer"))
     parser.add_argument("--password", default=os.getenv("VECTORVUE_PASSWORD", "AcmeView3r!"))
@@ -68,6 +63,9 @@ def main() -> int:
         verify_tls=args.verify_tls,
         max_retries=1,
         backoff_seconds=0,
+        signature_secret=os.getenv("VECTORVUE_SIGNATURE_SECRET"),
+        mtls_client_cert_file=os.getenv("VECTORVUE_MTLS_CLIENT_CERT_FILE"),
+        mtls_client_key_file=os.getenv("VECTORVUE_MTLS_CLIENT_KEY_FILE"),
     )
     client = VectorVueClient(config)
     client.login()
@@ -85,7 +83,6 @@ def main() -> int:
         connection=RabbitMQConnectionConfig.from_env(),
         routing=routing,
         emit_findings_for_all=args.emit_findings_for_all,
-        allow_legacy_direct_api=args.allow_legacy_direct_api,
     )
     result = bridge.drain(limit=args.limit)
     print(

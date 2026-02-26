@@ -42,6 +42,7 @@ This folder contains per-sprint architecture and implementation logs used for en
 - `docs/dev-logs/sprint-20/pr-templates/`
 - `docs/dev-logs/sprint-21/pr-templates/`
 - `docs/dev-logs/sprint-22/pr-templates/`
+- `docs/dev-logs/sprint-23/pr-templates/`
 
 ## Usage
 
