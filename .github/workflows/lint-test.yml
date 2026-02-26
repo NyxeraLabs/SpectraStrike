@@ -59,5 +59,8 @@ jobs:
       - name: Run unit tests
         run: PYTHONPATH=src venv/bin/python -m pytest tests/unit -v
 
+      - name: Run manifest schema regression guard
+        run: PYTHONPATH=src venv/bin/python scripts/manifest_schema_regression.py
+
       - name: Notify (Optional - Email/Slack)
         run: echo "Lint and tests completed"

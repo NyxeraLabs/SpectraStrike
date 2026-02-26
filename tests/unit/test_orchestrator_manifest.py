@@ -20,8 +20,14 @@ import pytest
 
 from pkg.orchestrator.manifest import (
     ExecutionManifest,
+    ManifestSchemaVersionError,
+    ManifestSchemaVersionPolicy,
+    NonCanonicalManifestError,
     ExecutionManifestValidationError,
     ExecutionTaskContext,
+    canonical_manifest_json,
+    deterministic_manifest_hash,
+    parse_and_validate_manifest_submission,
 )
 
 
@@ -100,3 +106,44 @@ def test_task_context_requires_iso_requested_at() -> None:
 def test_task_context_requires_task_id_format() -> None:
     with pytest.raises(ExecutionManifestValidationError, match="task_id"):
         _task_context(task_id="x")
+
+
+def test_manifest_canonical_json_and_hash_are_deterministic() -> None:
+    manifest = _manifest(parameters={"b": 2, "a": 1})
+    payload = manifest.to_payload()
+
+    canonical_1 = canonical_manifest_json(payload)
+    canonical_2 = manifest.canonical_json()
+    assert canonical_1 == canonical_2
+    assert '"a":1' in canonical_1
+    assert '"b":2' in canonical_1
+
+    hash_1 = deterministic_manifest_hash(payload)
+    hash_2 = manifest.deterministic_hash()
+    assert hash_1 == hash_2
+    assert len(hash_1) == 64
+
+
+def test_manifest_schema_version_requires_semver_and_supported_major() -> None:
+    with pytest.raises(ManifestSchemaVersionError, match="semantic versioning"):
+        _manifest(manifest_version="v1")
+    with pytest.raises(ManifestSchemaVersionError, match="unsupported manifest_version major"):
+        _manifest(manifest_version="2.0.0")
+    ManifestSchemaVersionPolicy.assert_supported("1.2.3")
+
+
+def test_parse_and_validate_manifest_submission_rejects_non_canonical_json() -> None:
+    payload = _manifest().to_payload()
+    non_canonical = '{"tool_sha256":"' + payload["tool_sha256"] + '","manifest_version":"1.0.0"}'
+    with pytest.raises(NonCanonicalManifestError, match="non-canonical"):
+        parse_and_validate_manifest_submission(non_canonical)
+
+
+def test_parse_and_validate_manifest_submission_accepts_canonical_json() -> None:
+    payload = _manifest().to_payload()
+    raw = canonical_manifest_json(payload)
+
+    parsed = parse_and_validate_manifest_submission(raw)
+
+    assert parsed.target_urn == payload["target_urn"]
+    assert parsed.tool_sha256 == payload["tool_sha256"]

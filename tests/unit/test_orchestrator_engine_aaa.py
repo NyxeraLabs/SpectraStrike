@@ -18,6 +18,11 @@ from __future__ import annotations
 
 import pytest
 
+from pkg.orchestrator.manifest import (
+    NonCanonicalManifestError,
+    canonical_manifest_json,
+)
+
 from pkg.orchestrator.audit_trail import OrchestratorAuditTrail
 from pkg.orchestrator.engine import OrchestratorEngine, TaskSubmissionRequest
 from pkg.orchestrator.task_scheduler import TaskScheduler
@@ -102,3 +107,45 @@ def test_submit_task_policy_authorizer_denial() -> None:
 
     with pytest.raises(AuthorizationError, match="Policy denied execution"):
         engine.submit_task(request, secret="pw")
+
+
+def test_validate_manifest_submission_rejects_non_canonical() -> None:
+    engine = _engine_with_user()
+    raw = (
+        '{"tool_sha256":"sha256:'
+        + ("a" * 64)
+        + '","manifest_version":"1.0.0","issued_at":"2026-02-26T00:00:05+00:00",'
+        + '"nonce":"nonce-0001","parameters":{"aggressive":true},"target_urn":"urn:target:ip:10.0.0.5",'
+        + '"task_context":{"action":"run","correlation_id":"bc8d85ff-31f2-4b57-9adf-3ce24227de97",'
+        + '"operator_id":"alice","requested_at":"2026-02-26T00:00:00+00:00","source":"api",'
+        + '"task_id":"task-001","tenant_id":"tenant-a"}}'
+    )
+
+    with pytest.raises(NonCanonicalManifestError):
+        engine.validate_manifest_submission(raw)
+
+
+def test_validate_manifest_submission_accepts_canonical() -> None:
+    engine = _engine_with_user()
+    raw = canonical_manifest_json(
+        {
+            "issued_at": "2026-02-26T00:00:05+00:00",
+            "manifest_version": "1.0.0",
+            "nonce": "nonce-0001",
+            "parameters": {"aggressive": True},
+            "target_urn": "urn:target:ip:10.0.0.5",
+            "task_context": {
+                "action": "run",
+                "correlation_id": "bc8d85ff-31f2-4b57-9adf-3ce24227de97",
+                "operator_id": "alice",
+                "requested_at": "2026-02-26T00:00:00+00:00",
+                "source": "api",
+                "task_id": "task-001",
+                "tenant_id": "tenant-a",
+            },
+            "tool_sha256": "sha256:" + ("a" * 64),
+        }
+    )
+
+    parsed = engine.validate_manifest_submission(raw)
+    assert parsed.manifest_version == "1.0.0"
