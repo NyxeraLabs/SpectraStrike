@@ -176,6 +176,22 @@ The orchestrator is the central control plane for SpectraStrike. It coordinates 
 6. Vault hardening workflow:
 - `pkg.orchestrator.vault_hardening.VaultHardeningWorkflow` automates transit key rotation checks and unseal share policy enforcement.
 
+## High-Assurance AAA Controls (Sprint 20)
+1. Hardware-backed MFA for privileged actions:
+- `pkg.security.aaa_framework.AAAService` now supports hardware assertion verification via `HardwareMFAVerifier`.
+- Privileged role authorization can require `hardware_mfa_assertion` in policy context.
+2. Time-bound privilege elevation:
+- `pkg.security.high_assurance.PrivilegeElevationService` issues short-lived, one-time elevation tokens.
+- AAA privileged authorization can consume required `elevation_token_id` via validator hook.
+3. Dual-control Armory approval:
+- `pkg.armory.service.ArmoryService` enforces approval quorum (`approval_quorum=2` default) for tool authorization.
+- Distinct approvers are required before a digest is marked authorized.
+4. Dual-signature high-risk manifests:
+- `pkg.orchestrator.dual_signature.HighRiskManifestDualSigner` enforces independent second signature for `high/critical` risk levels.
+5. Break-glass and session recording:
+- Break-glass activation uses irreversible audit flag semantics.
+- `PrivilegedSessionRecorder` provides structured session start/command/end event capture for privileged activity evidence.
+
 ## Testing Strategy (for next tasks)
 1. Unit tests for scheduler ordering and retry behavior.
 2. Unit tests for AAA enforcement on task submission.

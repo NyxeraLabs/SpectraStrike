@@ -330,12 +330,12 @@ Sell derived competing products
 
 ## Sprint 20 – High-Assurance AAA Controls
 
-- [ ] Enforce hardware-backed MFA for privileged actions
-- [ ] Implement dual-control approval for tool ingestion
-- [ ] Enforce dual-signature for high-risk manifests
-- [ ] Implement break-glass workflow with irreversible audit flag
-- [ ] Implement time-bound privilege elevation tokens
-- [ ] Add privileged session recording support
+- [x] Enforce hardware-backed MFA for privileged actions
+- [x] Implement dual-control approval for tool ingestion
+- [x] Enforce dual-signature for high-risk manifests
+- [x] Implement break-glass workflow with irreversible audit flag
+- [x] Implement time-bound privilege elevation tokens
+- [x] Add privileged session recording support
 
 ## Sprint 21 – Deterministic Execution Guarantees
 
