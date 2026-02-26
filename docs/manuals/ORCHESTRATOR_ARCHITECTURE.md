@@ -233,6 +233,20 @@ The orchestrator is the central control plane for SpectraStrike. It coordinates 
 6. Idempotent bounded retry:
 - Idempotency key for federation dispatch is execution fingerprint hash, aligning retries with deterministic replay-safe semantics.
 
+## Anti-Repudiation Closure (Sprint 24)
+1. Operator-identity-bound fingerprint:
+- Operator identity is required and validated when generating execution fingerprint.
+2. Write-ahead execution intent:
+- Pre-dispatch execution intent records are appended before outbound federation dispatch.
+- Intent records are hash-chained (`prev_hash -> intent_hash`) for tamper evidence.
+3. Execution intent verification API:
+- `verify_execution_intent_api` exposes verification contract for `execution_fingerprint` and optional `operator_id` checks.
+4. Reconciliation and repudiation detection:
+- Operator-to-execution reconciliation confirms immutable attribution.
+- Repudiation attempts (claiming wrong operator) are detected and emitted to integrity audit stream.
+5. Federation bundle intent metadata:
+- Outbound federation bundle now includes `intent_id`, `intent_hash`, and `write_ahead=true`.
+
 ## Testing Strategy (for next tasks)
 1. Unit tests for scheduler ordering and retry behavior.
 2. Unit tests for AAA enforcement on task submission.

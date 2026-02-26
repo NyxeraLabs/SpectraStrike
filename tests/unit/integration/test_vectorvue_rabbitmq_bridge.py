@@ -34,6 +34,7 @@ class _FakeVectorVueClient:
     finding_status: str = "accepted"
     status_poll_status: str = "accepted"
     last_federated_idempotency_key: str | None = None
+    last_federated_payload: dict[str, object] | None = None
 
     def send_event(
         self, _payload: dict[str, object], idempotency_key: str | None = None
@@ -66,6 +67,7 @@ class _FakeVectorVueClient:
     ) -> ResponseEnvelope:
         assert idempotency_key
         self.last_federated_idempotency_key = idempotency_key
+        self.last_federated_payload = _payload
         return ResponseEnvelope(
             request_id="fed-1",
             status=self.event_status,
@@ -125,6 +127,10 @@ def test_inmemory_bridge_drains_and_forwards_event_and_finding() -> None:
     assert result.status_poll_statuses == ["accepted"]
     assert client.last_federated_idempotency_key is not None
     assert len(client.last_federated_idempotency_key) == 64
+    assert client.last_federated_payload is not None
+    bundle = client.last_federated_payload["federation_bundle"]  # type: ignore[index]
+    assert bundle["intent_id"].startswith("intent-")  # type: ignore[index]
+    assert len(bundle["intent_hash"]) == 64  # type: ignore[index]
 
 
 def test_inmemory_bridge_records_failure_on_api_error() -> None:

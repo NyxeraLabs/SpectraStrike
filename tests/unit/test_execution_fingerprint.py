@@ -22,6 +22,7 @@ from pkg.orchestrator.execution_fingerprint import (
     ExecutionFingerprintError,
     ExecutionFingerprintInput,
     fingerprint_input_from_envelope,
+    generate_operator_bound_execution_fingerprint,
     generate_execution_fingerprint,
     validate_fingerprint_before_c2_dispatch,
 )
@@ -55,6 +56,12 @@ def test_validate_before_c2_dispatch_rejects_mismatch() -> None:
             actor="op-001",
             dispatch_target="c2/sliver",
         )
+
+
+def test_operator_bound_fingerprint_rejects_operator_mismatch() -> None:
+    data = _fingerprint_input()
+    with pytest.raises(ExecutionFingerprintError, match="operator_id mismatch"):
+        generate_operator_bound_execution_fingerprint(data=data, operator_id="op-999")
 
 
 def test_fingerprint_input_from_envelope_requires_required_fields() -> None:

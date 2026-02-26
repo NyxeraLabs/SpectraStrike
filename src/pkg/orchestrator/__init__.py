@@ -15,6 +15,12 @@
 """Orchestrator runtime package."""
 
 from .anti_replay import AntiReplayConfig, AntiReplayGuard, AntiReplayValidationError
+from .anti_repudiation import (
+    AntiRepudiationError,
+    ExecutionIntentLedger,
+    ExecutionIntentRecord,
+    verify_execution_intent_api,
+)
 from .audit_trail import AuditTrailRecord, OrchestratorAuditTrail
 from .control_plane_integrity import (
     ConfigurationSignatureMismatchError,
@@ -34,6 +40,7 @@ from .execution_fingerprint import (
     ExecutionFingerprintError,
     ExecutionFingerprintInput,
     fingerprint_input_from_envelope,
+    generate_operator_bound_execution_fingerprint,
     generate_execution_fingerprint,
     validate_execution_fingerprint,
     validate_fingerprint_before_c2_dispatch,
@@ -108,6 +115,10 @@ __all__ = [
     "AntiReplayConfig",
     "AntiReplayGuard",
     "AntiReplayValidationError",
+    "AntiRepudiationError",
+    "ExecutionIntentRecord",
+    "ExecutionIntentLedger",
+    "verify_execution_intent_api",
     "AuditTrailRecord",
     "OrchestratorAuditTrail",
     "DualSignatureError",
@@ -128,6 +139,7 @@ __all__ = [
     "TaskSubmissionRequest",
     "ExecutionFingerprintError",
     "ExecutionFingerprintInput",
+    "generate_operator_bound_execution_fingerprint",
     "generate_execution_fingerprint",
     "validate_execution_fingerprint",
     "validate_fingerprint_before_c2_dispatch",
