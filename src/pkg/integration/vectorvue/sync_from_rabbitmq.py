@@ -12,7 +12,7 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-"""CLI bridge for forwarding RabbitMQ telemetry queue items to VectorVue APIs."""
+"""CLI bridge for forwarding RabbitMQ telemetry queue items to VectorVue gateway."""
 
 from __future__ import annotations
 
@@ -35,6 +35,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "--emit-findings-for-all",
         action="store_true",
         help="also emit a finding payload for every consumed telemetry message",
+    )
+    parser.add_argument(
+        "--allow-legacy-direct-api",
+        action="store_true",
+        help="use deprecated direct VectorVue events/findings endpoints",
     )
     parser.add_argument("--base-url", default=os.getenv("VECTORVUE_BASE_URL", "https://127.0.0.1"))
     parser.add_argument("--username", default=os.getenv("VECTORVUE_USERNAME", "acme_viewer"))
@@ -80,6 +85,7 @@ def main() -> int:
         connection=RabbitMQConnectionConfig.from_env(),
         routing=routing,
         emit_findings_for_all=args.emit_findings_for_all,
+        allow_legacy_direct_api=args.allow_legacy_direct_api,
     )
     result = bridge.drain(limit=args.limit)
     print(

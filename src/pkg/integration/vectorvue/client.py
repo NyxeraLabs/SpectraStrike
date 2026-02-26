@@ -95,6 +95,23 @@ class VectorVueClient:
             raise_api_error=True,
         )
 
+    def send_federated_telemetry(
+        self,
+        telemetry: dict[str, Any],
+        idempotency_key: str | None = None,
+    ) -> ResponseEnvelope:
+        """Send federated telemetry bundle to the internal gateway endpoint."""
+        headers = {}
+        if idempotency_key:
+            headers["Idempotency-Key"] = idempotency_key
+        return self._request(
+            method="POST",
+            path="/internal/v1/telemetry",
+            json_payload=telemetry,
+            extra_headers=headers,
+            raise_api_error=True,
+        )
+
     def send_events_batch(self, events: list[dict[str, Any]]) -> ResponseEnvelope:
         """Send a batch of telemetry events."""
         self._validate_batch_size(len(events))

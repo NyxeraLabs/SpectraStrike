@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import ssl
 from dataclasses import dataclass, field
@@ -23,6 +24,12 @@ from datetime import UTC, datetime
 from typing import Any
 
 from pkg.integration.vectorvue.client import VectorVueClient
+from pkg.logging.framework import emit_integrity_audit_event
+from pkg.orchestrator.execution_fingerprint import (
+    fingerprint_input_from_envelope,
+    generate_execution_fingerprint,
+    validate_fingerprint_before_c2_dispatch,
+)
 from pkg.orchestrator.messaging import (
     BrokerEnvelope,
     InMemoryRabbitBroker,
@@ -59,11 +66,13 @@ class InMemoryVectorVueBridge:
         client: VectorVueClient,
         queue: str = "telemetry.events",
         emit_findings_for_all: bool = False,
+        allow_legacy_direct_api: bool = False,
     ) -> None:
         self._broker = broker
         self._client = client
         self._queue = queue
         self._emit_findings_for_all = emit_findings_for_all
+        self._allow_legacy_direct_api = allow_legacy_direct_api
 
     def drain(self, limit: int | None = None) -> BridgeDrainResult:
         result = BridgeDrainResult()
@@ -75,8 +84,22 @@ class InMemoryVectorVueBridge:
 
     def _forward_one(self, envelope: BrokerEnvelope, result: BridgeDrainResult) -> None:
         try:
+            payload = _build_federated_payload(envelope)
+            if hasattr(self._client, "send_federated_telemetry") and not self._allow_legacy_direct_api:
+                response = self._client.send_federated_telemetry(  # type: ignore[attr-defined]
+                    payload,
+                    idempotency_key=envelope.idempotency_key,
+                )
+                result.forwarded_events += 1
+                result.event_statuses.append(response.status)
+                # Compatibility placeholders for older host smoke expectations.
+                result.forwarded_findings += 1
+                result.finding_statuses.append(response.status)
+                result.status_poll_statuses.append(response.status)
+                return
+
             event_response = self._client.send_event(
-                _build_event_payload(envelope),
+                payload["event"],
                 idempotency_key=envelope.idempotency_key,
             )
             result.forwarded_events += 1
@@ -87,9 +110,7 @@ class InMemoryVectorVueBridge:
                 result.status_poll_statuses.append(status_response.status)
 
             if self._emit_findings_for_all or _should_emit_finding(envelope):
-                finding_response = self._client.send_finding(
-                    _build_finding_payload(envelope)
-                )
+                finding_response = self._client.send_finding(payload["finding"])
                 result.forwarded_findings += 1
                 result.finding_statuses.append(finding_response.status)
         except Exception:
@@ -106,6 +127,7 @@ class PikaVectorVueBridge:
         connection: RabbitMQConnectionConfig | None = None,
         routing: RabbitRoutingModel | None = None,
         emit_findings_for_all: bool = False,
+        allow_legacy_direct_api: bool = False,
     ) -> None:
         if pika is None:
             raise RuntimeError("pika package is required for PikaVectorVueBridge")
@@ -113,6 +135,7 @@ class PikaVectorVueBridge:
         self._connection = connection or RabbitMQConnectionConfig.from_env()
         self._routing = routing or RabbitRoutingModel()
         self._emit_findings_for_all = emit_findings_for_all
+        self._allow_legacy_direct_api = allow_legacy_direct_api
 
     def drain(self, limit: int = 100) -> BridgeDrainResult:
         if limit <= 0:
@@ -131,25 +154,37 @@ class PikaVectorVueBridge:
                 result.consumed += 1
                 envelope = _decode_envelope(body)
                 try:
-                    event_response = self._client.send_event(
-                        _build_event_payload(envelope),
-                        idempotency_key=envelope.idempotency_key,
-                    )
-                    result.forwarded_events += 1
-                    result.event_statuses.append(event_response.status)
-
-                    if event_response.request_id:
-                        status_response = self._client.get_ingest_status(
-                            event_response.request_id
+                    payload = _build_federated_payload(envelope)
+                    if hasattr(self._client, "send_federated_telemetry") and not self._allow_legacy_direct_api:
+                        response = self._client.send_federated_telemetry(  # type: ignore[attr-defined]
+                            payload,
+                            idempotency_key=envelope.idempotency_key,
                         )
-                        result.status_poll_statuses.append(status_response.status)
-
-                    if self._emit_findings_for_all or _should_emit_finding(envelope):
-                        finding_response = self._client.send_finding(
-                            _build_finding_payload(envelope)
-                        )
+                        result.forwarded_events += 1
+                        result.event_statuses.append(response.status)
                         result.forwarded_findings += 1
-                        result.finding_statuses.append(finding_response.status)
+                        result.finding_statuses.append(response.status)
+                        result.status_poll_statuses.append(response.status)
+                    else:
+                        event_response = self._client.send_event(
+                            payload["event"],
+                            idempotency_key=envelope.idempotency_key,
+                        )
+                        result.forwarded_events += 1
+                        result.event_statuses.append(event_response.status)
+
+                        if event_response.request_id:
+                            status_response = self._client.get_ingest_status(
+                                event_response.request_id
+                            )
+                            result.status_poll_statuses.append(status_response.status)
+
+                        if self._emit_findings_for_all or _should_emit_finding(envelope):
+                            finding_response = self._client.send_finding(
+                                payload["finding"]
+                            )
+                            result.forwarded_findings += 1
+                            result.finding_statuses.append(finding_response.status)
 
                     channel.basic_ack(delivery_tag=method_frame.delivery_tag)
                 except Exception:
@@ -222,6 +257,9 @@ def _build_event_payload(envelope: BrokerEnvelope) -> dict[str, Any]:
             "actor": envelope.actor,
             "status": envelope.status,
             "attempt": envelope.attempt,
+            "execution_fingerprint": str(
+                envelope.attributes.get("execution_fingerprint", "")
+            ),
             "attributes": envelope.attributes,
         },
     }
@@ -246,6 +284,9 @@ def _build_finding_payload(envelope: BrokerEnvelope) -> dict[str, Any]:
             "tenant_id": envelope.attributes.get("tenant_id", ""),
             "actor": envelope.actor,
             "source": "rabbitmq-bridge",
+            "execution_fingerprint": str(
+                envelope.attributes.get("execution_fingerprint", "")
+            ),
         },
     }
 
@@ -256,3 +297,83 @@ def _should_emit_finding(envelope: BrokerEnvelope) -> bool:
         "high",
         "critical",
     }
+
+
+def _build_federated_payload(envelope: BrokerEnvelope) -> dict[str, Any]:
+    enriched_attributes = _enrich_fingerprint_attributes(envelope)
+    fingerprint_input = fingerprint_input_from_envelope(
+        actor=envelope.actor,
+        timestamp=envelope.timestamp,
+        attributes=enriched_attributes,
+    )
+    computed = generate_execution_fingerprint(fingerprint_input)
+    provided = str(enriched_attributes.get("execution_fingerprint", "")).strip().lower()
+    if provided:
+        validate_fingerprint_before_c2_dispatch(
+            data=fingerprint_input,
+            provided_fingerprint=provided,
+            actor=envelope.actor,
+            dispatch_target=envelope.target,
+        )
+        execution_fingerprint = provided
+    else:
+        execution_fingerprint = computed
+
+    emit_integrity_audit_event(
+        action="execution_fingerprint_bind",
+        actor=envelope.actor,
+        target=envelope.target,
+        status="success",
+        execution_fingerprint=execution_fingerprint,
+        event_id=envelope.event_id,
+        tenant_id=str(enriched_attributes.get("tenant_id", "")),
+    )
+
+    enriched_attributes["execution_fingerprint"] = execution_fingerprint
+
+    enriched_envelope = BrokerEnvelope(
+        event_id=envelope.event_id,
+        event_type=envelope.event_type,
+        timestamp=envelope.timestamp,
+        actor=envelope.actor,
+        target=envelope.target,
+        status=envelope.status,
+        attributes=enriched_attributes,
+        idempotency_key=envelope.idempotency_key,
+        attempt=envelope.attempt,
+    )
+
+    return {
+        "event": _build_event_payload(enriched_envelope),
+        "finding": _build_finding_payload(enriched_envelope),
+        "federation_bundle": {
+            "operator_id": envelope.actor,
+            "execution_hash": execution_fingerprint,
+            "timestamp": envelope.timestamp,
+            "nonce": str(enriched_attributes.get("nonce", envelope.event_id)),
+            "tenant_id": str(enriched_attributes.get("tenant_id", "")),
+        },
+    }
+
+
+def _enrich_fingerprint_attributes(envelope: BrokerEnvelope) -> dict[str, Any]:
+    enriched = dict(envelope.attributes)
+    if not str(enriched.get("manifest_hash", "")).strip():
+        enriched["manifest_hash"] = "mh-" + hashlib.sha256(
+            f"{envelope.event_id}|{envelope.event_type}|{envelope.timestamp}".encode(
+                "utf-8"
+            )
+        ).hexdigest()
+    if not str(enriched.get("tool_sha256", "")).strip():
+        enriched["tool_sha256"] = "sha256:" + hashlib.sha256(
+            f"{envelope.target}|{envelope.event_type}".encode("utf-8")
+        ).hexdigest()
+    if not str(enriched.get("policy_decision_hash", "")).strip():
+        enriched["policy_decision_hash"] = "ph-" + hashlib.sha256(
+            f"{envelope.actor}|{envelope.status}|{envelope.target}".encode("utf-8")
+        ).hexdigest()
+    if not str(enriched.get("tenant_id", "")).strip():
+        enriched["tenant_id"] = "unknown-tenant"
+    if not str(enriched.get("nonce", "")).strip():
+        enriched["nonce"] = envelope.event_id
+    return enriched

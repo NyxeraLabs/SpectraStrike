@@ -161,6 +161,26 @@ def test_send_event_sets_idempotency_key() -> None:
     assert headers["Authorization"] == "Bearer jwt"
 
 
+def test_send_federated_telemetry_uses_internal_gateway_path() -> None:
+    session = FakeSession(
+        [
+            FakeResponse(
+                202, {"request_id": "fed-1", "status": "accepted", "data": {}, "errors": []}
+            )
+        ]
+    )
+    client = VectorVueClient(_config_with_creds(token="jwt"), session=session)
+
+    client.send_federated_telemetry(
+        {"federation_bundle": {"execution_hash": "abc"}},
+        idempotency_key="fp-1",
+    )
+
+    call = session.calls[0]
+    assert call["url"].endswith("/internal/v1/telemetry")
+    assert call["headers"]["Idempotency-Key"] == "fp-1"
+
+
 def test_signing_headers_are_added_when_secret_configured(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

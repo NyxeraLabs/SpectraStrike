@@ -58,6 +58,18 @@ class _FakeVectorVueClient:
             data={},
         )
 
+    def send_federated_telemetry(
+        self,
+        _payload: dict[str, object],
+        idempotency_key: str | None = None,
+    ) -> ResponseEnvelope:
+        assert idempotency_key
+        return ResponseEnvelope(
+            request_id="fed-1",
+            status=self.event_status,
+            data={"mode": "federated"},
+        )
+
 
 def _publish_sample_envelope(
     broker: InMemoryRabbitBroker,
@@ -75,7 +87,14 @@ def _publish_sample_envelope(
         actor="operator-a",
         target="host-a",
         status=status,
-        attributes={"tenant_id": "tenant-a", "severity": "high"},
+        attributes={
+            "tenant_id": "tenant-a",
+            "severity": "high",
+            "manifest_hash": "mh-" + ("a" * 16),
+            "tool_sha256": "sha256:" + ("b" * 64),
+            "policy_decision_hash": "ph-" + ("c" * 16),
+            "nonce": "nonce-evt-1",
+        },
         idempotency_key="idem-1",
     )
     import asyncio
@@ -108,8 +127,10 @@ def test_inmemory_bridge_records_failure_on_api_error() -> None:
     _publish_sample_envelope(broker)
 
     class _BrokenClient(_FakeVectorVueClient):
-        def send_event(
-            self, _payload: dict[str, object], idempotency_key: str | None = None
+        def send_federated_telemetry(
+            self,
+            _payload: dict[str, object],
+            idempotency_key: str | None = None,
         ) -> ResponseEnvelope:
             raise RuntimeError("boom")
 
@@ -124,4 +145,38 @@ def test_inmemory_bridge_records_failure_on_api_error() -> None:
     assert result.consumed == 1
     assert result.forwarded_events == 0
     assert result.forwarded_findings == 0
+    assert result.failed == 1
+
+
+def test_inmemory_bridge_rejects_fingerprint_mismatch() -> None:
+    broker = InMemoryRabbitBroker()
+    _publish_sample_envelope(broker)
+
+    class _MismatchClient(_FakeVectorVueClient):
+        pass
+
+    # Inject mismatched fingerprint after publishing to simulate tampering.
+    envelope = broker.consume("telemetry.events", limit=1)[0]
+    tampered = BrokerEnvelope(
+        event_id=envelope.event_id,
+        event_type=envelope.event_type,
+        timestamp=envelope.timestamp,
+        actor=envelope.actor,
+        target=envelope.target,
+        status=envelope.status,
+        attributes={
+            **envelope.attributes,
+            "execution_fingerprint": "deadbeef",
+        },
+        idempotency_key=envelope.idempotency_key,
+        attempt=envelope.attempt,
+    )
+    broker.push("telemetry.events", tampered)
+
+    bridge = InMemoryVectorVueBridge(
+        broker=broker,
+        client=_MismatchClient(),
+        emit_findings_for_all=True,
+    )
+    result = bridge.drain(limit=10)
     assert result.failed == 1
