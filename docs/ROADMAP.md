@@ -293,9 +293,9 @@ Sell derived competing products
 - [x] Commit Sprint 16.8 RabbitMQ bridge alignment.
 
 ### Sprint 17 (Week 33): Zero-Trust QA
-- [ ] QA: Verify OPA rejects unauthorized tool execution attempts.
--[ ] QA: Verify OPA rejects authorized tools against unauthorized Target URNs.
-- [ ] QA: Network penetration test of the Runner sandbox (verify containment).
+- [x] QA: Verify OPA rejects unauthorized tool execution attempts.
+- [x] QA: Verify OPA rejects authorized tools against unauthorized Target URNs.
+- [x] QA: Network penetration test of the Runner sandbox (verify containment).
 
 ---
 

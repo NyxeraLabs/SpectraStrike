@@ -11,31 +11,39 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 - Phase: Phase 5
 - Sprint: Sprint 17
-- Status: Planned
-- Primary Architecture Layers: Detection Engine, Reporting / Compliance
+- Status: Completed
+- Primary Architecture Layers: Identity and Policy Plane, Execution Plane
 
 ## Architectural Intent
 
-Validate protocol handling fidelity and telemetry correctness for Impacket integrations.
+Validate zero-trust denial controls and execution containment guarantees.
 
 ## Implementation Detail
 
-QA strategy includes protocol-specific fixtures, error-path checks, and telemetry schema verification.
+Added explicit Sprint 17 QA suite:
+- OPA denies unauthorized tool hash execution attempts.
+- OPA denies authorized tool execution against unauthorized target URNs.
+- Runner dynamic Cilium policy reflects deny-by-default containment and target egress allowlist.
 
 ## Security and Control Posture
 
-- AAA scope and authorization boundaries are enforced according to current orchestrator policy.
-- Telemetry and audit events are expected to remain structured, attributable, and export-ready.
-- Integration interfaces are maintained as loosely coupled contracts to preserve VectorVue interoperability.
+- OPA pre-sign authorization denials are validated for malicious insider scenarios.
+- Runner network fencing controls are validated for lateral movement resistance.
+- Security posture remains aligned with policy-driven control plane goals in Phase 5.
 
 ## QA and Validation Evidence
 
-Planned QA includes regression checks for SMB/LDAP/NTLM result normalization.
+Command:
+- `PYTHONPATH=src .venv/bin/pytest -q tests/qa/test_zero_trust_sprint17_qa.py`
+
+Result:
+- `3 passed`
 
 ## Risk Register
 
-Risk is protocol edge-case undercoverage; mitigation through broadened fixture catalog.
+Residual risk is environment-specific Cilium runtime variance outside fixture scope.
+Mitigation is controlled live validation in target cluster lanes.
 
 ## Forward Linkage
 
-Sprint 18 starts BloodHound wrapper implementation.
+Sprint 18 begins C2 gateway architecture baseline.

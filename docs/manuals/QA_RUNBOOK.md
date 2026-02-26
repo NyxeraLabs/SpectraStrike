@@ -140,6 +140,16 @@ Expected output shape:
 If `--check-metasploit-rpc` is enabled, `MSF_RPC_*` must point to a reachable RPC endpoint.
 If `--check-vectorvue` is enabled, `VECTORVUE_*` credentials and endpoint must be configured.
 
+### 4.7 Sprint 17 zero-trust QA
+
+Run explicit Sprint 17 denial and containment checks:
+
+```bash
+PYTHONPATH=src .venv/bin/pytest -q tests/qa/test_zero_trust_sprint17_qa.py
+```
+
+Expected current result: `3 passed`.
+
 ## 5. Web UI QA Execution Path
 
 ### 5.1 Required dependency bootstrap
