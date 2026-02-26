@@ -30,6 +30,14 @@ from .control_plane_integrity import (
     UnsignedConfigurationError,
 )
 from .engine import OrchestratorEngine, TaskSubmissionRequest
+from .execution_fingerprint import (
+    ExecutionFingerprintError,
+    ExecutionFingerprintInput,
+    fingerprint_input_from_envelope,
+    generate_execution_fingerprint,
+    validate_execution_fingerprint,
+    validate_fingerprint_before_c2_dispatch,
+)
 from .dual_signature import (
     DualSignatureError,
     HighRiskManifestDualSigner,
@@ -118,6 +126,12 @@ __all__ = [
     "ControlPlaneIntegrityEnforcer",
     "OrchestratorEngine",
     "TaskSubmissionRequest",
+    "ExecutionFingerprintError",
+    "ExecutionFingerprintInput",
+    "generate_execution_fingerprint",
+    "validate_execution_fingerprint",
+    "validate_fingerprint_before_c2_dispatch",
+    "fingerprint_input_from_envelope",
     "CompactJWSGenerator",
     "JWSConfig",
     "JWSPayloadError",

@@ -206,6 +206,19 @@ The orchestrator is the central control plane for SpectraStrike. It coordinates 
 6. CI regression guard:
 - `scripts/manifest_schema_regression.py` validates stable schema hash and is executed in CI (`.github/workflows/lint-test.yml`).
 
+## Federation Fingerprint Binding (Sprint 22)
+1. Unified execution fingerprint schema:
+- `manifest_hash + tool_hash + operator_id + tenant_id + policy_decision_hash + timestamp`.
+- Implemented in `pkg.orchestrator.execution_fingerprint.ExecutionFingerprintInput`.
+2. Fingerprint generation and validation:
+- `generate_execution_fingerprint` creates deterministic SHA-256 execution fingerprint.
+- `validate_fingerprint_before_c2_dispatch` enforces pre-dispatch integrity gate.
+3. Tamper-evident fingerprint audit:
+- Fingerprint bind/validate outcomes are emitted to integrity audit channel via `emit_integrity_audit_event`.
+4. VectorVue federation payload binding:
+- RabbitMQ bridge includes `execution_fingerprint` in outgoing telemetry metadata and federation bundle.
+- Bridge defaults to federated gateway path (`send_federated_telemetry`) and retains legacy direct API mode only by explicit compatibility toggle.
+
 ## Testing Strategy (for next tasks)
 1. Unit tests for scheduler ordering and retry behavior.
 2. Unit tests for AAA enforcement on task submission.
