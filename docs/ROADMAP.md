@@ -339,11 +339,11 @@ Sell derived competing products
 
 ## Sprint 21 – Deterministic Execution Guarantees
 
-- [ ] Enforce canonical JSON serialization for manifests
-- [ ] Implement deterministic manifest hashing validation
-- [ ] Define semantic versioning for manifest schema
-- [ ] Add schema regression validation to CI pipeline
-- [ ] Reject non-canonical manifest submissions
+- [x] Enforce canonical JSON serialization for manifests
+- [x] Implement deterministic manifest hashing validation
+- [x] Define semantic versioning for manifest schema
+- [x] Add schema regression validation to CI pipeline
+- [x] Reject non-canonical manifest submissions
 
 ---
 

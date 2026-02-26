@@ -38,9 +38,15 @@ from .dual_signature import (
 from .event_loop import AsyncEventLoop
 from .jws import CompactJWSGenerator, JWSConfig, JWSPayloadError
 from .manifest import (
+    ManifestSchemaVersionError,
+    ManifestSchemaVersionPolicy,
+    NonCanonicalManifestError,
     ExecutionManifest,
     ExecutionManifestValidationError,
     ExecutionTaskContext,
+    canonical_manifest_json,
+    deterministic_manifest_hash,
+    parse_and_validate_manifest_submission,
 )
 from .messaging import (
     BrokerEnvelope,
@@ -118,6 +124,12 @@ __all__ = [
     "ExecutionTaskContext",
     "ExecutionManifest",
     "ExecutionManifestValidationError",
+    "NonCanonicalManifestError",
+    "ManifestSchemaVersionError",
+    "ManifestSchemaVersionPolicy",
+    "canonical_manifest_json",
+    "deterministic_manifest_hash",
+    "parse_and_validate_manifest_submission",
     "TelemetryPublisher",
     "TelemetryPublishResult",
     "PublishAttemptResult",

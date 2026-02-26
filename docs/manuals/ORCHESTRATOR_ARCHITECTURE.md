@@ -192,6 +192,20 @@ The orchestrator is the central control plane for SpectraStrike. It coordinates 
 - Break-glass activation uses irreversible audit flag semantics.
 - `PrivilegedSessionRecorder` provides structured session start/command/end event capture for privileged activity evidence.
 
+## Deterministic Execution Guarantees (Sprint 21)
+1. Canonical manifest serialization:
+- `pkg.orchestrator.manifest.canonical_manifest_json` enforces deterministic compact JSON (`sort_keys=True`, fixed separators).
+2. Deterministic hashing:
+- `pkg.orchestrator.manifest.deterministic_manifest_hash` computes stable SHA-256 over canonical manifest payload.
+3. Schema semantic versioning:
+- `ManifestSchemaVersionPolicy` enforces `MAJOR.MINOR.PATCH` format and supported major compatibility bounds.
+4. Non-canonical submission rejection:
+- `parse_and_validate_manifest_submission` rejects payloads that are not canonical JSON before manifest construction.
+5. Runtime ingress guard:
+- `OrchestratorEngine.validate_manifest_submission` exposes canonical validation path for raw manifest intake.
+6. CI regression guard:
+- `scripts/manifest_schema_regression.py` validates stable schema hash and is executed in CI (`.github/workflows/lint-test.yml`).
+
 ## Testing Strategy (for next tasks)
 1. Unit tests for scheduler ordering and retry behavior.
 2. Unit tests for AAA enforcement on task submission.
