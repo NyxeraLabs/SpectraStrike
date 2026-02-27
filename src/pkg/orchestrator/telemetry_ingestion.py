@@ -46,6 +46,7 @@ class TelemetryEvent:
     attributes: dict[str, Any] = field(default_factory=dict)
     event_id: str = field(default_factory=lambda: str(uuid4()))
     timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    stream_position: int = 0
 
 
 class TelemetryIngestionPipeline:
@@ -62,6 +63,7 @@ class TelemetryIngestionPipeline:
         self._batch_size = batch_size
         self._buffer: list[TelemetryEvent] = []
         self._lock = Lock()
+        self._stream_position = 0
         self._publisher = publisher
         self._schema_parser = schema_parser or TelemetrySchemaParser()
 
@@ -79,16 +81,18 @@ class TelemetryIngestionPipeline:
             raise ValueError("tenant_id is required for telemetry ingestion")
         normalized = dict(attributes)
         normalized["tenant_id"] = tenant_id
-        event = TelemetryEvent(
-            event_type=event_type,
-            actor=actor,
-            target=target,
-            status=status,
-            tenant_id=tenant_id,
-            attributes=normalized,
-        )
-
         with self._lock:
+            self._stream_position += 1
+            stream_position = self._stream_position
+            event = TelemetryEvent(
+                event_type=event_type,
+                actor=actor,
+                target=target,
+                status=status,
+                tenant_id=tenant_id,
+                attributes=normalized,
+                stream_position=stream_position,
+            )
             self._buffer.append(event)
 
         logger.info("Telemetry event ingested: %s", event.event_id)
@@ -189,6 +193,7 @@ class TelemetryIngestionPipeline:
 
     @staticmethod
     def _to_envelope(event: TelemetryEvent) -> BrokerEnvelope:
+        ml_record = TelemetryIngestionPipeline._normalize_for_ml(event)
         return BrokerEnvelope(
             event_id=event.event_id,
             event_type=event.event_type,
@@ -196,10 +201,41 @@ class TelemetryIngestionPipeline:
             actor=event.actor,
             target=event.target,
             status=event.status,
-            attributes={**dict(event.attributes), "tenant_id": event.tenant_id},
+            attributes={
+                **dict(event.attributes),
+                "tenant_id": event.tenant_id,
+                "ml_record": ml_record,
+            },
             idempotency_key=event.event_id,
+            ordering_key=event.tenant_id,
+            stream_position=event.stream_position,
+            schema_version="telemetry.ml.v1",
             attempt=1,
         )
+
+    @staticmethod
+    def _normalize_for_ml(event: TelemetryEvent) -> dict[str, Any]:
+        status_lower = event.status.strip().lower()
+        status_code = {"success": 1, "ok": 1, "failed": 0, "error": 0}.get(
+            status_lower,
+            -1,
+        )
+        return {
+            "schema_version": "telemetry.ml.v1",
+            "event_id": event.event_id,
+            "event_type": event.event_type,
+            "event_namespace": event.event_type.split(".")[0]
+            if "." in event.event_type
+            else event.event_type.split("_")[0],
+            "actor": event.actor,
+            "target": event.target,
+            "tenant_id": event.tenant_id,
+            "status": event.status,
+            "status_code": status_code,
+            "attribute_keys": sorted(event.attributes.keys()),
+            "stream_position": event.stream_position,
+            "timestamp": event.timestamp,
+        }
 
     @property
     def buffered_count(self) -> int:

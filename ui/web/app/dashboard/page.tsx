@@ -26,6 +26,13 @@ const kpis = [
   { label: "Telemetry Events (24h)", value: "14,382", tone: "text-telemetryGlow" },
 ];
 
+const defensiveMetrics = [
+  { label: "Detection Rate", value: "67.1%", tone: "text-telemetryGlow" },
+  { label: "Prevention Rate", value: "42.1%", tone: "text-warning" },
+  { label: "Feedback Coverage", value: "58.3%", tone: "text-info" },
+  { label: "Applied Adjustments", value: "37", tone: "text-success" },
+];
+
 export default function DashboardPage() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
@@ -105,6 +112,21 @@ export default function DashboardPage() {
           <p>
             Armory API: <span className="spectra-mono text-white">POST /api/actions/armory/ingest</span>
           </p>
+        </div>
+      </section>
+
+      <section className="spectra-panel p-5">
+        <h2 className="text-sm uppercase tracking-[0.2em] text-info">Defensive Effectiveness</h2>
+        <p className="mt-2 text-sm text-slate-300">
+          Cognitive loop metrics from <span className="spectra-mono text-white">GET /api/defensive/effectiveness</span>
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {defensiveMetrics.map((metric) => (
+            <article key={metric.label} className="rounded-lg border border-white/10 bg-slate-950/70 p-3">
+              <p className="text-xs uppercase tracking-wide text-slate-400">{metric.label}</p>
+              <p className={`mt-2 text-xl font-bold ${metric.tone}`}>{metric.value}</p>
+            </article>
+          ))}
         </div>
       </section>
     </main>

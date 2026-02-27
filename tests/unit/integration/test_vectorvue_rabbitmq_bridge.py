@@ -79,6 +79,8 @@ def _publish_sample_envelope(
     broker: InMemoryRabbitBroker,
     *,
     status: str = "success",
+    event_type: str = "nmap_scan_completed",
+    attributes: dict[str, object] | None = None,
 ) -> None:
     publisher = RabbitMQTelemetryPublisher(
         broker=broker,
@@ -86,7 +88,7 @@ def _publish_sample_envelope(
     )
     envelope = BrokerEnvelope(
         event_id="evt-1",
-        event_type="nmap_scan_completed",
+        event_type=event_type,
         timestamp="2026-02-26T12:00:00+00:00",
         actor="operator-a",
         target="host-a",
@@ -98,6 +100,7 @@ def _publish_sample_envelope(
             "tool_sha256": "sha256:" + ("b" * 64),
             "policy_decision_hash": "ph-" + ("c" * 16),
             "nonce": "nonce-evt-1",
+            **(attributes or {}),
         },
         idempotency_key="idem-1",
     )
@@ -130,9 +133,81 @@ def test_inmemory_bridge_drains_and_forwards_event_and_finding() -> None:
     assert client.last_federated_payload is not None
     payload = client.last_federated_payload
     assert payload["execution_hash"] == client.last_federated_idempotency_key  # type: ignore[index]
-    attrs = payload["payload"]["attributes"]  # type: ignore[index]
+    event_payload = payload["payload"]  # type: ignore[index]
+    assert event_payload["mitre_techniques"] == ["T1595"]  # type: ignore[index]
+    assert event_payload["mitre_tactics"] == ["TA0043"]  # type: ignore[index]
+    attrs = event_payload["attributes"]  # type: ignore[index]
     assert attrs["intent_id"].startswith("intent-")  # type: ignore[index]
     assert len(attrs["intent_hash"]) == 64  # type: ignore[index]
+    assert attrs["soc2_controls"] == ["CC7.2", "CC7.3", "A1.2"]  # type: ignore[index]
+    assert attrs["iso27001_annex_a_controls"] == [  # type: ignore[index]
+        "A.8.15",
+        "A.8.16",
+        "A.8.24",
+    ]
+    assert attrs["nist_800_53_controls"] == ["AU-2", "AU-8", "SI-4"]  # type: ignore[index]
+
+
+def test_inmemory_bridge_applies_event_specific_control_mapping() -> None:
+    broker = InMemoryRabbitBroker()
+    _publish_sample_envelope(broker, event_type="metasploit_exploit_completed")
+    client = _FakeVectorVueClient()
+    bridge = InMemoryVectorVueBridge(
+        broker=broker,
+        client=client,
+        emit_findings_for_all=True,
+    )
+
+    result = bridge.drain(limit=10)
+
+    assert result.forwarded_events == 1
+    payload = client.last_federated_payload
+    assert payload is not None
+    event_payload = payload["payload"]  # type: ignore[index]
+    assert event_payload["mitre_techniques"] == ["T1059"]  # type: ignore[index]
+    assert event_payload["mitre_tactics"] == ["TA0002"]  # type: ignore[index]
+    attrs = event_payload["attributes"]  # type: ignore[index]
+    assert attrs["soc2_controls"] == ["CC6.6", "CC7.3", "CC7.4"]  # type: ignore[index]
+    assert attrs["iso27001_annex_a_controls"] == [  # type: ignore[index]
+        "A.5.15",
+        "A.8.15",
+        "A.8.24",
+    ]
+    assert attrs["nist_800_53_controls"] == ["AC-3", "AU-2", "AU-10"]  # type: ignore[index]
+
+
+def test_inmemory_bridge_preserves_explicit_control_overrides() -> None:
+    broker = InMemoryRabbitBroker()
+    _publish_sample_envelope(
+        broker,
+        event_type="sliver_command_completed",
+        attributes={
+            "mitre_techniques": ["T1027"],
+            "mitre_tactics": ["TA0005"],
+            "soc2_controls": ["CC6.1"],
+            "iso27001_annex_a_controls": ["A.5.17"],
+            "nist_800_53_controls": ["AC-6"],
+        },
+    )
+    client = _FakeVectorVueClient()
+    bridge = InMemoryVectorVueBridge(
+        broker=broker,
+        client=client,
+        emit_findings_for_all=True,
+    )
+
+    result = bridge.drain(limit=10)
+
+    assert result.forwarded_events == 1
+    payload = client.last_federated_payload
+    assert payload is not None
+    event_payload = payload["payload"]  # type: ignore[index]
+    assert event_payload["mitre_techniques"] == ["T1027"]  # type: ignore[index]
+    assert event_payload["mitre_tactics"] == ["TA0005"]  # type: ignore[index]
+    attrs = event_payload["attributes"]  # type: ignore[index]
+    assert attrs["soc2_controls"] == ["CC6.1"]  # type: ignore[index]
+    assert attrs["iso27001_annex_a_controls"] == ["A.5.17"]  # type: ignore[index]
+    assert attrs["nist_800_53_controls"] == ["AC-6"]  # type: ignore[index]
 
 
 def test_inmemory_bridge_records_failure_on_api_error() -> None:

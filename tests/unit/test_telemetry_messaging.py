@@ -17,10 +17,14 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
 
 from pkg.orchestrator.messaging import (
     BrokerEnvelope,
+    InMemoryKafkaBroker,
     InMemoryRabbitBroker,
+    KafkaRoutingModel,
+    KafkaTelemetryPublisher,
     PublishStatus,
     RabbitMQTelemetryPublisher,
     RabbitRoutingModel,
@@ -102,3 +106,89 @@ def test_rabbit_publisher_dead_letters_on_retry_exhaustion() -> None:
     dlq_items = broker.consume("telemetry.dead")
     assert len(dlq_items) == 1
     assert dlq_items[0].idempotency_key == "idem-fail"
+
+
+def test_rabbit_publisher_dead_letters_out_of_order_stream() -> None:
+    broker = InMemoryRabbitBroker()
+    publisher = RabbitMQTelemetryPublisher(broker=broker)
+
+    published = asyncio.run(
+        publisher.publish(
+            replace(
+                _envelope(event_id="evt-1", key="idem-1"),
+                ordering_key="tenant-a",
+                stream_position=2,
+            )
+        )
+    )
+    dead_lettered = asyncio.run(
+        publisher.publish(
+            replace(
+                _envelope(event_id="evt-2", key="idem-2"),
+                ordering_key="tenant-a",
+                stream_position=1,
+            )
+        )
+    )
+
+    assert published.status is PublishStatus.PUBLISHED
+    assert dead_lettered.status is PublishStatus.DEAD_LETTERED
+    assert broker.queue_size("telemetry.events") == 1
+    assert broker.queue_size("telemetry.events.dlq") == 1
+
+
+def test_kafka_publisher_publishes_to_topic() -> None:
+    broker = InMemoryKafkaBroker()
+    publisher = KafkaTelemetryPublisher(broker=broker)
+
+    result = asyncio.run(
+        publisher.publish(
+            BrokerEnvelope(
+                event_id="event-kafka-1",
+                event_type="task_submitted",
+                timestamp="2026-02-27T13:00:00+00:00",
+                actor="alice",
+                target="nmap",
+                status="success",
+                attributes={"task_id": "t1"},
+                idempotency_key="event-kafka-1",
+                ordering_key="tenant-a",
+                stream_position=1,
+            )
+        )
+    )
+
+    assert result.status is PublishStatus.PUBLISHED
+    assert broker.topic_size("spectrastrike.telemetry.events") == 1
+
+
+def test_kafka_publisher_dead_letters_on_retry_exhaustion() -> None:
+    broker = InMemoryKafkaBroker()
+    routing = KafkaRoutingModel(dead_letter_topic="spectrastrike.telemetry.dlq")
+    publisher = KafkaTelemetryPublisher(
+        broker=broker,
+        routing=routing,
+        max_retries=1,
+        transient_failures={"idem-fail": 5},
+    )
+
+    result = asyncio.run(
+        publisher.publish(
+            BrokerEnvelope(
+                event_id="event-kafka-2",
+                event_type="task_submitted",
+                timestamp="2026-02-27T13:01:00+00:00",
+                actor="alice",
+                target="nmap",
+                status="success",
+                attributes={"task_id": "t2"},
+                idempotency_key="idem-fail",
+                ordering_key="tenant-a",
+                stream_position=2,
+            )
+        )
+    )
+
+    assert result.status is PublishStatus.DEAD_LETTERED
+    assert broker.topic_size("spectrastrike.telemetry.events") == 0
+    assert broker.topic_size("spectrastrike.telemetry.dlq") == 1

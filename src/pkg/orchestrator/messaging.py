@@ -12,7 +12,7 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-"""Broker-agnostic telemetry publishing contracts and RabbitMQ-first adapter."""
+"""Broker-agnostic telemetry publishing contracts with RabbitMQ and Kafka adapters."""
 
 from __future__ import annotations
 
@@ -44,6 +44,9 @@ class BrokerEnvelope:
     status: str
     attributes: dict[str, object]
     idempotency_key: str
+    ordering_key: str = ""
+    stream_position: int = 0
+    schema_version: str = "telemetry.ml.v1"
     attempt: int = 1
 
 
@@ -82,6 +85,14 @@ class RabbitRoutingModel:
     routing_key: str = "telemetry.events"
     queue: str = "telemetry.events"
     dead_letter_queue: str = "telemetry.events.dlq"
+
+
+@dataclass(slots=True, frozen=True)
+class KafkaRoutingModel:
+    """Logical Kafka routing model for telemetry events."""
+
+    topic: str = "spectrastrike.telemetry.events"
+    dead_letter_topic: str = "spectrastrike.telemetry.events.dlq"
 
 
 @dataclass(slots=True, frozen=True)
@@ -191,6 +202,36 @@ class InMemoryRabbitBroker:
             return len(self._queues[queue])
 
 
+class InMemoryKafkaBroker:
+    """In-memory Kafka-style broker for deterministic local/integration tests."""
+
+    def __init__(self) -> None:
+        self._topics: dict[str, deque[BrokerEnvelope]] = defaultdict(deque)
+        self._lock = Lock()
+
+    def declare_topic(self, topic: str) -> None:
+        with self._lock:
+            self._topics[topic]
+
+    def publish(self, topic: str, envelope: BrokerEnvelope) -> None:
+        with self._lock:
+            self._topics[topic].append(envelope)
+
+    def consume(self, topic: str, limit: int | None = None) -> list[BrokerEnvelope]:
+        with self._lock:
+            out: list[BrokerEnvelope] = []
+            items = self._topics[topic]
+            if limit is None:
+                limit = len(items)
+            for _ in range(min(limit, len(items))):
+                out.append(items.popleft())
+            return out
+
+    def topic_size(self, topic: str) -> int:
+        with self._lock:
+            return len(self._topics[topic])
+
+
 class RabbitMQTelemetryPublisher:
     """RabbitMQ-first telemetry publisher with retry, DLQ, and idempotency."""
 
@@ -209,6 +250,7 @@ class RabbitMQTelemetryPublisher:
         self._max_retries = max_retries
         self._transient_failures = transient_failures or {}
         self._seen_keys: set[str] = set()
+        self._last_stream_position: dict[str, int] = {}
 
         self._broker.declare_queue(self._routing.queue)
         self._broker.declare_queue(self._routing.dead_letter_queue)
@@ -222,6 +264,17 @@ class RabbitMQTelemetryPublisher:
         key = envelope.idempotency_key
         if key in self._seen_keys:
             return PublishAttemptResult(status=PublishStatus.DEDUPLICATED, attempts=0)
+        order_violation = self._ordered_violation(envelope)
+        if order_violation is not None:
+            self._broker.push(
+                self._routing.dead_letter_queue,
+                replace(envelope, attempt=1),
+            )
+            return PublishAttemptResult(
+                status=PublishStatus.DEAD_LETTERED,
+                attempts=1,
+                error=order_violation,
+            )
 
         attempts = 0
         while attempts <= self._max_retries:
@@ -237,6 +290,10 @@ class RabbitMQTelemetryPublisher:
                     envelope=replace(envelope, attempt=attempts),
                 )
                 self._seen_keys.add(key)
+                if envelope.ordering_key:
+                    self._last_stream_position[envelope.ordering_key] = (
+                        envelope.stream_position
+                    )
                 return PublishAttemptResult(
                     status=PublishStatus.PUBLISHED,
                     attempts=attempts,
@@ -254,6 +311,103 @@ class RabbitMQTelemetryPublisher:
                     )
 
         raise RuntimeError("unreachable publish state")
+
+    def _ordered_violation(self, envelope: BrokerEnvelope) -> str | None:
+        if not envelope.ordering_key or envelope.stream_position <= 0:
+            return None
+        last_position = self._last_stream_position.get(envelope.ordering_key, 0)
+        if envelope.stream_position <= last_position:
+            return (
+                f"out-of-order stream_position for key={envelope.ordering_key} "
+                f"(last={last_position}, received={envelope.stream_position})"
+            )
+        return None
+
+
+class KafkaTelemetryPublisher:
+    """Kafka-compatible telemetry publisher with retry, DLQ, and idempotency."""
+
+    def __init__(
+        self,
+        broker: InMemoryKafkaBroker,
+        routing: KafkaRoutingModel | None = None,
+        max_retries: int = 3,
+        transient_failures: dict[str, int] | None = None,
+    ) -> None:
+        if max_retries < 0:
+            raise ValueError("max_retries must be greater than or equal to zero")
+
+        self._broker = broker
+        self._routing = routing or KafkaRoutingModel()
+        self._max_retries = max_retries
+        self._transient_failures = transient_failures or {}
+        self._seen_keys: set[str] = set()
+        self._last_stream_position: dict[str, int] = {}
+
+        self._broker.declare_topic(self._routing.topic)
+        self._broker.declare_topic(self._routing.dead_letter_topic)
+
+    async def publish(self, envelope: BrokerEnvelope) -> PublishAttemptResult:
+        key = envelope.idempotency_key
+        if key in self._seen_keys:
+            return PublishAttemptResult(status=PublishStatus.DEDUPLICATED, attempts=0)
+        order_violation = self._ordered_violation(envelope)
+        if order_violation is not None:
+            self._broker.publish(
+                self._routing.dead_letter_topic,
+                replace(envelope, attempt=1),
+            )
+            return PublishAttemptResult(
+                status=PublishStatus.DEAD_LETTERED,
+                attempts=1,
+                error=order_violation,
+            )
+
+        attempts = 0
+        while attempts <= self._max_retries:
+            attempts += 1
+            try:
+                if self._transient_failures.get(key, 0) > 0:
+                    self._transient_failures[key] -= 1
+                    raise RuntimeError("simulated transient broker failure")
+
+                self._broker.publish(
+                    self._routing.topic,
+                    replace(envelope, attempt=attempts),
+                )
+                self._seen_keys.add(key)
+                if envelope.ordering_key:
+                    self._last_stream_position[envelope.ordering_key] = (
+                        envelope.stream_position
+                    )
+                return PublishAttemptResult(
+                    status=PublishStatus.PUBLISHED,
+                    attempts=attempts,
+                )
+            except RuntimeError as exc:
+                if attempts > self._max_retries:
+                    self._broker.publish(
+                        self._routing.dead_letter_topic,
+                        replace(envelope, attempt=attempts),
+                    )
+                    return PublishAttemptResult(
+                        status=PublishStatus.DEAD_LETTERED,
+                        attempts=attempts,
+                        error=str(exc),
+                    )
+
+        raise RuntimeError("unreachable publish state")
+
+    def _ordered_violation(self, envelope: BrokerEnvelope) -> str | None:
+        if not envelope.ordering_key or envelope.stream_position <= 0:
+            return None
+        last_position = self._last_stream_position.get(envelope.ordering_key, 0)
+        if envelope.stream_position <= last_position:
+            return (
+                f"out-of-order stream_position for key={envelope.ordering_key} "
+                f"(last={last_position}, received={envelope.stream_position})"
+            )
+        return None
 
 
 class PikaRabbitMQTelemetryPublisher:

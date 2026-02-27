@@ -49,6 +49,14 @@ This index tracks production manuals and governance documents aligned with curre
 - `docs/kanban-board.csv`
   - Task-level tracking across architecture, development, QA, and security workstreams.
 
+## Specifications
+
+- `docs/specs/EXECUTION_MANIFEST_SPEC_V1.md`
+- `docs/specs/TELEMETRY_EXTENSION_SPEC_V1.md`
+- `docs/specs/CAPABILITY_POLICY_SPEC_V1.md`
+- `docs/specs/BACKWARD_COMPATIBILITY_GUARANTEES.md`
+- `docs/specs/VALIDATION_SDK.md`
+
 ## Compliance and Policy
 
 - `docs/COMPLIANCE_STATEMENT.md`
@@ -56,6 +64,8 @@ This index tracks production manuals and governance documents aligned with curre
 - `docs/THREAT_MODEL.md`
 - `docs/PRIVACY_POLICY.md`
 - `docs/ACCEPTABLE_USE_POLICY.md`
+- `docs/compliance/INDEX.md`
+  - Sprint 32 compliance mapping package (SOC 2, ISO 27001 Annex A, NIST 800-53, MITRE ATT&CK telemetry, Secure SDLC package).
 
 ## Governance & Legal
 

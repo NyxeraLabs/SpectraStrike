@@ -72,6 +72,79 @@ class _FakeMetasploitWrapper:
         return "token-1"
 
 
+class _FakeSliverWrapper:
+    def __init__(self, timeout_seconds: float) -> None:
+        self._timeout_seconds = timeout_seconds
+
+    def execute(self, _request: object) -> object:
+        class _R:
+            status = "success"
+            task_id = "slv-1"
+            session_id = "s-1"
+            output = "ok"
+            target = "127.0.0.1"
+            command = "whoami"
+
+        return _R()
+
+    def send_to_orchestrator(
+        self,
+        _result: object,
+        *,
+        telemetry: object,
+        tenant_id: str,
+        actor: str,
+    ) -> _FakeEvent:
+        ingest = getattr(telemetry, "ingest", None)
+        if callable(ingest):
+            ingest(
+                event_type="sliver_command_completed",
+                actor=actor,
+                target="orchestrator",
+                status="success",
+                tenant_id=tenant_id,
+                task_id="slv-1",
+            )
+        return _FakeEvent(event_type="sliver_command_completed", tenant_id=tenant_id)
+
+
+class _FakeMythicWrapper:
+    def __init__(self, timeout_seconds: float) -> None:
+        self._timeout_seconds = timeout_seconds
+
+    def execute(self, _request: object) -> object:
+        class _R:
+            status = "success"
+            task_id = "my-1"
+            callback_id = "cb-1"
+            output = "ok"
+            target = "127.0.0.1"
+            command = "pwd"
+            operation = "spectra-smoke"
+
+        return _R()
+
+    def send_to_orchestrator(
+        self,
+        _result: object,
+        *,
+        telemetry: object,
+        tenant_id: str,
+        actor: str,
+    ) -> _FakeEvent:
+        ingest = getattr(telemetry, "ingest", None)
+        if callable(ingest):
+            ingest(
+                event_type="mythic_task_completed",
+                actor=actor,
+                target="orchestrator",
+                status="success",
+                tenant_id=tenant_id,
+                task_id="my-1",
+            )
+        return _FakeEvent(event_type="mythic_task_completed", tenant_id=tenant_id)
+
+
 @dataclass(slots=True)
 class _FakeBridgeResult:
     consumed: int
@@ -194,6 +267,14 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         _FakeMetasploitWrapper,
     )
     monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.SliverWrapper",
+        _FakeSliverWrapper,
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.MythicWrapper",
+        _FakeMythicWrapper,
+    )
+    monkeypatch.setattr(
         "pkg.integration.host_integration_smoke.VectorVueClient",
         _FakeVectorVueClient,
     )
@@ -205,16 +286,26 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     result = run_host_integration_smoke(
         tenant_id="tenant-a",
         check_metasploit_rpc=True,
+        check_sliver_command=True,
+        check_mythic_task=True,
         check_vectorvue=True,
     )
 
     assert result.metasploit_rpc_ok is True
+    assert result.sliver_binary_ok is True
+    assert result.sliver_command_ok is True
+    assert result.mythic_binary_ok is True
+    assert result.mythic_task_ok is True
     assert result.rabbitmq_publish_ok is True
     assert result.vectorvue_ok is True
     assert result.vectorvue_event_status == "accepted"
     assert result.vectorvue_finding_status == "accepted"
     assert result.vectorvue_status_poll_status == "accepted"
     assert "metasploit.rpc" in result.checks
+    assert "sliver.version" in result.checks
+    assert "sliver.command" in result.checks
+    assert "mythic.version" in result.checks
+    assert "mythic.task" in result.checks
     assert "rabbitmq.publish" in result.checks
     assert "vectorvue.rabbitmq.bridge" in result.checks
 

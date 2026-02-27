@@ -314,7 +314,7 @@ Sell derived competing products
 - [x] Enumerate cross-tenant escalation scenarios
 - [x] Map threats to existing mitigations
 - [x] Create unresolved risk backlog items
-- [ ] Commit Threat Model v1.0 document
+- [x] Commit Threat Model v1.0 document
 
 ## Sprint 19 – Control Plane Integrity Hardening
 
@@ -437,38 +437,41 @@ Sell derived competing products
 # Phase 8: Streaming Fabric & VectorVue Cognitive Integration
 
 ## Sprint 30 (Week 57-58): Broker Abstraction & High-Throughput Path
-- [ ] Abstract broker layer (RabbitMQ/Kafka compatible)
-- [ ] Enforce ordered execution event streaming
-- [ ] Normalize telemetry schema for ML ingestion
-- [ ] Add high-volume load testing
-- [ ] Commit Sprint 30 Broker Abstraction & Throughput
+- [x] Abstract broker layer (RabbitMQ/Kafka compatible)
+- [x] Enforce ordered execution event streaming
+- [x] Normalize telemetry schema for ML ingestion
+- [x] Add high-volume load testing
+- [x] Commit Sprint 30 Broker Abstraction & Throughput
 
 ## Sprint 31 (Week 59-60): Cognitive Feedback Loop
-- [ ] Push execution graph metadata to VectorVue
-- [ ] Implement VectorVue → SpectraStrike feedback sync
-- [ ] Bind feedback adjustments to policy engine
-- [ ] Display defensive effectiveness metrics in UI
-- [ ] Validate end-to-end cognitive loop
-- [ ] Commit Sprint 31 Cognitive Feedback Loop
+- [x] Push execution graph metadata to VectorVue
+- [x] Implement VectorVue → SpectraStrike feedback sync
+- [x] Bind feedback adjustments to policy engine
+- [x] Display defensive effectiveness metrics in UI
+- [x] Validate end-to-end cognitive loop
+- [x] Enforce signed internal feedback contract (`/internal/v1/cognitive/*`)
+- [x] Enforce feedback replay protection (`signed_at` window + nonce uniqueness)
+- [x] Enforce feedback tenant/fingerprint/schema validation before policy binding
+- [x] Commit Sprint 31 Cognitive Feedback Loop
 
 
 # Phase 9: Enterprise & Compliance Gate
 
 ## Sprint 32 (Week 61-62): Compliance Mapping
-- [ ] Map controls to SOC 2
-- [ ] Map controls to ISO 27001 Annex A
-- [ ] Map controls to NIST 800-53
-- [ ] Map telemetry to MITRE ATT&CK
-- [ ] Produce Secure SDLC documentation package
-- [ ] Commit Sprint 32 Compliance Mapping
+- [x] Map controls to SOC 2
+- [x] Map controls to ISO 27001 Annex A
+- [x] Map controls to NIST 800-53
+- [x] Map telemetry to MITRE ATT&CK
+- [x] Produce Secure SDLC documentation package
+- [x] Commit Sprint 32 Compliance Mapping
 
 ## Sprint 33 (Week 63-64): Specification Publication
-- [ ] Publish Execution Manifest Specification v1
-- [ ] Publish Telemetry Extension Specification
-- [ ] Publish Capability Policy Specification
-- [ ] Define backward compatibility guarantees
-- [ ] Publish validation SDK
-- [ ] Commit Sprint 33 Specification Publication
+- [x] Publish Execution Manifest Specification v1
+- [x] Publish Telemetry Extension Specification
+- [x] Publish Capability Policy Specification
+- [x] Define backward compatibility guarantees
+- [x] Publish validation SDK
+- [x] Commit Sprint 33 Specification Publication
 
 
 # Phase 10: Hardware-Assisted Isolation

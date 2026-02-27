@@ -17,6 +17,8 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -160,6 +162,288 @@ def test_send_event_sets_idempotency_key() -> None:
     headers = session.calls[0]["headers"]
     assert headers["Idempotency-Key"] == "idem-1"
     assert headers["Authorization"] == "Bearer jwt"
+
+
+def test_send_execution_graph_metadata_uses_cognitive_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = FakeSession(
+        [
+            FakeResponse(
+                202,
+                {"request_id": "graph-1", "status": "accepted", "data": {}, "errors": []},
+            )
+        ]
+    )
+    client = VectorVueClient(_config_with_creds(token="jwt"), session=session)
+    monkeypatch.setattr(
+        client,
+        "_build_federation_headers",
+        lambda **_: {
+            "X-Service-Identity": "spectrastrike-producer",
+            "X-Client-Cert-Sha256": "a" * 64,
+            "X-Telemetry-Timestamp": "1760000000",
+            "X-Telemetry-Nonce": "nonce-graph",
+            "X-Telemetry-Signature": "sig",
+        },
+    )
+
+    envelope = client.send_execution_graph_metadata(
+        {
+            "graph_id": "g-001",
+            "tenant_id": "10000000-0000-0000-0000-000000000001",
+            "execution_fingerprint": "f" * 64,
+            "operator_id": "op-001",
+            "nodes": [{"id": "n1", "type": "task"}],
+            "edges": [],
+        }
+    )
+
+    assert envelope.ok
+    assert session.calls[0]["url"].endswith("/internal/v1/cognitive/execution-graph")
+    assert "Authorization" not in session.calls[0]["headers"]
+
+
+def test_fetch_feedback_adjustments_uses_expected_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = FakeSession(
+        [
+            FakeResponse(
+                200,
+                {
+                    "request_id": "fb-1",
+                    "status": "accepted",
+                    "data": [
+                        {
+                            "tenant_id": "10000000-0000-0000-0000-000000000001",
+                            "execution_fingerprint": "e" * 64,
+                            "target_urn": "urn:target:ip:10.0.0.5",
+                            "action": "tighten",
+                            "confidence": 0.91,
+                            "rationale": "risk cluster",
+                            "timestamp": 1760000000,
+                            "schema_version": "feedback.adjustment.v1",
+                        }
+                    ],
+                    "errors": [],
+                    "signed_at": 1760000001,
+                    "nonce": "feedback-nonce-1",
+                    "signature": "placeholder",
+                },
+            )
+        ]
+    )
+    client = VectorVueClient(
+        _config_with_creds(token="jwt", signature_secret="feedback-secret"),
+        session=session,
+    )
+    monkeypatch.setattr(
+        client,
+        "_build_federation_headers",
+        lambda **_: {
+            "X-Service-Identity": "spectrastrike-producer",
+            "X-Client-Cert-Sha256": "a" * 64,
+            "X-Telemetry-Timestamp": "1760000000",
+            "X-Telemetry-Nonce": "nonce-feedback",
+            "X-Telemetry-Signature": "sig",
+        },
+    )
+    monkeypatch.setattr(client, "_enforce_feedback_replay", lambda **_: None)
+    monkeypatch.setattr(client, "_verify_feedback_signature", lambda **_: None)
+
+    envelope = client.fetch_feedback_adjustments(
+        "10000000-0000-0000-0000-000000000001",
+        limit=25,
+    )
+
+    assert envelope.ok
+    assert session.calls[0]["url"].endswith(
+        "/internal/v1/cognitive/feedback/adjustments/query"
+    )
+    assert "Authorization" not in session.calls[0]["headers"]
+
+
+def test_fetch_feedback_adjustments_rejects_invalid_input() -> None:
+    session = FakeSession([])
+    client = VectorVueClient(_config_with_creds(token="jwt"), session=session)
+
+    with pytest.raises(VectorVueSerializationError, match="tenant_id is required"):
+        client.fetch_feedback_adjustments("", limit=10)
+    with pytest.raises(VectorVueSerializationError, match="limit must be greater than zero"):
+        client.fetch_feedback_adjustments("tenant-a", limit=0)
+
+
+def test_fetch_feedback_adjustments_rejects_unsigned_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = FakeSession(
+        [
+            FakeResponse(
+                200,
+                {
+                    "request_id": "fb-unsigned",
+                    "status": "accepted",
+                    "data": [],
+                    "errors": [],
+                },
+            )
+        ]
+    )
+    client = VectorVueClient(
+        _config_with_creds(token="jwt", signature_secret="feedback-secret"),
+        session=session,
+    )
+    monkeypatch.setattr(
+        client,
+        "_build_federation_headers",
+        lambda **_: {
+            "X-Service-Identity": "spectrastrike-producer",
+            "X-Client-Cert-Sha256": "a" * 64,
+            "X-Telemetry-Timestamp": "1760000000",
+            "X-Telemetry-Nonce": "nonce-feedback",
+            "X-Telemetry-Signature": "sig",
+        },
+    )
+    with pytest.raises(VectorVueSerializationError, match="signed feedback response"):
+        client.fetch_feedback_adjustments(
+            "10000000-0000-0000-0000-000000000001",
+            limit=10,
+        )
+
+
+def test_fetch_feedback_adjustments_rejects_signature_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tenant_id = "10000000-0000-0000-0000-000000000001"
+    session = FakeSession(
+        [
+            FakeResponse(
+                200,
+                {
+                    "request_id": "fb-mismatch",
+                    "status": "accepted",
+                    "data": [
+                        {
+                            "tenant_id": tenant_id,
+                            "execution_fingerprint": "e" * 64,
+                            "target_urn": "urn:target:ip:10.0.0.5",
+                            "action": "tighten",
+                            "confidence": 0.91,
+                            "rationale": "risk cluster",
+                            "timestamp": 1760000000,
+                            "schema_version": "feedback.adjustment.v1",
+                        }
+                    ],
+                    "errors": [],
+                    "signed_at": 1700000000,
+                    "nonce": "feedback-nonce-mismatch",
+                    "signature": "deadbeef",
+                },
+            )
+        ]
+    )
+    client = VectorVueClient(
+        _config_with_creds(token="jwt", signature_secret="feedback-secret"),
+        session=session,
+    )
+    monkeypatch.setattr(
+        client,
+        "_build_federation_headers",
+        lambda **_: {
+            "X-Service-Identity": "spectrastrike-producer",
+            "X-Client-Cert-Sha256": "a" * 64,
+            "X-Telemetry-Timestamp": "1760000000",
+            "X-Telemetry-Nonce": "nonce-feedback",
+            "X-Telemetry-Signature": "sig",
+        },
+    )
+    monkeypatch.setattr("pkg.integration.vectorvue.client.time.time", lambda: 1700000000)
+
+    with pytest.raises(
+        VectorVueSerializationError,
+        match="feedback response signature verification failed",
+    ):
+        client.fetch_feedback_adjustments(tenant_id, limit=10)
+
+
+def test_fetch_feedback_adjustments_rejects_replayed_nonce(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tenant_id = "10000000-0000-0000-0000-000000000001"
+    signed_at = 1700000000
+    nonce = "feedback-nonce-replay"
+    data = [
+        {
+            "tenant_id": tenant_id,
+            "execution_fingerprint": "e" * 64,
+            "target_urn": "urn:target:ip:10.0.0.5",
+            "action": "tighten",
+            "confidence": 0.91,
+            "rationale": "risk cluster",
+            "timestamp": 1760000000,
+            "schema_version": "feedback.adjustment.v1",
+        }
+    ]
+    canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
+    secret = "feedback-secret"
+    signature = hmac.new(
+        secret.encode("utf-8"),
+        f"{tenant_id}|{signed_at}|{nonce}|{canonical}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    session = FakeSession(
+        [
+            FakeResponse(
+                200,
+                {
+                    "request_id": "fb-replay-1",
+                    "status": "accepted",
+                    "data": data,
+                    "errors": [],
+                    "signed_at": signed_at,
+                    "nonce": nonce,
+                    "signature": signature,
+                },
+            ),
+            FakeResponse(
+                200,
+                {
+                    "request_id": "fb-replay-2",
+                    "status": "accepted",
+                    "data": data,
+                    "errors": [],
+                    "signed_at": signed_at,
+                    "nonce": nonce,
+                    "signature": signature,
+                },
+            ),
+        ]
+    )
+    client = VectorVueClient(
+        _config_with_creds(token="jwt", signature_secret=secret),
+        session=session,
+    )
+    monkeypatch.setattr(
+        client,
+        "_build_federation_headers",
+        lambda **_: {
+            "X-Service-Identity": "spectrastrike-producer",
+            "X-Client-Cert-Sha256": "a" * 64,
+            "X-Telemetry-Timestamp": "1760000000",
+            "X-Telemetry-Nonce": "nonce-feedback",
+            "X-Telemetry-Signature": "sig",
+        },
+    )
+    monkeypatch.setattr("pkg.integration.vectorvue.client.time.time", lambda: signed_at)
+
+    first = client.fetch_feedback_adjustments(tenant_id, limit=10)
+    assert first.verified is True
+
+    with pytest.raises(
+        VectorVueSerializationError, match="feedback replay detected: nonce already used"
+    ):
+        client.fetch_feedback_adjustments(tenant_id, limit=10)
 
 
 def test_send_federated_telemetry_uses_internal_gateway_path(
