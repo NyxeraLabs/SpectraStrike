@@ -85,6 +85,9 @@ from .merkle_ledger import (
 )
 from .messaging import (
     BrokerEnvelope,
+    KafkaRoutingModel,
+    KafkaTelemetryPublisher,
+    InMemoryKafkaBroker,
     InMemoryRabbitBroker,
     PikaRabbitMQTelemetryPublisher,
     PublishAttemptResult,
@@ -197,9 +200,12 @@ __all__ = [
     "PublishAttemptResult",
     "PublishStatus",
     "BrokerEnvelope",
+    "KafkaRoutingModel",
     "RabbitRoutingModel",
     "RabbitMQConnectionConfig",
+    "InMemoryKafkaBroker",
     "InMemoryRabbitBroker",
+    "KafkaTelemetryPublisher",
     "RabbitMQTelemetryPublisher",
     "PikaRabbitMQTelemetryPublisher",
     "OPAConfig",
