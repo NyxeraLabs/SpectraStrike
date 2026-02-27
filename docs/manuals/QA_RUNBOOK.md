@@ -180,6 +180,30 @@ PYTHONPATH=src .venv/bin/pytest -q \
 
 Expected current result: `28 passed`.
 
+### 4.9 Sprint 34 microVM transition validation
+
+Run Firecracker transition validation suites:
+
+```bash
+PYTHONPATH=src .venv/bin/pytest -q \
+  tests/unit/test_firecracker_microvm_runner.py \
+  tests/unit/test_universal_edge_runner.py \
+  tests/qa/test_sprint34_microvm_transition_qa.py
+```
+
+Expected current result: `12 passed`.
+
+### 4.10 Sprint 35 mutual attestation and key-derivation validation
+
+```bash
+PYTHONPATH=src .venv/bin/pytest -q \
+  tests/unit/test_runner_attestation.py \
+  tests/unit/test_universal_edge_runner.py \
+  tests/qa/test_sprint35_mutual_attestation_qa.py
+```
+
+Expected current result: `12 passed`.
+
 ## 5. Web UI QA Execution Path
 
 ### 5.1 Required dependency bootstrap

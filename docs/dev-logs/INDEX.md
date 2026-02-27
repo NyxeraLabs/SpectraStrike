@@ -50,10 +50,12 @@ This folder contains per-sprint architecture and implementation logs used for en
 - `docs/dev-logs/sprint-31.md`
 - `docs/dev-logs/sprint-32.md`
 - `docs/dev-logs/sprint-33.md`
+- `docs/dev-logs/sprint-34.md`
+- `docs/dev-logs/sprint-35.md`
 
 ## Planned Sprints
 
-- `docs/dev-logs/sprint-34.md` and beyond
+- `docs/dev-logs/sprint-36.md` and beyond
 
 ## Sprint Folders (Task PR Templates)
 
