@@ -24,6 +24,25 @@ from pkg.integration.vectorvue.config import VectorVueConfig
 from pkg.integration.vectorvue.rabbitmq_bridge import PikaVectorVueBridge
 from pkg.orchestrator.messaging import RabbitMQConnectionConfig, RabbitRoutingModel
 
+_LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
+
+
+def _load_local_federation_env() -> None:
+    if not os.path.exists(_LOCAL_FED_ENV_PATH):
+        return
+    try:
+        with open(_LOCAL_FED_ENV_PATH, "r", encoding="utf-8") as handle:
+            for line in handle:
+                stripped = line.strip()
+                if not stripped or stripped.startswith("#") or "=" not in stripped:
+                    continue
+                key, value = stripped.split("=", 1)
+                key = key.strip()
+                if key and key not in os.environ:
+                    os.environ[key] = value.strip()
+    except OSError:
+        return
+
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -68,6 +87,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    _load_local_federation_env()
     args = _build_parser().parse_args()
     verify_tls_ca_file = os.getenv("VECTORVUE_VERIFY_TLS_CA_FILE", "").strip()
     verify_tls: bool | str = (
@@ -84,7 +104,6 @@ def main() -> int:
         verify_tls=verify_tls,
         max_retries=1,
         backoff_seconds=0,
-        signature_secret=os.getenv("VECTORVUE_SIGNATURE_SECRET"),
         mtls_client_cert_file=os.getenv(
             "VECTORVUE_FEDERATION_MTLS_CERT_FILE",
             os.getenv("VECTORVUE_MTLS_CLIENT_CERT_FILE"),

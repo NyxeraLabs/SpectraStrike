@@ -62,5 +62,8 @@ jobs:
       - name: Run manifest schema regression guard
         run: PYTHONPATH=src venv/bin/python scripts/manifest_schema_regression.py
 
+      - name: Enforce license headers
+        run: venv/bin/python scripts/check_license_headers.py
+
       - name: Notify (Optional - Email/Slack)
         run: echo "Lint and tests completed"

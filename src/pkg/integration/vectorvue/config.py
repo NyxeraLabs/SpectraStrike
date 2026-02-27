@@ -36,7 +36,6 @@ class VectorVueConfig:
     max_retries: int = 3
     backoff_seconds: float = 0.5
     max_batch_size: int = 100
-    signature_secret: str | None = None
     require_https: bool = True
     tls_pinned_cert_sha256: str | None = None
     mtls_client_cert_file: str | None = None

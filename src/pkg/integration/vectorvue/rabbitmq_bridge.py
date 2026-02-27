@@ -443,6 +443,9 @@ def _build_finding_payload(envelope: BrokerEnvelope) -> dict[str, Any]:
             "execution_fingerprint": str(
                 envelope.attributes.get("execution_fingerprint", "")
             ),
+            "attestation_measurement_hash": str(
+                envelope.attributes.get("attestation_measurement_hash", "")
+            ),
         },
     }
 
@@ -505,6 +508,9 @@ def _build_federated_payload(envelope: BrokerEnvelope) -> dict[str, Any]:
     nonce = str(enriched_attributes.get("nonce", envelope.event_id))
     event_payload = _canonical_payload_for_gateway(enriched_envelope)
     event_payload["attributes"]["execution_fingerprint"] = execution_fingerprint
+    event_payload["attributes"]["attestation_measurement_hash"] = str(
+        enriched_attributes.get("attestation_measurement_hash", "")
+    )
     event_payload["attributes"]["schema_version"] = str(
         enriched_attributes.get("schema_version", "1.0")
     )
@@ -540,6 +546,13 @@ def _enrich_fingerprint_attributes(envelope: BrokerEnvelope) -> dict[str, Any]:
     if not str(enriched.get("policy_decision_hash", "")).strip():
         enriched["policy_decision_hash"] = "ph-" + hashlib.sha256(
             f"{envelope.actor}|{envelope.status}|{envelope.target}".encode("utf-8")
+        ).hexdigest()
+    if not str(enriched.get("attestation_measurement_hash", "")).strip():
+        enriched["attestation_measurement_hash"] = hashlib.sha256(
+            (
+                f"{envelope.event_id}|{envelope.timestamp}|"
+                f"{envelope.target}|{envelope.actor}|attestation"
+            ).encode("utf-8")
         ).hexdigest()
     if not str(enriched.get("tenant_id", "")).strip():
         enriched["tenant_id"] = "unknown-tenant"
