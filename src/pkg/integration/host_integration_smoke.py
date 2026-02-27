@@ -34,6 +34,8 @@ from pkg.wrappers.mythic import MythicTaskRequest, MythicWrapper
 from pkg.wrappers.nmap import NmapScanOptions, NmapWrapper
 from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
+_LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
+
 
 class HostIntegrationError(RuntimeError):
     """Raised when required host smoke validations fail."""
@@ -87,6 +89,23 @@ def _require_binary(name: str) -> None:
         raise HostIntegrationError(f"required binary not found on host: {name}")
 
 
+def _load_local_federation_env() -> None:
+    if not os.path.exists(_LOCAL_FED_ENV_PATH):
+        return
+    try:
+        with open(_LOCAL_FED_ENV_PATH, "r", encoding="utf-8") as handle:
+            for line in handle:
+                stripped = line.strip()
+                if not stripped or stripped.startswith("#") or "=" not in stripped:
+                    continue
+                key, value = stripped.split("=", 1)
+                key = key.strip()
+                if key and key not in os.environ:
+                    os.environ[key] = value.strip()
+    except OSError:
+        return
+
+
 def _build_vectorvue_config(timeout_seconds: float) -> VectorVueConfig:
     verify_tls_ca_file = os.getenv("VECTORVUE_VERIFY_TLS_CA_FILE", "").strip()
     verify_tls: bool | str = (
@@ -106,7 +125,6 @@ def _build_vectorvue_config(timeout_seconds: float) -> VectorVueConfig:
         ),
         timeout_seconds=timeout_seconds,
         verify_tls=verify_tls,
-        signature_secret=os.getenv("VECTORVUE_SIGNATURE_SECRET"),
         mtls_client_cert_file=os.getenv(
             "VECTORVUE_FEDERATION_MTLS_CERT_FILE",
             os.getenv("VECTORVUE_MTLS_CLIENT_CERT_FILE"),
@@ -345,6 +363,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     """CLI entrypoint for host smoke checks."""
+    _load_local_federation_env()
     args = _build_parser().parse_args()
 
     result = run_host_integration_smoke(

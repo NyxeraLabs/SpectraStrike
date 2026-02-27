@@ -143,6 +143,9 @@ class HardenedC2AdapterBoundary:
                     operator_id=bundle.operator_id,
                     tenant_id=bundle.tenant_id,
                     policy_decision_hash=bundle.policy_decision_hash,
+                    attestation_measurement_hash=str(
+                        jws_payload.get("attestation_measurement_hash", "")
+                    ).strip(),
                     timestamp=bundle.timestamp,
                 ),
                 operator_id=bundle.operator_id,

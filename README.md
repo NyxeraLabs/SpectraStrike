@@ -1,147 +1,81 @@
 <!--
 Copyright (c) 2026 NyxeraLabs
-Author: José María Micoli
+Author: Jose Maria Micoli
 Licensed under BSL 1.1
 Change Date: 2033-02-22 -> Apache-2.0
 -->
 
 # SpectraStrike
-![SpectraStrike Logo](ui/web/assets/images/SprectraStrike_Logo.png)
 
-SpectraStrike is an enterprise-grade offensive telemetry intelligence and orchestration platform for authorized security validation programs.
+SpectraStrike is the execution and telemetry control plane for authorized offensive security validation. It runs tools, binds executions to operator and policy context, and emits signed/attested telemetry into VectorVue.
 
-## Executive Summary
+## What Problem It Solves
 
-SpectraStrike is engineered as a production-capable control plane for:
-- autonomous and operator-assisted detection workflows
-- real-time telemetry ingestion and normalization
-- threat-correlation and evidence navigation
-- hardened orchestration and auditability
-- compliance-ready export pathways, including VectorVue interoperability
+Security teams need repeatable execution evidence, not screenshots and manual notes. SpectraStrike turns tool output into policy-bound, cryptographically signed telemetry that can be trusted by downstream analytics and audit systems.
 
-## Current Delivery Status
+## Architecture
 
-- Phase 1 completed: repository, CI baseline, local runtime setup.
-- Phase 2 completed: orchestrator core, scheduling, telemetry ingestion, AAA enforcement.
-- Phase 3 completed through Sprint 9.9:
-  - Sprint 9.5 messaging backbone (RabbitMQ, retry, DLQ, idempotency)
-  - Sprint 9.6 web UI + admin TUI foundation and command workflows
-  - Sprint 9.7 security and container hardening baseline
-  - Sprint 9.8 cross-sprint QA consolidation and docs QA automation
-  - Sprint 9.9 unified legal enforcement and governance hardening
-- Phase 4+ pending: Cobalt Strike and subsequent wrapper/integration roadmap.
-
-Known open QA blocker (tracked in roadmap/kanban):
-- Web UI dependency bootstrap may fail in restricted environments with DNS resolution error to npm registry (`EAI_AGAIN`), which blocks `vitest`/`playwright` execution.
-
-## Platform Architecture
-
-### Control Plane
-- `src/pkg/orchestrator/engine.py`
-- `src/pkg/orchestrator/task_scheduler.py`
-- `src/pkg/orchestrator/event_loop.py`
-- `src/pkg/security/aaa_framework.py`
-- `src/pkg/orchestrator/audit_trail.py`
-
-### Telemetry and Messaging Plane
-- `src/pkg/orchestrator/telemetry_ingestion.py`
-- `src/pkg/orchestrator/messaging.py`
-- RabbitMQ TLS transport with retry, idempotency, and dead-letter routing.
-
-### Integration Plane
-- Nmap and Metasploit wrappers
-- Manual Metasploit ingestion connector
-- VectorVue client abstraction with security controls and QA hooks
-
-### Operator Experience Plane
-- Web console (`ui/web`) with auth, dashboard, telemetry, findings, and evidence navigation
-- Admin TUI (`src/pkg/ui_admin`) with task submission, telemetry watch, and integration sync
-
-### Security and Runtime Plane
-- Hardened Docker stack (`docker-compose.dev.yml`, `docker-compose.prod.yml`)
-- Nginx TLS edge with optional mTLS
-- Internal mTLS between application and broker/data services
-- Host firewall and egress-allowlist scripts
-- Supply-chain controls (SBOM, CVE scan, signature verification)
-
-## Quickstart
-
-```bash
-cp .env.example .env
-make secrets-init
-make tls-dev-cert
-make pki-internal
-make up
+```mermaid
+flowchart LR
+  O[Operator] --> SS[SpectraStrike Orchestrator]
+  SS --> WR[Wrappers: nmap/metasploit/sliver/firecracker]
+  SS --> FP[Execution Fingerprint + Attestation Hash]
+  FP --> SG[Ed25519 Signed Canonical Payload]
+  SG --> MTLS[mTLS + Cert Pinning]
+  MTLS --> VV[VectorVue Telemetry Gateway]
+  VV --> PE[Policy + Feedback Engine]
+  PE --> FB[Ed25519 Signed Feedback]
+  FB --> SS
 ```
 
-UI endpoints:
-- `https://localhost:${HOST_PROXY_TLS_PORT:-18443}/ui`
-- `https://localhost:${HOST_PROXY_TLS_PORT:-18443}/ui/login`
-- `https://localhost:${HOST_PROXY_TLS_PORT:-18443}/ui/dashboard`
+## Quick Start
 
-Admin TUI:
+1. `cd SpectraStrike`
+2. `make local-federation-up`
+3. `make host-integration-smoke-full`
+4. `ls -la local_docs/audit`
+5. Open VectorVue and verify accepted telemetry/finding state.
 
-```bash
-make ui-admin-shell
-```
+## Screenshots
 
-## Legal & Governance
+- `docs/screenshots/spectrastrike-dashboard.png` (placeholder)
+- `docs/screenshots/spectrastrike-execution-graph.png` (placeholder)
+- `docs/screenshots/spectrastrike-feedback-loop.png` (placeholder)
 
-- `docs/DISCLAIMER.md`: legal boundaries and operational liability framing.
-- `docs/EULA.md`: software license usage terms and constraints.
-- `docs/ACCEPTABLE_USE_POLICY.md`: authorized and prohibited security-testing behavior.
-- `docs/PRIVACY_POLICY.md`: data handling model across self-hosted and future SaaS.
-- `docs/USER_REGISTRATION_POLICY.md`: operator-account policy and registration controls.
-- `docs/SECURITY_POLICY.md`: internal security control expectations for platform operations.
-- `docs/THREAT_MODEL.md`: threat surfaces, mitigations, and residual-risk posture.
-- `docs/ARCHITECTURE_SECURITY_OVERVIEW.md`: layered architecture security controls.
-- `docs/COMPLIANCE_STATEMENT.md`: compliance-enablement posture and control boundaries.
-- `SECURITY.md`: vulnerability reporting process and security disclosure policy.
+## See Results
 
-Runtime governance controls implemented:
-- environment-aware legal enforcement gate (`self-hosted`, `enterprise`, `saas` model)
-- versioned legal acceptance invalidation and re-acceptance requirement
-- auth/token gating with explicit `LEGAL_ACCEPTANCE_REQUIRED` contract
-- self-hosted acceptance persistence:
-  - local/default: `.spectrastrike/legal/acceptance.json`
-  - dockerized runtime: `/var/lib/spectrastrike/legal/acceptance.json`
+- E2E audit report: `docs/E2E_EXECUTION_AUDIT_REPORT.md`
+- Latest audit log: `local_docs/audit/final-e2e-asymmetric-*.log`
+- Federation docs: `docs/FULL_FEDERATION_INTEGRATION.md`
 
-## QA and Security Gates
+## Security Guarantees
 
-Primary QA execution:
+- mTLS is mandatory for federation transport.
+- Client certificate pinning is enforced.
+- Telemetry ingress rejects redirects and unsigned payloads.
+- Schema version checks are enforced for canonical payloads and cognitive graph payloads.
+- Replay protection uses nonce + timestamp windows.
+- Signature verification failures are fail-closed.
+- Operator-to-tenant mapping is enforced server-side.
 
-```bash
-make test
-make test-unit
-make test-integration
-make test-docker
-./.venv/bin/pytest -q tests/qa/test_docs_qa.py
-```
+## Federation Overview
 
-Security and policy gates:
+- SpectraStrike signs outbound telemetry with Ed25519.
+- VectorVue verifies signatures before accepting telemetry.
+- VectorVue signs feedback responses with Ed25519 (`kid` + rotation support).
+- SpectraStrike verifies feedback signatures and rejects unsigned/replayed/unknown-key responses.
 
-```bash
-make policy-check
-make security-check
-make security-gate
-make full-regression
-```
+## Attested Execution (Plain Language)
 
-Web UI QA (dependency-ready environments):
-
-```bash
-npm --prefix ui/web install --no-audit --no-fund
-npm --prefix ui/web run test:unit
-npm --prefix ui/web run test:e2e
-```
+Each execution carries an `attestation_measurement_hash` that represents measured runtime state. That hash is embedded in telemetry, fingerprints, findings, and policy input, and is part of what gets signed. If someone changes the attestation hash, signature verification fails and the payload is rejected.
 
 ## Documentation
 
+- End-user guide: `docs/END_USER_GUIDE.md`
+- SDK developer guide: `docs/SDK_DEVELOPER_GUIDE.md`
+- Full federation integration: `docs/FULL_FEDERATION_INTEGRATION.md`
 - Roadmap: `docs/ROADMAP.md`
-- Kanban board: `docs/kanban-board.csv`
-- Manuals index: `docs/manuals/INDEX.md`
-- Sprint engineering logs: `docs/dev-logs/INDEX.md`
 
 ## License
 
-Business Source License 1.1 (BSL 1.1). See `LICENSE`.
+Business Source License 1.1. See `LICENSE`.

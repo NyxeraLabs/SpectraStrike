@@ -16,8 +16,8 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
-import hmac
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -25,6 +25,7 @@ from typing import Any
 
 import pytest
 from requests.exceptions import Timeout
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from pkg.integration.vectorvue.client import VectorVueClient
 from pkg.integration.vectorvue.config import VectorVueConfig
@@ -92,6 +93,24 @@ def _config_with_creds(**overrides: Any) -> VectorVueConfig:
     }
     base.update(overrides)
     return VectorVueConfig(**base)
+
+
+def _feedback_signature(
+    *,
+    tenant_id: str,
+    signed_at: int,
+    nonce: str,
+    schema_version: str,
+    kid: str,
+    data: list[dict[str, Any]],
+    private_key: Ed25519PrivateKey,
+) -> str:
+    canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
+    signing_input = (
+        f"{tenant_id}|{signed_at}|{nonce}|{schema_version}|{kid}|{canonical}"
+    ).encode("utf-8")
+    signature = private_key.sign(signing_input)
+    return base64.b64encode(signature).decode("utf-8")
 
 
 def test_config_requires_https_by_default() -> None:
@@ -229,15 +248,15 @@ def test_fetch_feedback_adjustments_uses_expected_query(
                     "errors": [],
                     "signed_at": 1760000001,
                     "nonce": "feedback-nonce-1",
+                    "kid": "default",
+                    "signature_algorithm": "Ed25519",
+                    "schema_version": "feedback.response.v1",
                     "signature": "placeholder",
                 },
             )
         ]
     )
-    client = VectorVueClient(
-        _config_with_creds(token="jwt", signature_secret="feedback-secret"),
-        session=session,
-    )
+    client = VectorVueClient(_config_with_creds(token="jwt"), session=session)
     monkeypatch.setattr(
         client,
         "_build_federation_headers",
@@ -290,10 +309,7 @@ def test_fetch_feedback_adjustments_rejects_unsigned_response(
             )
         ]
     )
-    client = VectorVueClient(
-        _config_with_creds(token="jwt", signature_secret="feedback-secret"),
-        session=session,
-    )
+    client = VectorVueClient(_config_with_creds(token="jwt"), session=session)
     monkeypatch.setattr(
         client,
         "_build_federation_headers",
@@ -316,6 +332,26 @@ def test_fetch_feedback_adjustments_rejects_signature_mismatch(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     tenant_id = "10000000-0000-0000-0000-000000000001"
+    private_key = Ed25519PrivateKey.generate()
+    monkeypatch.setenv(
+        "VECTORVUE_FEEDBACK_VERIFY_KEYS_JSON",
+        json.dumps(
+            {"default": base64.b64encode(private_key.public_key().public_bytes_raw()).decode("utf-8")}
+        ),
+    )
+    data = [
+        {
+            "tenant_id": tenant_id,
+            "execution_fingerprint": "e" * 64,
+            "target_urn": "urn:target:ip:10.0.0.5",
+            "action": "tighten",
+            "confidence": 0.91,
+            "rationale": "risk cluster",
+            "timestamp": 1760000000,
+            "schema_version": "feedback.adjustment.v1",
+            "attestation_measurement_hash": "a" * 64,
+        }
+    ]
     session = FakeSession(
         [
             FakeResponse(
@@ -323,30 +359,19 @@ def test_fetch_feedback_adjustments_rejects_signature_mismatch(
                 {
                     "request_id": "fb-mismatch",
                     "status": "accepted",
-                    "data": [
-                        {
-                            "tenant_id": tenant_id,
-                            "execution_fingerprint": "e" * 64,
-                            "target_urn": "urn:target:ip:10.0.0.5",
-                            "action": "tighten",
-                            "confidence": 0.91,
-                            "rationale": "risk cluster",
-                            "timestamp": 1760000000,
-                            "schema_version": "feedback.adjustment.v1",
-                        }
-                    ],
+                    "data": data,
                     "errors": [],
                     "signed_at": 1700000000,
                     "nonce": "feedback-nonce-mismatch",
+                    "kid": "default",
+                    "schema_version": "feedback.response.v1",
+                    "signature_algorithm": "Ed25519",
                     "signature": "deadbeef",
                 },
             )
         ]
     )
-    client = VectorVueClient(
-        _config_with_creds(token="jwt", signature_secret="feedback-secret"),
-        session=session,
-    )
+    client = VectorVueClient(_config_with_creds(token="jwt"), session=session)
     monkeypatch.setattr(
         client,
         "_build_federation_headers",
@@ -373,6 +398,14 @@ def test_fetch_feedback_adjustments_rejects_replayed_nonce(
     tenant_id = "10000000-0000-0000-0000-000000000001"
     signed_at = 1700000000
     nonce = "feedback-nonce-replay"
+    private_key = Ed25519PrivateKey.generate()
+    kid = "default"
+    monkeypatch.setenv(
+        "VECTORVUE_FEEDBACK_VERIFY_KEYS_JSON",
+        json.dumps(
+            {kid: base64.b64encode(private_key.public_key().public_bytes_raw()).decode("utf-8")}
+        ),
+    )
     data = [
         {
             "tenant_id": tenant_id,
@@ -383,15 +416,18 @@ def test_fetch_feedback_adjustments_rejects_replayed_nonce(
             "rationale": "risk cluster",
             "timestamp": 1760000000,
             "schema_version": "feedback.adjustment.v1",
+            "attestation_measurement_hash": "b" * 64,
         }
     ]
-    canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
-    secret = "feedback-secret"
-    signature = hmac.new(
-        secret.encode("utf-8"),
-        f"{tenant_id}|{signed_at}|{nonce}|{canonical}".encode("utf-8"),
-        hashlib.sha256,
-    ).hexdigest()
+    signature = _feedback_signature(
+        tenant_id=tenant_id,
+        signed_at=signed_at,
+        nonce=nonce,
+        schema_version="feedback.response.v1",
+        kid=kid,
+        data=data,
+        private_key=private_key,
+    )
     session = FakeSession(
         [
             FakeResponse(
@@ -403,6 +439,9 @@ def test_fetch_feedback_adjustments_rejects_replayed_nonce(
                     "errors": [],
                     "signed_at": signed_at,
                     "nonce": nonce,
+                    "kid": kid,
+                    "schema_version": "feedback.response.v1",
+                    "signature_algorithm": "Ed25519",
                     "signature": signature,
                 },
             ),
@@ -415,15 +454,15 @@ def test_fetch_feedback_adjustments_rejects_replayed_nonce(
                     "errors": [],
                     "signed_at": signed_at,
                     "nonce": nonce,
+                    "kid": kid,
+                    "schema_version": "feedback.response.v1",
+                    "signature_algorithm": "Ed25519",
                     "signature": signature,
                 },
             ),
         ]
     )
-    client = VectorVueClient(
-        _config_with_creds(token="jwt", signature_secret=secret),
-        session=session,
-    )
+    client = VectorVueClient(_config_with_creds(token="jwt"), session=session)
     monkeypatch.setattr(
         client,
         "_build_federation_headers",
@@ -446,6 +485,129 @@ def test_fetch_feedback_adjustments_rejects_replayed_nonce(
         client.fetch_feedback_adjustments(tenant_id, limit=10)
 
 
+def test_fetch_feedback_adjustments_supports_key_rotation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tenant_id = "10000000-0000-0000-0000-000000000001"
+    signed_at = 1700000010
+    nonce = "feedback-nonce-rotation"
+    old_key = Ed25519PrivateKey.generate()
+    new_key = Ed25519PrivateKey.generate()
+    monkeypatch.setenv(
+        "VECTORVUE_FEEDBACK_VERIFY_KEYS_JSON",
+        json.dumps(
+            {
+                "old": base64.b64encode(old_key.public_key().public_bytes_raw()).decode(
+                    "utf-8"
+                ),
+                "rotated-2026q1": base64.b64encode(
+                    new_key.public_key().public_bytes_raw()
+                ).decode("utf-8"),
+            }
+        ),
+    )
+    data = [
+        {
+            "tenant_id": tenant_id,
+            "execution_fingerprint": "e" * 64,
+            "target_urn": "urn:target:ip:10.0.0.5",
+            "action": "tighten",
+            "confidence": 0.91,
+            "rationale": "risk cluster",
+            "timestamp": 1760000000,
+            "schema_version": "feedback.adjustment.v1",
+            "attestation_measurement_hash": "b" * 64,
+        }
+    ]
+    signature = _feedback_signature(
+        tenant_id=tenant_id,
+        signed_at=signed_at,
+        nonce=nonce,
+        schema_version="feedback.response.v1",
+        kid="rotated-2026q1",
+        data=data,
+        private_key=new_key,
+    )
+    session = FakeSession(
+        [
+            FakeResponse(
+                200,
+                {
+                    "request_id": "fb-rotation",
+                    "status": "accepted",
+                    "data": data,
+                    "errors": [],
+                    "signed_at": signed_at,
+                    "nonce": nonce,
+                    "kid": "rotated-2026q1",
+                    "schema_version": "feedback.response.v1",
+                    "signature_algorithm": "Ed25519",
+                    "signature": signature,
+                },
+            )
+        ]
+    )
+    client = VectorVueClient(_config_with_creds(token="jwt"), session=session)
+    monkeypatch.setattr(
+        client,
+        "_build_federation_headers",
+        lambda **_: {
+            "X-Service-Identity": "spectrastrike-producer",
+            "X-Client-Cert-Sha256": "a" * 64,
+            "X-Telemetry-Timestamp": "1760000000",
+            "X-Telemetry-Nonce": "nonce-feedback",
+            "X-Telemetry-Signature": "sig",
+        },
+    )
+    monkeypatch.setattr("pkg.integration.vectorvue.client.time.time", lambda: signed_at)
+
+    envelope = client.fetch_feedback_adjustments(tenant_id, limit=10)
+    assert envelope.verified is True
+
+
+def test_fetch_feedback_adjustments_rejects_non_ed25519_algorithm(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tenant_id = "10000000-0000-0000-0000-000000000001"
+    session = FakeSession(
+        [
+            FakeResponse(
+                200,
+                {
+                    "request_id": "fb-algo",
+                    "status": "accepted",
+                    "data": [],
+                    "errors": [],
+                    "signed_at": 1700000000,
+                    "nonce": "feedback-nonce-algo",
+                    "kid": "default",
+                    "schema_version": "feedback.response.v1",
+                    "signature_algorithm": "RSA-PSS",
+                    "signature": "ZmFrZQ==",
+                },
+            )
+        ]
+    )
+    client = VectorVueClient(_config_with_creds(token="jwt"), session=session)
+    monkeypatch.setattr(
+        client,
+        "_build_federation_headers",
+        lambda **_: {
+            "X-Service-Identity": "spectrastrike-producer",
+            "X-Client-Cert-Sha256": "a" * 64,
+            "X-Telemetry-Timestamp": "1760000000",
+            "X-Telemetry-Nonce": "nonce-feedback",
+            "X-Telemetry-Signature": "sig",
+        },
+    )
+
+    with pytest.raises(
+        VectorVueSerializationError,
+        match="unsupported feedback signature algorithm",
+    ):
+        client.fetch_feedback_adjustments(tenant_id, limit=10)
+
+
 def test_send_federated_telemetry_uses_internal_gateway_path(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -461,7 +623,6 @@ def test_send_federated_telemetry_uses_internal_gateway_path(
     client = VectorVueClient(
         _config_with_creds(
             token="jwt",
-            signature_secret="sig-secret",
             mtls_client_cert_file="/tmp/client.crt",
             mtls_client_key_file="/tmp/client.key",
         ),
@@ -534,37 +695,12 @@ def test_send_federated_telemetry_requires_mtls(
     monkeypatch.setenv("VECTORVUE_FEDERATION_SIGNING_KEY_PATH", str(key_path))
     session = FakeSession([])
     client = VectorVueClient(
-        _config_with_creds(token="jwt", signature_secret="sig-secret"),
+        _config_with_creds(token="jwt"),
         session=session,
     )
 
     with pytest.raises(VectorVueTransportError, match="requires mTLS client cert/key"):
         client.send_federated_telemetry({"timestamp": 1, "nonce": "n"})
-
-
-def test_signing_headers_are_added_when_secret_configured(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        "pkg.integration.vectorvue.client.time.time", lambda: 1700000000
-    )
-    session = FakeSession(
-        [
-            FakeResponse(
-                200, {"request_id": "r", "status": "accepted", "data": {}, "errors": []}
-            )
-        ]
-    )
-    client = VectorVueClient(
-        _config_with_creds(token="jwt", signature_secret="signing-secret"),
-        session=session,
-    )
-
-    client.send_event({"event_type": "PROCESS_ANOMALY"})
-
-    headers = session.calls[0]["headers"]
-    assert headers["X-Timestamp"] == "1700000000"
-    assert "X-Signature" in headers
 
 
 def test_retries_on_retryable_status(monkeypatch: pytest.MonkeyPatch) -> None:

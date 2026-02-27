@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -32,6 +33,7 @@ class FeedbackAdjustment:
     action: str
     confidence: float
     rationale: str
+    attestation_measurement_hash: str
     control: str = "execution"
     ttl_seconds: int = 3600
 
@@ -97,6 +99,7 @@ class FeedbackPolicyEngine:
             "feedback_control": adjustment.control,
             "feedback_rationale": adjustment.rationale,
             "feedback_ttl_seconds": adjustment.ttl_seconds,
+            "feedback_attestation_measurement_hash": adjustment.attestation_measurement_hash,
         }
 
     def evaluate_allow(self, tenant_id: str, target_urn: str, base_allow: bool) -> bool:
@@ -138,6 +141,26 @@ class CognitiveFeedbackLoopService:
                     anchors.add(candidate)
         return anchors
 
+    @staticmethod
+    def _extract_attestation_hashes(execution_graph: dict[str, Any]) -> set[str]:
+        anchors: set[str] = set()
+        root = str(
+            execution_graph.get("attestation_measurement_hash", "")
+        ).strip().lower()
+        if re.fullmatch(r"^[a-f0-9]{64}$", root):
+            anchors.add(root)
+        nodes = execution_graph.get("nodes", [])
+        if isinstance(nodes, list):
+            for node in nodes:
+                if not isinstance(node, dict):
+                    continue
+                candidate = str(
+                    node.get("attestation_measurement_hash", "")
+                ).strip().lower()
+                if re.fullmatch(r"^[a-f0-9]{64}$", candidate):
+                    anchors.add(candidate)
+        return anchors
+
     def sync_feedback_adjustments(
         self, tenant_id: str, limit: int = 100
     ) -> list[FeedbackAdjustment]:
@@ -159,7 +182,14 @@ class CognitiveFeedbackLoopService:
                 continue
             item_timestamp = int(item.get("timestamp", 0))
             item_schema = str(item.get("schema_version", "")).strip()
-            if item_timestamp <= 0 or not item_schema:
+            attestation_hash = str(
+                item.get("attestation_measurement_hash", "")
+            ).strip().lower()
+            if (
+                item_timestamp <= 0
+                or not item_schema
+                or not re.fullmatch(r"^[a-f0-9]{64}$", attestation_hash)
+            ):
                 continue
             parsed.append(
                 FeedbackAdjustment(
@@ -169,6 +199,7 @@ class CognitiveFeedbackLoopService:
                     action=str(item.get("action", "observe")),
                     confidence=float(item.get("confidence", 0.0)),
                     rationale=str(item.get("rationale", "unspecified")),
+                    attestation_measurement_hash=attestation_hash,
                     control=str(item.get("control", "execution")),
                     ttl_seconds=int(item.get("ttl_seconds", 3600)),
                 )
@@ -185,11 +216,18 @@ class CognitiveFeedbackLoopService:
         graph_result = self.push_execution_graph_metadata(execution_graph)
         adjustments = self.sync_feedback_adjustments(tenant_id, limit=feedback_limit)
         anchors = self._extract_execution_fingerprints(execution_graph)
+        attestation_anchors = self._extract_attestation_hashes(execution_graph)
         if anchors:
             adjustments = [
                 item
                 for item in adjustments
                 if item.execution_fingerprint in anchors
+            ]
+        if attestation_anchors:
+            adjustments = [
+                item
+                for item in adjustments
+                if item.attestation_measurement_hash in attestation_anchors
             ]
         applied = self.policy_engine.apply_adjustments(adjustments)
         return CognitiveLoopRunResult(

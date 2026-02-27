@@ -37,6 +37,7 @@ class ExecutionFingerprintInput:
     operator_id: str
     tenant_id: str
     policy_decision_hash: str
+    attestation_measurement_hash: str
     timestamp: str
 
     def __post_init__(self) -> None:
@@ -46,6 +47,7 @@ class ExecutionFingerprintInput:
             "operator_id": self.operator_id,
             "tenant_id": self.tenant_id,
             "policy_decision_hash": self.policy_decision_hash,
+            "attestation_measurement_hash": self.attestation_measurement_hash,
             "timestamp": self.timestamp,
         }
         for name, value in values.items():
@@ -60,6 +62,7 @@ class ExecutionFingerprintInput:
             "operator_id": self.operator_id,
             "tenant_id": self.tenant_id,
             "policy_decision_hash": self.policy_decision_hash,
+            "attestation_measurement_hash": self.attestation_measurement_hash,
             "timestamp": self.timestamp,
         }
         return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
@@ -142,5 +145,8 @@ def fingerprint_input_from_envelope(
         operator_id=actor,
         tenant_id=str(attributes.get("tenant_id", "")).strip(),
         policy_decision_hash=str(attributes.get("policy_decision_hash", "")).strip(),
+        attestation_measurement_hash=str(
+            attributes.get("attestation_measurement_hash", "")
+        ).strip(),
         timestamp=timestamp.strip(),
     )

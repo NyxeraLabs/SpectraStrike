@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import hmac
 import json
 import os
 import secrets
@@ -26,6 +25,7 @@ import ssl
 import subprocess
 import tempfile
 import time
+from pathlib import Path
 from typing import Any
 from urllib.parse import urljoin
 
@@ -122,7 +122,6 @@ class VectorVueClient:
             include_auth=False,
             extra_headers=headers,
             raise_api_error=True,
-            include_legacy_signature=False,
         )
 
     def _validate_federation_security_preconditions(self) -> None:
@@ -361,6 +360,12 @@ class VectorVueClient:
             "timestamp": int(time.time()),
             "nonce": secrets.token_urlsafe(18),
             "schema_version": str(graph.get("schema_version", "execution.graph.v1")),
+            "attestation_measurement_hash": str(
+                graph.get("attestation_measurement_hash")
+                or hashlib.sha256(
+                    f"{execution_fingerprint}|{tenant_id}|attestation".encode("utf-8")
+                ).hexdigest()
+            ).strip().lower(),
             "graph": graph,
         }
         _, body = self._serialize_payload(payload)
@@ -374,7 +379,6 @@ class VectorVueClient:
             include_auth=False,
             extra_headers=headers,
             raise_api_error=True,
-            include_legacy_signature=False,
         )
 
     def fetch_feedback_adjustments(
@@ -415,7 +419,6 @@ class VectorVueClient:
             include_auth=False,
             extra_headers=headers,
             raise_api_error=True,
-            include_legacy_signature=False,
         )
         self._verify_feedback_signature(envelope=envelope, tenant_id=tenant_id)
         return envelope
@@ -468,7 +471,6 @@ class VectorVueClient:
         include_auth: bool = True,
         extra_headers: dict[str, str] | None = None,
         raise_api_error: bool = False,
-        include_legacy_signature: bool = True,
     ) -> ResponseEnvelope:
         payload_text, body = self._serialize_payload(json_payload)
 
@@ -479,9 +481,6 @@ class VectorVueClient:
         if include_auth:
             token = self._token or self.login()
             headers["Authorization"] = f"Bearer {token}"
-
-        if include_legacy_signature and self._config.signature_secret and body is not None:
-            headers.update(self._build_signature_headers(body))
 
         url = urljoin(self._config.base_url.rstrip("/") + "/", path.lstrip("/"))
 
@@ -496,6 +495,7 @@ class VectorVueClient:
                     url=url,
                     data=payload_text,
                     headers=headers,
+                    allow_redirects=False,
                     timeout=self._config.timeout_seconds,
                     verify=self._config.verify_tls,
                     cert=(
@@ -575,18 +575,6 @@ class VectorVueClient:
             return None
         return cert if isinstance(cert, (bytes, bytearray)) else None
 
-    def _build_signature_headers(self, body: bytes) -> dict[str, str]:
-        timestamp = str(int(time.time()))
-        mac = hmac.new(
-            key=self._config.signature_secret.encode("utf-8"),
-            msg=(timestamp + ".").encode("utf-8") + body,
-            digestmod=hashlib.sha256,
-        ).hexdigest()
-        return {
-            "X-Timestamp": timestamp,
-            "X-Signature": mac,
-        }
-
     def _parse_response(self, response: Response) -> ResponseEnvelope:
         payload: dict[str, Any]
         try:
@@ -612,6 +600,9 @@ class VectorVueClient:
             signature=payload.get("signature"),
             signed_at=self._parse_int(payload.get("signed_at")),
             nonce=str(payload.get("nonce", "")).strip() or None,
+            key_id=str(payload.get("kid", "")).strip() or None,
+            signature_algorithm=str(payload.get("signature_algorithm", "")).strip()
+            or None,
             schema_version=str(payload.get("schema_version", "")).strip() or None,
             http_status=response.status_code,
             headers={k: v for k, v in response.headers.items()},
@@ -630,27 +621,160 @@ class VectorVueClient:
         tenant_id: str,
     ) -> None:
         data = envelope.data if isinstance(envelope.data, list) else None
-        signature = (envelope.signature or "").strip().lower()
+        signature_b64 = (envelope.signature or "").strip()
         signed_at = envelope.signed_at
         nonce = (envelope.nonce or "").strip()
-        secret = (self._config.signature_secret or "").strip()
+        kid = (envelope.key_id or "").strip()
+        schema_version = (envelope.schema_version or "").strip()
+        algorithm = (envelope.signature_algorithm or "").strip()
         if data is None:
             raise VectorVueSerializationError("feedback response data must be an array")
-        if not (signature and signed_at and nonce and secret):
+        if not (signature_b64 and signed_at and nonce and kid and schema_version):
             raise VectorVueSerializationError("signed feedback response is required")
+        if algorithm and algorithm != "Ed25519":
+            raise VectorVueSerializationError("unsupported feedback signature algorithm")
         self._enforce_feedback_replay(nonce=nonce, signed_at=signed_at)
+        key = self._load_feedback_verify_key(kid)
         canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
-        signing_input = f"{tenant_id}|{signed_at}|{nonce}|{canonical}"
-        expected = hmac.new(
-            secret.encode("utf-8"),
-            signing_input.encode("utf-8"),
-            hashlib.sha256,
-        ).hexdigest()
-        if not hmac.compare_digest(expected, signature):
+        signing_input = (
+            f"{tenant_id}|{signed_at}|{nonce}|{schema_version}|{kid}|{canonical}"
+        )
+        try:
+            signature = base64.b64decode(signature_b64)
+        except Exception as exc:
             raise VectorVueSerializationError(
-                "feedback response signature verification failed"
+                "feedback response signature encoding is invalid"
+            ) from exc
+        if isinstance(key, dict) and key.get("openssl_pubkey_path"):
+            self._verify_feedback_signature_with_openssl(
+                key_path=str(key["openssl_pubkey_path"]),
+                message=signing_input.encode("utf-8"),
+                signature=signature,
             )
+        else:
+            try:
+                key.verify(signature, signing_input.encode("utf-8"))
+            except Exception as exc:
+                raise VectorVueSerializationError(
+                    "feedback response signature verification failed"
+                ) from exc
         envelope.verified = True
+
+    def _verify_feedback_signature_with_openssl(
+        self, *, key_path: str, message: bytes, signature: bytes
+    ) -> None:
+        with tempfile.NamedTemporaryFile(delete=False) as msg_file:
+            msg_file.write(message)
+            msg_file.flush()
+            msg_path = msg_file.name
+        with tempfile.NamedTemporaryFile(delete=False) as sig_file:
+            sig_file.write(signature)
+            sig_file.flush()
+            sig_path = sig_file.name
+        try:
+            completed = subprocess.run(
+                [
+                    "openssl",
+                    "pkeyutl",
+                    "-verify",
+                    "-pubin",
+                    "-inkey",
+                    key_path,
+                    "-rawin",
+                    "-in",
+                    msg_path,
+                    "-sigfile",
+                    sig_path,
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            if completed.returncode != 0:
+                raise VectorVueSerializationError(
+                    "feedback response signature verification failed"
+                )
+        finally:
+            try:
+                os.remove(msg_path)
+            except OSError:
+                pass
+            try:
+                os.remove(sig_path)
+            except OSError:
+                pass
+
+    def _load_feedback_verify_key(self, kid: str) -> Any:
+        key_map = self._load_feedback_key_map()
+        key_ref = key_map.get(kid)
+        if not key_ref:
+            raise VectorVueSerializationError("feedback response uses unknown key id")
+        serialization = None
+        Ed25519PublicKey = None
+        try:
+            from cryptography.hazmat.primitives import serialization as _serialization
+            from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+                Ed25519PublicKey as _Ed25519PublicKey,
+            )
+
+            serialization = _serialization
+            Ed25519PublicKey = _Ed25519PublicKey
+        except ImportError:
+            pass
+        candidate_path = Path(key_ref)
+        if candidate_path.exists():
+            if serialization is None or Ed25519PublicKey is None:
+                return {"openssl_pubkey_path": str(candidate_path)}
+            try:
+                key_bytes = candidate_path.read_bytes()
+                loaded = serialization.load_pem_public_key(key_bytes)
+                if not isinstance(loaded, Ed25519PublicKey):
+                    raise ValueError("not an Ed25519 public key")
+                return loaded
+            except Exception as exc:
+                raise VectorVueSerializationError(
+                    f"invalid feedback verify key file for kid '{kid}'"
+                ) from exc
+        try:
+            key_raw = base64.b64decode(key_ref)
+        except Exception as exc:
+            raise VectorVueSerializationError(
+                f"invalid feedback verify key encoding for kid '{kid}'"
+            ) from exc
+        if len(key_raw) != 32:
+            raise VectorVueSerializationError(
+                f"invalid feedback verify key length for kid '{kid}'"
+            )
+        if Ed25519PublicKey is None:
+            raise VectorVueSerializationError(
+                "cryptography dependency is required for raw Ed25519 verify keys"
+            )
+        return Ed25519PublicKey.from_public_bytes(key_raw)
+
+    def _load_feedback_key_map(self) -> dict[str, str]:
+        keyring = os.getenv("VECTORVUE_FEEDBACK_VERIFY_KEYS_JSON", "").strip()
+        if keyring:
+            try:
+                parsed = json.loads(keyring)
+            except json.JSONDecodeError as exc:
+                raise VectorVueSerializationError(
+                    "VECTORVUE_FEEDBACK_VERIFY_KEYS_JSON must be valid JSON"
+                ) from exc
+            if not isinstance(parsed, dict) or not parsed:
+                raise VectorVueSerializationError(
+                    "VECTORVUE_FEEDBACK_VERIFY_KEYS_JSON must be a non-empty object"
+                )
+            return {
+                str(k).strip(): str(v).strip()
+                for k, v in parsed.items()
+                if str(k).strip() and str(v).strip()
+            }
+        fallback = os.getenv("VECTORVUE_FEEDBACK_VERIFY_PUBLIC_KEY_B64", "").strip()
+        if fallback:
+            return {"default": fallback}
+        raise VectorVueSerializationError(
+            "feedback keyring missing (VECTORVUE_FEEDBACK_VERIFY_KEYS_JSON)"
+        )
 
     def _enforce_feedback_replay(self, *, nonce: str, signed_at: int) -> None:
         now = int(time.time())
