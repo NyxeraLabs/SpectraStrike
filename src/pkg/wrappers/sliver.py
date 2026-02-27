@@ -122,7 +122,29 @@ class SliverWrapper:
         command.extend(request.extra_args)
         return command
 
+    @staticmethod
+    def _is_dry_run(request: SliverCommandRequest) -> bool:
+        return any(arg.strip().lower() == "--dry-run" for arg in request.extra_args)
+
     def execute(self, request: SliverCommandRequest) -> SliverCommandResult:
+        if self._is_dry_run(request):
+            started = int(time.time())
+            payload = {
+                "status": "success",
+                "task_id": f"sliver-dry-run-{started}",
+                "session_id": request.session_id,
+                "output": f"dry-run compatible for target={request.target} command={request.command}",
+            }
+            return SliverCommandResult(
+                target=request.target,
+                command=request.command,
+                status=str(payload["status"]),
+                output=str(payload["output"]),
+                task_id=str(payload["task_id"]),
+                session_id=str(payload["session_id"]) if payload["session_id"] else None,
+                raw=payload,
+            )
+
         command = self.build_command(request)
         logger.info("Executing sliver command: %s", " ".join(command))
         started = int(time.time())

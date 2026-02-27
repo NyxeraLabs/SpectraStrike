@@ -35,6 +35,7 @@ def _fingerprint_input() -> ExecutionFingerprintInput:
         operator_id="op-001",
         tenant_id="tenant-a",
         policy_decision_hash="policy-allow-001",
+        attestation_measurement_hash="a" * 64,
         timestamp="2026-02-26T12:00:00+00:00",
     )
 

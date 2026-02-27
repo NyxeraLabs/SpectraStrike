@@ -61,6 +61,7 @@ class _FakeCognitiveClient:
                     "ttl_seconds": 1800,
                     "timestamp": 1760000000,
                     "schema_version": "feedback.adjustment.v1",
+                    "attestation_measurement_hash": "a" * 64,
                 }
             ],
             errors=[],
@@ -112,6 +113,7 @@ def test_compute_defensive_effectiveness_metrics() -> None:
             action="tighten",
             confidence=0.9,
             rationale="risk cluster",
+            attestation_measurement_hash="a" * 64,
         )
     ]
 
@@ -166,6 +168,7 @@ def test_run_cognitive_loop_rejects_unanchored_feedback_fingerprint() -> None:
                     "ttl_seconds": 1200,
                     "timestamp": 1760000000,
                     "schema_version": "feedback.adjustment.v1",
+                    "attestation_measurement_hash": "f" * 64,
                 }
             ]
             return response
@@ -193,3 +196,49 @@ def test_run_cognitive_loop_rejects_unanchored_feedback_fingerprint() -> None:
     assert result.applied_adjustments == 0
     context = policy.policy_context("tenant-a", "urn:target:ip:10.0.0.9")
     assert context["feedback_bound"] is False
+
+
+def test_run_cognitive_loop_rejects_mismatched_attestation_hash() -> None:
+    class _ForgedAttestationClient(_FakeCognitiveClient):
+        def fetch_feedback_adjustments(
+            self, tenant_id: str, limit: int = 100
+        ) -> ResponseEnvelope:
+            response = super().fetch_feedback_adjustments(tenant_id, limit)
+            response.data = [
+                {
+                    "tenant_id": "tenant-a",
+                    "execution_fingerprint": "a" * 64,
+                    "target_urn": "urn:target:ip:10.0.0.9",
+                    "action": "deny",
+                    "confidence": 0.99,
+                    "rationale": "forged attestation hash",
+                    "control": "execution",
+                    "ttl_seconds": 1200,
+                    "timestamp": 1760000000,
+                    "schema_version": "feedback.adjustment.v1",
+                    "attestation_measurement_hash": "f" * 64,
+                }
+            ]
+            return response
+
+    policy = FeedbackPolicyEngine()
+    service = CognitiveFeedbackLoopService(
+        client=_ForgedAttestationClient(),
+        policy_engine=policy,
+    )
+
+    result = service.run_cognitive_loop(
+        tenant_id="tenant-a",
+        execution_graph={
+            "graph_id": "graph-1",
+            "tenant_id": "tenant-a",
+            "execution_fingerprint": "a" * 64,
+            "attestation_measurement_hash": "a" * 64,
+            "nodes": [{"id": "n1", "type": "task"}],
+            "edges": [],
+        },
+        feedback_limit=10,
+    )
+
+    assert result.feedback_items == 0
+    assert result.applied_adjustments == 0

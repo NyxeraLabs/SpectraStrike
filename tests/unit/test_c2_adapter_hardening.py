@@ -56,6 +56,7 @@ def _bundle(secret: str = "secret") -> C2DispatchBundle:
         operator_id="op-001",
         tenant_id="tenant-a",
         policy_decision_hash="policy-allow-001",
+        attestation_measurement_hash="a" * 64,
         timestamp=timestamp,
     )
     fingerprint = generate_execution_fingerprint(fingerprint_input)
@@ -63,6 +64,7 @@ def _bundle(secret: str = "secret") -> C2DispatchBundle:
         {
             "execution_fingerprint": fingerprint,
             "policy_decision_hash": "policy-allow-001",
+            "attestation_measurement_hash": "a" * 64,
             "target": "urn:host:node-1",
         },
         secret,
@@ -105,6 +107,7 @@ def test_enforces_policy_hash_validation_at_adapter_boundary() -> None:
         {
             "execution_fingerprint": bundle.execution_fingerprint,
             "policy_decision_hash": "policy-deny-999",
+            "attestation_measurement_hash": "a" * 64,
             "target": bundle.target,
         },
         "secret",

@@ -31,6 +31,8 @@ class ResponseEnvelope:
     signature: str | None = None
     signed_at: int | None = None
     nonce: str | None = None
+    key_id: str | None = None
+    signature_algorithm: str | None = None
     schema_version: str | None = None
     verified: bool = False
     http_status: int = 0

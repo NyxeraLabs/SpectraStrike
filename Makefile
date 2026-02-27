@@ -12,10 +12,14 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-.PHONY: help build ui-build runner-go-build runner-go-test secrets-init legal-accept-init pki-ensure tls-ensure up up-all full-up full-up-tools full-down open-ui open-tui ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db security-check license-check manifest-schema-regression tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down host-integration-smoke host-integration-smoke-full vectorvue-rabbitmq-sync
+.PHONY: help build ui-build runner-go-build runner-go-test secrets-init legal-accept-init pki-ensure tls-ensure up up-all full-up full-up-tools full-down open-ui open-tui ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db security-check license-check manifest-schema-regression tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down host-integration-smoke host-integration-smoke-full vectorvue-rabbitmq-sync local-federation-up
 
 COMPOSE_DEV = docker compose -f docker-compose.dev.yml
 COMPOSE_PROD = docker compose -f docker-compose.prod.yml
+LOCAL_FED_ENV ?= local_federation/.env.spectrastrike.local
+LOCAL_FED_OVERRIDE ?= local_federation/federation-compose.override.yml
+
+-include $(LOCAL_FED_ENV)
 
 help:
 	@echo "Available targets:"
@@ -60,6 +64,7 @@ help:
 	@echo "  host-integration-smoke Run Sprint 16.7+ host toolchain integration smoke"
 	@echo "  host-integration-smoke-full Run host smoke with metasploit/sliver/mythic/vectorvue live checks"
 	@echo "  vectorvue-rabbitmq-sync Drain RabbitMQ telemetry queue into VectorVue APIs"
+	@echo "  local-federation-up Bootstrap local federation env and start VectorVue + SpectraStrike"
 	@echo "  full-regression   Run full QA + security + docker test path"
 	@echo "  prod-up           Start production compose stack"
 	@echo "  prod-down         Stop production compose stack"
@@ -235,6 +240,36 @@ host-integration-smoke-full:
 
 vectorvue-rabbitmq-sync:
 	PYTHONPATH=src .venv/bin/python -m pkg.integration.vectorvue.sync_from_rabbitmq
+
+local-federation-up:
+	@mkdir -p local_federation/certs
+	@if [ ! -f "$(LOCAL_FED_ENV)" ]; then \
+		printf '%s\n' \
+		"# Local-only SpectraStrike federation runtime config (gitignored)" \
+		"HOST_INTEGRATION_ACTOR=op-001" \
+		"SPECTRASTRIKE_TENANT_ID=10000000-0000-0000-0000-000000000001" \
+		"VECTORVUE_FEDERATION_URL=https://127.0.0.1" \
+		"VECTORVUE_FEDERATION_SERVICE_IDENTITY=spectrastrike-producer" \
+		"VECTORVUE_FEDERATION_CLIENT_CERT_SHA256=a8525203fbc1ecf03b1ccf2d21b9f6faeeb8d84ba291a823d24c087cb4ca48df" \
+		"VECTORVUE_FEDERATION_MTLS_CERT_FILE=/home/xoce/Workspace/VectorVue/deploy/certs/client.crt" \
+		"VECTORVUE_FEDERATION_MTLS_KEY_FILE=/home/xoce/Workspace/VectorVue/deploy/certs/client.key" \
+		"VECTORVUE_VERIFY_TLS_CA_FILE=/home/xoce/Workspace/VectorVue/deploy/certs/ca.crt" \
+		"VECTORVUE_FEDERATION_SIGNING_KEY_PATH=/home/xoce/Workspace/VectorVue/deploy/certs/spectrastrike_ed25519.key" \
+		"VECTORVUE_FEEDBACK_VERIFY_KEYS_JSON={\"default\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}" \
+		> "$(LOCAL_FED_ENV)"; \
+	fi
+	@if [ ! -f "$(LOCAL_FED_OVERRIDE)" ]; then \
+		printf '%s\n' \
+		"services:" \
+		"  app:" \
+		"    env_file:" \
+		"      - ./local_federation/.env.spectrastrike.local" \
+		"    volumes:" \
+		"      - ./local_federation/certs:/opt/spectrastrike/local_federation/certs:ro" \
+		> "$(LOCAL_FED_OVERRIDE)"; \
+	fi
+	@$(MAKE) -C ../VectorVue local-federation-up
+	docker compose --env-file $(LOCAL_FED_ENV) -f docker-compose.dev.yml -f $(LOCAL_FED_OVERRIDE) up -d --build
 
 full-regression: qa security-gate
 

@@ -1,3 +1,10 @@
+<!--
+Copyright (c) 2026 NyxeraLabs
+Author: Jose Maria Micoli
+Licensed under BSL 1.1
+Change Date: 2033-02-22 -> Apache-2.0
+-->
+
 # SpectraStrike Federation Configuration
 
 This folder stores local/operator-managed federation artifacts for the
@@ -19,14 +26,14 @@ Required runtime values:
 - `VECTORVUE_FEDERATION_SCHEMA_VERSION`
 - `VECTORVUE_FEDERATION_ENFORCE_SCHEMA_VERSION`
 - `VECTORVUE_FEDERATION_OPERATOR_ID`
-- `VECTORVUE_SIGNATURE_SECRET` (required for signed feedback verification)
+- `VECTORVUE_FEEDBACK_VERIFY_KEYS_JSON` (required keyring for signed feedback verification)
 
 Artifact exchange checklist:
 
 1. Place client cert/key/CA files outside git-tracked paths.
 2. Deliver SpectraStrike Ed25519 public key to VectorVue.
 3. Register cert fingerprint and operator->tenant mapping in VectorVue gateway.
-4. Share feedback signing secret with SpectraStrike runtime in a secure secret store.
+4. Share VectorVue feedback Ed25519 verify key(s) with SpectraStrike runtime keyring.
 
 Sprint 31 cognitive endpoints:
 
@@ -35,9 +42,11 @@ Sprint 31 cognitive endpoints:
 
 Feedback contract enforcement:
 
-- `signature` (HMAC-SHA256 over canonical adjustment array)
+- `signature` (Ed25519 over canonical adjustment array + tenant/timestamp/nonce/schema/kid)
 - `signed_at` (unix epoch seconds)
 - `nonce` (single-use replay token)
+- `kid` (feedback signing key id for rotation)
+- `signature_algorithm` (`Ed25519`)
 - `schema_version` (`feedback.response.v1`)
 - each adjustment includes `execution_fingerprint`, `tenant_id`, `timestamp`, `schema_version`
 

@@ -57,6 +57,7 @@ class _QAClient:
                     "ttl_seconds": 1800,
                     "timestamp": 1760000000,
                     "schema_version": "feedback.adjustment.v1",
+                    "attestation_measurement_hash": "b" * 64,
                 }
             ],
             errors=[],

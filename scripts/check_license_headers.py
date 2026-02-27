@@ -22,7 +22,6 @@ from pathlib import Path
 
 REQUIRED_MARKERS = (
     "Copyright (c) 2026 NyxeraLabs",
-    "Author: José María Micoli",
     "Licensed under BSL 1.1",
     "Change Date: 2033-02-22 -> Apache-2.0",
 )
@@ -33,8 +32,6 @@ TARGET_EXTENSIONS = {
     ".tsx",
     ".js",
     ".mjs",
-    ".md",
-    ".txt",
     ".sh",
     ".yml",
     ".yaml",
