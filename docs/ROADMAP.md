@@ -396,7 +396,7 @@ Sell derived competing products
 - [x] Define root generation cadence
 - [x] Define root signing procedure
 - [x] Define inclusion proof structure
-- [ ] Commit Sprint 25 Ledger Model Definition
+- [x] Commit Sprint 25 Ledger Model Definition
 
 ## Sprint 26 (Week 49-50): Ledger Core Implementation
 - [x] Implement append-only Merkle tree
@@ -405,15 +405,15 @@ Sell derived competing products
 - [x] Sign root with Control Plane signing authority
 - [x] Implement root verification routine
 - [x] Add tamper simulation test
-- [ ] Commit Sprint 26 Ledger Core Implementation
+- [x] Commit Sprint 26 Ledger Core Implementation
 
 ## Sprint 27 (Week 51-52): Ledger Verification & Export
-- [ ] Implement inclusion proof API
-- [ ] Implement deterministic rebuild mode
-- [ ] Implement ledger snapshot export
-- [ ] Implement read-only verifier node
-- [ ] Validate DB tampering detection via root mismatch
-- [ ] Commit Sprint 27 Ledger Verification & Export
+- [x] Implement inclusion proof API
+- [x] Implement deterministic rebuild mode
+- [x] Implement ledger snapshot export
+- [x] Implement read-only verifier node
+- [x] Validate DB tampering detection via root mismatch
+- [x] Commit Sprint 27 Ledger Verification & Export
 
 
 # Phase 7: C2 Trust Extension Layer

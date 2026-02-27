@@ -25,6 +25,7 @@ from pkg.orchestrator.merkle_ledger import (
     HMACRootSigningAuthority,
     ImmutableExecutionLeafStore,
     MerkleLedgerError,
+    ReadOnlyMerkleVerifierNode,
 )
 
 
@@ -124,3 +125,57 @@ def test_tamper_simulation_detects_immutable_leaf_mutation(tmp_path) -> None:
         assert "mismatch" in str(exc)
     else:
         raise AssertionError("expected immutable tamper detection to fail")
+
+
+def test_inclusion_proof_api_and_snapshot_export(tmp_path) -> None:
+    signer = HMACRootSigningAuthority(secret=b"proof-secret")
+    store = ImmutableExecutionLeafStore(storage_path=tmp_path / "execution_leaves.jsonl")
+    ledger = AppendOnlyMerkleLedger(
+        store=store,
+        signer=signer,
+        root_cadence=RootGenerationCadence(every_n_leaves=2),
+    )
+    _append_sample(ledger, idx=1)
+    _append_sample(ledger, idx=2)
+
+    proof = ledger.build_inclusion_proof(leaf_index=1)
+    assert proof.leaf_index == 1
+    assert proof.merkle_root == ledger.signed_roots[-1].root_hash
+    assert len(proof.audit_path) >= 1
+
+    snapshot = tmp_path / "snapshot.json"
+    ledger.export_snapshot(output_path=snapshot)
+    assert snapshot.exists()
+
+
+def test_read_only_verifier_detects_root_mismatch_tampering(tmp_path) -> None:
+    signer = HMACRootSigningAuthority(secret=b"verify-node-secret")
+    store = ImmutableExecutionLeafStore(storage_path=tmp_path / "execution_leaves.jsonl")
+    ledger = AppendOnlyMerkleLedger(
+        store=store,
+        signer=signer,
+        root_cadence=RootGenerationCadence(every_n_leaves=2),
+    )
+    _append_sample(ledger, idx=1)
+    _append_sample(ledger, idx=2)
+    snapshot = tmp_path / "snapshot.json"
+    ledger.export_snapshot(output_path=snapshot)
+
+    verifier = ReadOnlyMerkleVerifierNode.from_snapshot_file(
+        snapshot_path=snapshot,
+        signer=signer,
+    )
+    assert verifier.validate_db_tampering_detection() is False
+
+    tampered_payload = json.loads(snapshot.read_text(encoding="utf-8"))
+    tampered_payload["records"][0]["leaf"]["tenant_id"] = "tampered-tenant"
+    snapshot.write_text(
+        json.dumps(tampered_payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True),
+        encoding="utf-8",
+    )
+
+    tampered_verifier = ReadOnlyMerkleVerifierNode.from_snapshot_file(
+        snapshot_path=snapshot,
+        signer=signer,
+    )
+    assert tampered_verifier.validate_db_tampering_detection() is True

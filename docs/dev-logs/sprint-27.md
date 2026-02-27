@@ -9,33 +9,41 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 ## Program Context
 
-- Phase: Phase 7
+- Phase: Phase 6
 - Sprint: Sprint 27
-- Status: Planned
-- Primary Architecture Layers: Telemetry Ingestion, Reporting / Compliance
+- Status: Completed
+- Primary Architecture Layers: Audit & State Plane, Verification Plane
 
 ## Architectural Intent
 
-Validate manual test ingestion and telemetry delivery reliability.
+Implement ledger verification and export capabilities over Sprint 26 append-only core.
 
 ## Implementation Detail
 
-QA strategy includes end-to-end ingestion tests, authorization checks, and evidence chain verification.
+Implemented:
+
+- Inclusion proof API over signed Merkle roots with deterministic audit path construction.
+- Deterministic rebuild mode from immutable leaf records for independent root recomputation.
+- Ledger snapshot export in canonical JSON form for verifier-node distribution.
+- Read-only verifier node runtime loading snapshots without write access.
+- Root mismatch tamper detection validation path for mutated snapshot/DB evidence.
 
 ## Security and Control Posture
 
-- AAA scope and authorization boundaries are enforced according to current orchestrator policy.
-- Telemetry and audit events are expected to remain structured, attributable, and export-ready.
-- Integration interfaces are maintained as loosely coupled contracts to preserve VectorVue interoperability.
+- Inclusion proof structure is immutable and root-signature bound.
+- Verifier node independently recomputes roots and validates signatures.
+- Tampered evidence chains are detected by deterministic root mismatch.
 
 ## QA and Validation Evidence
 
-Planned QA suite with valid/invalid payload scenarios and telemetry assertions.
+- Unit tests validate inclusion proof generation, snapshot export, read-only verifier behavior, and tamper detection.
+- Sprint QA test verifies roadmap completion lines and expected Sprint 27 verifier/export contracts.
 
 ## Risk Register
 
-Risk is inconsistent operator-provided data quality; mitigation through enforced schema and rejection semantics.
+- Risk: verifier node currently trusts snapshot file transport channel.
+- Mitigation: distribute snapshots over signed transport and pin source identity in Phase 7.
 
 ## Forward Linkage
 
-Sprint 28 begins AI pentest module integration.
+Sprint 28 binds C2 adapter execution flow into this verified ledger chain.
