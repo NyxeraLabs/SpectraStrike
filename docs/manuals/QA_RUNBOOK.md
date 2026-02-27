@@ -122,6 +122,8 @@ make host-integration-smoke
 PYTHONPATH=src .venv/bin/python -m pkg.integration.host_integration_smoke \
   --tenant-id "$SPECTRASTRIKE_TENANT_ID" \
   --check-metasploit-rpc \
+  --check-sliver-command \
+  --check-mythic-task \
   --check-vectorvue
 
 # optional standalone broker drain -> VectorVue federation gateway sync
@@ -130,6 +132,11 @@ make vectorvue-rabbitmq-sync
 
 Expected output shape:
 - `HOST_SMOKE tenant_id=... nmap_binary_ok=True nmap_scan_ok=True telemetry_ingest_ok=True metasploit_binary_ok=True`
+- when Sliver/Mythic checks are enabled:
+  - `sliver_binary_ok=True`
+  - `sliver_command_ok=True`
+  - `mythic_binary_ok=True`
+  - `mythic_task_ok=True`
 - When `--check-vectorvue` is enabled:
   - `rabbitmq_publish_ok=True`
   - `vectorvue_ok=True`

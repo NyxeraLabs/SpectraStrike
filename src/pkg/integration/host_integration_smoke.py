@@ -28,8 +28,11 @@ from pkg.integration.vectorvue.config import VectorVueConfig
 from pkg.integration.vectorvue.rabbitmq_bridge import InMemoryVectorVueBridge
 from pkg.orchestrator.messaging import InMemoryRabbitBroker, RabbitMQTelemetryPublisher
 from pkg.orchestrator.telemetry_ingestion import TelemetryIngestionPipeline
+from pkg.telemetry.sdk import build_internal_telemetry_event
 from pkg.wrappers.metasploit import MetasploitConfig, MetasploitWrapper
+from pkg.wrappers.mythic import MythicTaskRequest, MythicWrapper
 from pkg.wrappers.nmap import NmapScanOptions, NmapWrapper
+from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
 
 class HostIntegrationError(RuntimeError):
@@ -46,6 +49,10 @@ class HostIntegrationResult:
     telemetry_ingest_ok: bool = False
     metasploit_binary_ok: bool = False
     metasploit_rpc_ok: bool | None = None
+    sliver_binary_ok: bool | None = None
+    sliver_command_ok: bool | None = None
+    mythic_binary_ok: bool | None = None
+    mythic_task_ok: bool | None = None
     rabbitmq_publish_ok: bool | None = None
     vectorvue_ok: bool | None = None
     vectorvue_event_status: str | None = None
@@ -119,6 +126,8 @@ def run_host_integration_smoke(
     nmap_target: str = "127.0.0.1",
     timeout_seconds: float = 8.0,
     check_metasploit_rpc: bool = False,
+    check_sliver_command: bool = False,
+    check_mythic_task: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
     """Execute host integration smoke path for Sprint 16.8."""
@@ -128,6 +137,11 @@ def run_host_integration_smoke(
         "HOST_INTEGRATION_ACTOR",
         "host-integration-smoke",
     )
+    metasploit_version_output = ""
+    sliver_wrapper: SliverWrapper | None = None
+    sliver_result: object | None = None
+    mythic_wrapper: MythicWrapper | None = None
+    mythic_result: object | None = None
 
     _require_binary("nmap")
     _run_command(["nmap", "--version"], timeout_seconds)
@@ -159,7 +173,7 @@ def run_host_integration_smoke(
     result.checks.append("telemetry.ingest")
 
     _require_binary("msfconsole")
-    _run_command(["msfconsole", "--version"], timeout_seconds)
+    metasploit_version_output = _run_command(["msfconsole", "--version"], timeout_seconds)
     result.metasploit_binary_ok = True
     result.checks.append("metasploit.version")
 
@@ -168,6 +182,61 @@ def run_host_integration_smoke(
         wrapper.connect()
         result.metasploit_rpc_ok = True
         result.checks.append("metasploit.rpc")
+
+    if check_sliver_command:
+        _require_binary(os.getenv("SLIVER_BINARY", "sliver-client"))
+        sliver_binary = os.getenv("SLIVER_BINARY", "sliver-client")
+        try:
+            _run_command([sliver_binary, "--version"], timeout_seconds)
+        except Exception:
+            _run_command([sliver_binary, "version"], timeout_seconds)
+        result.sliver_binary_ok = True
+        result.checks.append("sliver.version")
+        sliver_wrapper = SliverWrapper(timeout_seconds=timeout_seconds)
+        sliver_result = sliver_wrapper.execute(
+            SliverCommandRequest(
+                target=nmap_target,
+                command="whoami",
+                extra_args=["--dry-run"],
+            )
+        )
+        sliver_event = sliver_wrapper.send_to_orchestrator(
+            sliver_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            actor=integration_actor,
+        )
+        result.sliver_command_ok = (
+            sliver_event.event_type == "sliver_command_completed"
+            and sliver_event.tenant_id == resolved_tenant
+        )
+        result.checks.append("sliver.command")
+
+    if check_mythic_task:
+        _require_binary(os.getenv("MYTHIC_BINARY", "mythic-cli"))
+        _run_command([os.getenv("MYTHIC_BINARY", "mythic-cli"), "--version"], timeout_seconds)
+        result.mythic_binary_ok = True
+        result.checks.append("mythic.version")
+        mythic_wrapper = MythicWrapper(timeout_seconds=timeout_seconds)
+        mythic_result = mythic_wrapper.execute(
+            MythicTaskRequest(
+                target=nmap_target,
+                operation="spectra-smoke",
+                command="pwd",
+                extra_args=["--dry-run"],
+            )
+        )
+        mythic_event = mythic_wrapper.send_to_orchestrator(
+            mythic_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            actor=integration_actor,
+        )
+        result.mythic_task_ok = (
+            mythic_event.event_type == "mythic_task_completed"
+            and mythic_event.tenant_id == resolved_tenant
+        )
+        result.checks.append("mythic.task")
 
     if check_vectorvue:
         broker = InMemoryRabbitBroker()
@@ -179,6 +248,33 @@ def run_host_integration_smoke(
             tenant_id=resolved_tenant,
             actor=integration_actor,
         )
+        telemetry_with_broker.ingest_payload(
+            build_internal_telemetry_event(
+                event_type="metasploit_binary_detected",
+                actor=integration_actor,
+                target="orchestrator",
+                status="success",
+                tenant_id=resolved_tenant,
+                attributes={
+                    "binary": "msfconsole",
+                    "version_output": metasploit_version_output,
+                },
+            )
+        )
+        if check_sliver_command and sliver_wrapper is not None and sliver_result is not None:
+            sliver_wrapper.send_to_orchestrator(
+                sliver_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                actor=integration_actor,
+            )
+        if check_mythic_task and mythic_wrapper is not None and mythic_result is not None:
+            mythic_wrapper.send_to_orchestrator(
+                mythic_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                actor=integration_actor,
+            )
         publish_result = asyncio.run(telemetry_with_broker.flush_all_async())
         result.rabbitmq_publish_ok = publish_result.published > 0
         result.checks.append("rabbitmq.publish")
@@ -230,6 +326,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="authenticate against MSF RPC endpoint from MSF_RPC_* env",
     )
     parser.add_argument(
+        "--check-sliver-command",
+        action="store_true",
+        help="execute one Sliver dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-mythic-task",
+        action="store_true",
+        help="execute one Mythic dry-run task and emit SDK telemetry",
+    )
+    parser.add_argument(
         "--check-vectorvue",
         action="store_true",
         help="run VectorVue API smoke using VECTORVUE_* env",
@@ -246,6 +352,8 @@ def main() -> int:
         nmap_target=args.nmap_target,
         timeout_seconds=args.timeout_seconds,
         check_metasploit_rpc=args.check_metasploit_rpc,
+        check_sliver_command=args.check_sliver_command,
+        check_mythic_task=args.check_mythic_task,
         check_vectorvue=args.check_vectorvue,
     )
 
@@ -257,6 +365,10 @@ def main() -> int:
         f" telemetry_ingest_ok={result.telemetry_ingest_ok}"
         f" metasploit_binary_ok={result.metasploit_binary_ok}"
         f" metasploit_rpc_ok={result.metasploit_rpc_ok}"
+        f" sliver_binary_ok={result.sliver_binary_ok}"
+        f" sliver_command_ok={result.sliver_command_ok}"
+        f" mythic_binary_ok={result.mythic_binary_ok}"
+        f" mythic_task_ok={result.mythic_task_ok}"
         f" rabbitmq_publish_ok={result.rabbitmq_publish_ok}"
         f" vectorvue_ok={result.vectorvue_ok}"
         f" vectorvue_event_status={result.vectorvue_event_status}"

@@ -23,12 +23,24 @@ from pkg.wrappers.metasploit import (
     MetasploitWrapper,
     SessionTranscript,
 )
+from pkg.wrappers.mythic import (
+    MythicExecutionError,
+    MythicTaskRequest,
+    MythicTaskResult,
+    MythicWrapper,
+)
 from pkg.wrappers.nmap import (
     NmapExecutionError,
     NmapScanHost,
     NmapScanOptions,
     NmapScanResult,
     NmapWrapper,
+)
+from pkg.wrappers.sliver import (
+    SliverCommandRequest,
+    SliverCommandResult,
+    SliverExecutionError,
+    SliverWrapper,
 )
 
 __all__ = [
@@ -38,10 +50,18 @@ __all__ = [
     "MetasploitRPCError",
     "MetasploitTransportError",
     "MetasploitWrapper",
+    "MythicExecutionError",
+    "MythicTaskRequest",
+    "MythicTaskResult",
+    "MythicWrapper",
     "NmapExecutionError",
     "NmapScanHost",
     "NmapScanOptions",
     "NmapScanResult",
     "NmapWrapper",
     "SessionTranscript",
+    "SliverCommandRequest",
+    "SliverCommandResult",
+    "SliverExecutionError",
+    "SliverWrapper",
 ]
