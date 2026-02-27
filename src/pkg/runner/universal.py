@@ -23,6 +23,12 @@ from typing import Callable
 from pkg.armory.service import ArmoryService, ArmoryTool
 from pkg.orchestrator.manifest import ExecutionManifest
 from pkg.runner.cloudevents import CloudEventEnvelope, map_execution_to_cloudevent
+from pkg.runner.firecracker import (
+    FirecrackerIsolationError,
+    FirecrackerMicroVMProfile,
+    FirecrackerMicroVMRunner,
+    RuntimeAttestationReport,
+)
 from pkg.runner.jws_verify import RunnerJWSVerifier
 from pkg.runner.network_policy import CiliumPolicyManager, RunnerNetworkPolicy
 
@@ -35,9 +41,11 @@ class RunnerExecutionError(RuntimeError):
 class RunnerSandboxProfile:
     """Sandbox profile abstraction: gVisor preferred, AppArmor fallback."""
 
+    backend: str = "docker"
     runtime: str = "runsc"
     apparmor_profile: str = "spectrastrike-default"
     network_mode: str = "none"
+    firecracker_profile: FirecrackerMicroVMProfile | None = None
 
 
 @dataclass(slots=True)
@@ -48,6 +56,7 @@ class RunnerExecutionResult:
     stdout: str
     stderr: str
     event: CloudEventEnvelope
+    attestation_report: RuntimeAttestationReport | None = None
 
 
 class UniversalEdgeRunner:
@@ -63,12 +72,17 @@ class UniversalEdgeRunner:
             Callable[[list[str]], subprocess.CompletedProcess[str]] | None
         ) = None,
         policy_manager: CiliumPolicyManager | None = None,
+        firecracker_runner: FirecrackerMicroVMRunner | None = None,
     ) -> None:
         self._armory = armory
         self._jws_verifier = jws_verifier or RunnerJWSVerifier()
         self._sandbox = sandbox or RunnerSandboxProfile()
         self._command_runner = command_runner or self._default_command_runner
         self._policy_manager = policy_manager
+        self._firecracker_runner = firecracker_runner or FirecrackerMicroVMRunner(
+            profile=self._sandbox.firecracker_profile
+            or FirecrackerMicroVMProfile(launch_mode="simulate")
+        )
 
     def verify_manifest_jws(
         self,
@@ -105,6 +119,10 @@ class UniversalEdgeRunner:
         manifest: ExecutionManifest,
     ) -> list[str]:
         """Build strict container execution command with isolation controls."""
+        if self._sandbox.backend == "firecracker":
+            return self._firecracker_runner.build_microvm_command(
+                manifest=manifest, tool=tool
+            )
         return [
             "docker",
             "run",
@@ -129,6 +147,28 @@ class UniversalEdgeRunner:
         command: list[str],
     ) -> RunnerExecutionResult:
         """Execute isolated command and map output contract to CloudEvents."""
+        attestation_report: RuntimeAttestationReport | None = None
+        execution_metadata: dict[str, object] | None = None
+        if self._sandbox.backend == "firecracker":
+            if self._firecracker_runner.simulate_breakout_attempt(command):
+                raise RunnerExecutionError("microvm breakout attempt detected")
+            try:
+                isolation_checks = (
+                    self._firecracker_runner.verify_hardware_isolation_boundary()
+                )
+            except FirecrackerIsolationError as exc:
+                raise RunnerExecutionError(str(exc)) from exc
+            attestation_report = self._firecracker_runner.build_runtime_attestation_report(
+                manifest=manifest,
+                tool=self.resolve_signed_tool(manifest),
+                execution_command=command,
+                isolation_checks=isolation_checks,
+            )
+            execution_metadata = {
+                "runtime": "firecracker",
+                "attestation": attestation_report.to_dict(),
+            }
+
         completed = self._command_runner(command)
         event = map_execution_to_cloudevent(
             task_id=manifest.task_context.task_id,
@@ -139,12 +179,14 @@ class UniversalEdgeRunner:
             stdout=completed.stdout,
             stderr=completed.stderr,
             manifest_jws=manifest_jws,
+            execution_metadata=execution_metadata,
         )
         return RunnerExecutionResult(
             exit_code=completed.returncode,
             stdout=completed.stdout,
             stderr=completed.stderr,
             event=event,
+            attestation_report=attestation_report,
         )
 
     def apply_dynamic_network_policy(

@@ -15,6 +15,12 @@
 """Universal Edge Runner and execution-contract primitives."""
 
 from .cloudevents import CloudEventEnvelope, map_execution_to_cloudevent
+from .firecracker import (
+    FirecrackerIsolationError,
+    FirecrackerMicroVMProfile,
+    FirecrackerMicroVMRunner,
+    RuntimeAttestationReport,
+)
 from .jws_verify import JWSVerificationError, RunnerJWSVerifier
 from .network_policy import (
     CiliumPolicyManager,
@@ -36,6 +42,10 @@ __all__ = [
     "CiliumPolicyManager",
     "CloudEventEnvelope",
     "map_execution_to_cloudevent",
+    "FirecrackerIsolationError",
+    "FirecrackerMicroVMProfile",
+    "FirecrackerMicroVMRunner",
+    "RuntimeAttestationReport",
     "RunnerSandboxProfile",
     "RunnerExecutionError",
     "RunnerExecutionResult",
