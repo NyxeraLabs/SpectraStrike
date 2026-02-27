@@ -52,15 +52,19 @@ class _FakeCognitiveClient:
             data=[
                 {
                     "tenant_id": "tenant-a",
+                    "execution_fingerprint": "a" * 64,
                     "target_urn": "urn:target:ip:10.0.0.5",
                     "action": "tighten",
                     "confidence": 0.91,
                     "rationale": "repeated suspicious process injection",
                     "control": "execution",
                     "ttl_seconds": 1800,
+                    "timestamp": 1760000000,
+                    "schema_version": "feedback.adjustment.v1",
                 }
             ],
             errors=[],
+            verified=True,
             http_status=200,
         )
 
@@ -120,3 +124,23 @@ def test_compute_defensive_effectiveness_metrics() -> None:
     assert metrics.detection_rate == 0.5
     assert metrics.prevention_rate == 0.5
     assert metrics.feedback_coverage == 0.25
+
+
+def test_rejects_unsigned_feedback_response() -> None:
+    class _UnsignedClient(_FakeCognitiveClient):
+        def fetch_feedback_adjustments(
+            self, tenant_id: str, limit: int = 100
+        ) -> ResponseEnvelope:
+            response = super().fetch_feedback_adjustments(tenant_id, limit)
+            response.verified = False
+            return response
+
+    service = CognitiveFeedbackLoopService(
+        client=_UnsignedClient(),
+        policy_engine=FeedbackPolicyEngine(),
+    )
+    try:
+        service.sync_feedback_adjustments("tenant-a", limit=10)
+        assert False, "expected unsigned feedback response to be rejected"
+    except ValueError as exc:
+        assert str(exc) == "unsigned_or_unverified_feedback_response"

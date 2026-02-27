@@ -162,7 +162,9 @@ def test_send_event_sets_idempotency_key() -> None:
     assert headers["Authorization"] == "Bearer jwt"
 
 
-def test_send_execution_graph_metadata_uses_cognitive_endpoint() -> None:
+def test_send_execution_graph_metadata_uses_cognitive_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     session = FakeSession(
         [
             FakeResponse(
@@ -172,23 +174,37 @@ def test_send_execution_graph_metadata_uses_cognitive_endpoint() -> None:
         ]
     )
     client = VectorVueClient(_config_with_creds(token="jwt"), session=session)
+    monkeypatch.setattr(
+        client,
+        "_build_federation_headers",
+        lambda **_: {
+            "X-Service-Identity": "spectrastrike-producer",
+            "X-Client-Cert-Sha256": "a" * 64,
+            "X-Telemetry-Timestamp": "1760000000",
+            "X-Telemetry-Nonce": "nonce-graph",
+            "X-Telemetry-Signature": "sig",
+        },
+    )
 
     envelope = client.send_execution_graph_metadata(
         {
             "graph_id": "g-001",
             "tenant_id": "10000000-0000-0000-0000-000000000001",
+            "execution_fingerprint": "f" * 64,
+            "operator_id": "op-001",
             "nodes": [{"id": "n1", "type": "task"}],
             "edges": [],
         }
     )
 
     assert envelope.ok
-    assert session.calls[0]["url"].endswith(
-        "/api/v1/integrations/spectrastrike/execution-graph"
-    )
+    assert session.calls[0]["url"].endswith("/internal/v1/cognitive/execution-graph")
+    assert "Authorization" not in session.calls[0]["headers"]
 
 
-def test_fetch_feedback_adjustments_uses_expected_query() -> None:
+def test_fetch_feedback_adjustments_uses_expected_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     session = FakeSession(
         [
             FakeResponse(
@@ -198,26 +214,52 @@ def test_fetch_feedback_adjustments_uses_expected_query() -> None:
                     "status": "accepted",
                     "data": [
                         {
-                            "tenant_id": "tenant-a",
+                            "tenant_id": "10000000-0000-0000-0000-000000000001",
+                            "execution_fingerprint": "e" * 64,
                             "target_urn": "urn:target:ip:10.0.0.5",
                             "action": "tighten",
                             "confidence": 0.91,
+                            "rationale": "risk cluster",
+                            "timestamp": 1760000000,
+                            "schema_version": "feedback.adjustment.v1",
                         }
                     ],
                     "errors": [],
+                    "signed_at": 1760000001,
+                    "nonce": "feedback-nonce-1",
+                    "signature": "placeholder",
                 },
             )
         ]
     )
-    client = VectorVueClient(_config_with_creds(token="jwt"), session=session)
+    client = VectorVueClient(
+        _config_with_creds(token="jwt", signature_secret="feedback-secret"),
+        session=session,
+    )
+    monkeypatch.setattr(
+        client,
+        "_build_federation_headers",
+        lambda **_: {
+            "X-Service-Identity": "spectrastrike-producer",
+            "X-Client-Cert-Sha256": "a" * 64,
+            "X-Telemetry-Timestamp": "1760000000",
+            "X-Telemetry-Nonce": "nonce-feedback",
+            "X-Telemetry-Signature": "sig",
+        },
+    )
+    monkeypatch.setattr(client, "_enforce_feedback_replay", lambda **_: None)
+    monkeypatch.setattr(client, "_verify_feedback_signature", lambda **_: None)
 
-    envelope = client.fetch_feedback_adjustments("tenant-a", limit=25)
+    envelope = client.fetch_feedback_adjustments(
+        "10000000-0000-0000-0000-000000000001",
+        limit=25,
+    )
 
     assert envelope.ok
-    assert (
-        "/api/v1/integrations/spectrastrike/feedback/adjustments?tenant_id=tenant-a&limit=25"
-        in session.calls[0]["url"]
+    assert session.calls[0]["url"].endswith(
+        "/internal/v1/cognitive/feedback/adjustments/query"
     )
+    assert "Authorization" not in session.calls[0]["headers"]
 
 
 def test_fetch_feedback_adjustments_rejects_invalid_input() -> None:
@@ -228,6 +270,44 @@ def test_fetch_feedback_adjustments_rejects_invalid_input() -> None:
         client.fetch_feedback_adjustments("", limit=10)
     with pytest.raises(VectorVueSerializationError, match="limit must be greater than zero"):
         client.fetch_feedback_adjustments("tenant-a", limit=0)
+
+
+def test_fetch_feedback_adjustments_rejects_unsigned_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = FakeSession(
+        [
+            FakeResponse(
+                200,
+                {
+                    "request_id": "fb-unsigned",
+                    "status": "accepted",
+                    "data": [],
+                    "errors": [],
+                },
+            )
+        ]
+    )
+    client = VectorVueClient(
+        _config_with_creds(token="jwt", signature_secret="feedback-secret"),
+        session=session,
+    )
+    monkeypatch.setattr(
+        client,
+        "_build_federation_headers",
+        lambda **_: {
+            "X-Service-Identity": "spectrastrike-producer",
+            "X-Client-Cert-Sha256": "a" * 64,
+            "X-Telemetry-Timestamp": "1760000000",
+            "X-Telemetry-Nonce": "nonce-feedback",
+            "X-Telemetry-Signature": "sig",
+        },
+    )
+    with pytest.raises(VectorVueSerializationError, match="signed feedback response"):
+        client.fetch_feedback_adjustments(
+            "10000000-0000-0000-0000-000000000001",
+            limit=10,
+        )
 
 
 def test_send_federated_telemetry_uses_internal_gateway_path(

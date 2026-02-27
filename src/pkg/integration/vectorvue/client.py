@@ -27,7 +27,7 @@ import subprocess
 import tempfile
 import time
 from typing import Any
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urljoin
 
 import requests
 from requests import Response, Session
@@ -55,6 +55,7 @@ class VectorVueClient:
         self._config = config
         self._session = session or requests.Session()
         self._token = config.token
+        self._seen_feedback_nonces: dict[str, int] = {}
 
     def login(self) -> str:
         """Authenticate with VectorVue and cache bearer token."""
@@ -334,11 +335,46 @@ class VectorVueClient:
         graph: dict[str, Any],
     ) -> ResponseEnvelope:
         """Push execution graph metadata for VectorVue cognitive processing."""
+        tenant_id = str(graph.get("tenant_id", "")).strip()
+        execution_fingerprint = str(
+            graph.get("execution_fingerprint", "")
+        ).strip().lower()
+        if not tenant_id:
+            raise VectorVueSerializationError("execution graph tenant_id is required")
+        if len(execution_fingerprint) != 64:
+            raise VectorVueSerializationError(
+                "execution graph execution_fingerprint must be 64-char sha256"
+            )
+        operator_id = str(
+            graph.get("operator_id")
+            or graph.get("actor")
+            or os.getenv("VECTORVUE_FEDERATION_OPERATOR_ID", "")
+        ).strip()
+        if not operator_id:
+            raise VectorVueSerializationError(
+                "execution graph operator_id is required"
+            )
+        payload = {
+            "operator_id": operator_id,
+            "tenant_id": tenant_id,
+            "execution_fingerprint": execution_fingerprint,
+            "timestamp": int(time.time()),
+            "nonce": secrets.token_urlsafe(18),
+            "schema_version": str(graph.get("schema_version", "execution.graph.v1")),
+            "graph": graph,
+        }
+        _, body = self._serialize_payload(payload)
+        if body is None:
+            raise VectorVueSerializationError("execution graph payload is required")
+        headers = self._build_federation_headers(raw_body=body, telemetry=payload)
         return self._request(
             method="POST",
-            path="/api/v1/integrations/spectrastrike/execution-graph",
-            json_payload=graph,
+            path="/internal/v1/cognitive/execution-graph",
+            json_payload=payload,
+            include_auth=False,
+            extra_headers=headers,
             raise_api_error=True,
+            include_legacy_signature=False,
         )
 
     def fetch_feedback_adjustments(
@@ -351,12 +387,38 @@ class VectorVueClient:
             raise VectorVueSerializationError("tenant_id is required")
         if limit <= 0:
             raise VectorVueSerializationError("limit must be greater than zero")
-        query = urlencode({"tenant_id": tenant_id, "limit": str(limit)})
-        return self._request(
-            method="GET",
-            path=f"/api/v1/integrations/spectrastrike/feedback/adjustments?{query}",
-            raise_api_error=True,
+        operator_id = str(
+            os.getenv("VECTORVUE_FEDERATION_OPERATOR_ID", "")
+            or self._config.username
+            or ""
+        ).strip()
+        if not operator_id:
+            raise VectorVueSerializationError("feedback query operator_id is required")
+        query_payload = {
+            "operator_id": operator_id,
+            "tenant_id": tenant_id,
+            "timestamp": int(time.time()),
+            "nonce": secrets.token_urlsafe(18),
+            "limit": int(limit),
+        }
+        _, body = self._serialize_payload(query_payload)
+        if body is None:
+            raise VectorVueSerializationError("feedback query payload is required")
+        headers = self._build_federation_headers(
+            raw_body=body,
+            telemetry=query_payload,
         )
+        envelope = self._request(
+            method="POST",
+            path="/internal/v1/cognitive/feedback/adjustments/query",
+            json_payload=query_payload,
+            include_auth=False,
+            extra_headers=headers,
+            raise_api_error=True,
+            include_legacy_signature=False,
+        )
+        self._verify_feedback_signature(envelope=envelope, tenant_id=tenant_id)
+        return envelope
 
     def send_findings_batch(self, findings: list[dict[str, Any]]) -> ResponseEnvelope:
         """Send a batch of SpectraStrike findings."""
@@ -548,9 +610,63 @@ class VectorVueClient:
             data=parsed_data,
             errors=self._coerce_errors(payload.get("errors")),
             signature=payload.get("signature"),
+            signed_at=self._parse_int(payload.get("signed_at")),
+            nonce=str(payload.get("nonce", "")).strip() or None,
+            schema_version=str(payload.get("schema_version", "")).strip() or None,
             http_status=response.status_code,
             headers={k: v for k, v in response.headers.items()},
         )
+
+    def _parse_int(self, value: Any) -> int | None:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    def _verify_feedback_signature(
+        self,
+        *,
+        envelope: ResponseEnvelope,
+        tenant_id: str,
+    ) -> None:
+        data = envelope.data if isinstance(envelope.data, list) else None
+        signature = (envelope.signature or "").strip().lower()
+        signed_at = envelope.signed_at
+        nonce = (envelope.nonce or "").strip()
+        secret = (self._config.signature_secret or "").strip()
+        if data is None:
+            raise VectorVueSerializationError("feedback response data must be an array")
+        if not (signature and signed_at and nonce and secret):
+            raise VectorVueSerializationError("signed feedback response is required")
+        self._enforce_feedback_replay(nonce=nonce, signed_at=signed_at)
+        canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
+        signing_input = f"{tenant_id}|{signed_at}|{nonce}|{canonical}"
+        expected = hmac.new(
+            secret.encode("utf-8"),
+            signing_input.encode("utf-8"),
+            hashlib.sha256,
+        ).hexdigest()
+        if not hmac.compare_digest(expected, signature):
+            raise VectorVueSerializationError(
+                "feedback response signature verification failed"
+            )
+        envelope.verified = True
+
+    def _enforce_feedback_replay(self, *, nonce: str, signed_at: int) -> None:
+        now = int(time.time())
+        ttl = 300
+        self._seen_feedback_nonces = {
+            key: ts for key, ts in self._seen_feedback_nonces.items() if ts >= now - ttl
+        }
+        if nonce in self._seen_feedback_nonces:
+            raise VectorVueSerializationError(
+                "feedback replay detected: nonce already used"
+            )
+        if abs(now - signed_at) > ttl:
+            raise VectorVueSerializationError(
+                "feedback signature timestamp out of allowed window"
+            )
+        self._seen_feedback_nonces[nonce] = signed_at
 
     def _coerce_errors(self, errors: Any) -> list[dict[str, Any]]:
         if not isinstance(errors, list):

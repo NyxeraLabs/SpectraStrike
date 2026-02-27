@@ -449,6 +449,9 @@ Sell derived competing products
 - [x] Bind feedback adjustments to policy engine
 - [x] Display defensive effectiveness metrics in UI
 - [x] Validate end-to-end cognitive loop
+- [x] Enforce signed internal feedback contract (`/internal/v1/cognitive/*`)
+- [x] Enforce feedback replay protection (`signed_at` window + nonce uniqueness)
+- [x] Enforce feedback tenant/fingerprint/schema validation before policy binding
 - [x] Commit Sprint 31 Cognitive Feedback Loop
 
 

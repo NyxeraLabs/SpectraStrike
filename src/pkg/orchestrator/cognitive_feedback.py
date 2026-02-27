@@ -125,14 +125,28 @@ class CognitiveFeedbackLoopService:
         self, tenant_id: str, limit: int = 100
     ) -> list[FeedbackAdjustment]:
         response = self.client.fetch_feedback_adjustments(tenant_id, limit=limit)
+        if not response.verified:
+            raise ValueError("unsigned_or_unverified_feedback_response")
         raw = response.data if isinstance(response.data, list) else []
         parsed: list[FeedbackAdjustment] = []
         for item in raw:
             if not isinstance(item, dict):
                 continue
+            item_tenant_id = str(item.get("tenant_id", tenant_id)).strip()
+            if item_tenant_id != tenant_id:
+                continue
+            execution_fingerprint = str(
+                item.get("execution_fingerprint", "")
+            ).strip().lower()
+            if len(execution_fingerprint) != 64:
+                continue
+            item_timestamp = int(item.get("timestamp", 0))
+            item_schema = str(item.get("schema_version", "")).strip()
+            if item_timestamp <= 0 or not item_schema:
+                continue
             parsed.append(
                 FeedbackAdjustment(
-                    tenant_id=str(item.get("tenant_id", tenant_id)),
+                    tenant_id=item_tenant_id,
                     target_urn=str(item.get("target_urn", "unknown")),
                     action=str(item.get("action", "observe")),
                     confidence=float(item.get("confidence", 0.0)),

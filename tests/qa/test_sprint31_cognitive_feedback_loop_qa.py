@@ -48,15 +48,19 @@ class _QAClient:
             data=[
                 {
                     "tenant_id": tenant_id,
+                    "execution_fingerprint": "b" * 64,
                     "target_urn": "urn:target:ip:10.0.0.42",
                     "action": "deny",
                     "confidence": 0.97,
                     "rationale": "beacon behavior anomaly",
                     "control": "execution",
                     "ttl_seconds": 1800,
+                    "timestamp": 1760000000,
+                    "schema_version": "feedback.adjustment.v1",
                 }
             ],
             errors=[],
+            verified=True,
             http_status=200,
         )
 
