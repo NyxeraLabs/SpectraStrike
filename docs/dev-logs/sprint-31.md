@@ -11,31 +11,50 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 - Phase: Phase 8
 - Sprint: Sprint 31
-- Status: Planned
-- Primary Architecture Layers: Reporting / Compliance, Orchestration Pipeline
+- Status: Implemented (Awaiting Signed Commit Promotion)
+- Primary Architecture Layers: VectorVue Integration Layer, Orchestration Pipeline, UI Dashboard
 
 ## Architectural Intent
 
-Run full end-to-end QA validation, including AAA and audit integrity checks.
+Implement the bidirectional cognitive feedback loop between SpectraStrike and VectorVue:
+push execution graph metadata upstream, synchronize actionable feedback downstream, and bind
+feedback-driven adjustments into policy evaluation context with visible effectiveness metrics.
 
 ## Implementation Detail
 
-Planned QA includes complete platform path testing, telemetry accuracy verification, and release-candidate hardening review.
+- Added Sprint 31 cognitive loop core module:
+  - `src/pkg/orchestrator/cognitive_feedback.py`
+  - `FeedbackAdjustment` contract for VectorVue-supplied guidance
+  - `FeedbackPolicyEngine` for feedback-bound policy context and allow decisions
+  - `CognitiveFeedbackLoopService` for graph push + feedback sync + policy application
+  - defensive effectiveness metric aggregation helpers for reporting/UI
+- Extended VectorVue client with cognitive endpoints:
+  - `send_execution_graph_metadata(...)`
+  - `fetch_feedback_adjustments(...)`
+- Added UI API contract and dashboard visualization:
+  - `GET /api/defensive/effectiveness`
+  - dashboard “Defensive Effectiveness” metric panel
+- Added unit and QA coverage for end-to-end cognitive loop behavior.
 
 ## Security and Control Posture
 
 - AAA scope and authorization boundaries are enforced according to current orchestrator policy.
-- Telemetry and audit events are expected to remain structured, attributable, and export-ready.
-- Integration interfaces are maintained as loosely coupled contracts to preserve VectorVue interoperability.
+- Feedback adjustments are explicitly scoped by tenant and target URN.
+- Policy adjustments are bound via deterministic in-memory context mapping before decision.
+- Integration contracts remain loosely coupled and testable for VectorVue interoperability.
 
 ## QA and Validation Evidence
 
-Formal release-gate checklist planned with pass/fail evidence capture.
+Validated through:
+- unit tests for VectorVue cognitive client endpoints
+- unit tests for cognitive loop service policy binding and effectiveness metrics
+- Sprint 31 QA test that exercises full graph push -> feedback sync -> policy deny decision flow
 
 ## Risk Register
 
-Risk is late-discovered integration regressions; mitigation is full-regression gating and rollback readiness.
+Risk: production drift between local fallback metrics and live orchestrator API data.
+Mitigation: retain explicit API contract route and keep no-store fetch behavior for runtime refresh.
 
 ## Forward Linkage
 
-Sprint 32 transitions to documentation completion.
+Sprint 32 transitions into compliance mapping and formal control evidence packaging.

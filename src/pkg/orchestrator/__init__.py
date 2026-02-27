@@ -35,6 +35,13 @@ from .control_plane_integrity import (
     StartupIntegrityResult,
     UnsignedConfigurationError,
 )
+from .cognitive_feedback import (
+    CognitiveFeedbackLoopService,
+    CognitiveLoopRunResult,
+    DefensiveEffectivenessMetrics,
+    FeedbackAdjustment,
+    FeedbackPolicyEngine,
+)
 from .engine import OrchestratorEngine, TaskSubmissionRequest
 from .execution_fingerprint import (
     ExecutionFingerprintError,
@@ -158,6 +165,11 @@ __all__ = [
     "StartupIntegrityResult",
     "ImmutableConfigurationHistory",
     "ControlPlaneIntegrityEnforcer",
+    "FeedbackAdjustment",
+    "CognitiveLoopRunResult",
+    "DefensiveEffectivenessMetrics",
+    "FeedbackPolicyEngine",
+    "CognitiveFeedbackLoopService",
     "OrchestratorEngine",
     "TaskSubmissionRequest",
     "ExecutionFingerprintError",

@@ -27,7 +27,7 @@ import subprocess
 import tempfile
 import time
 from typing import Any
-from urllib.parse import urljoin
+from urllib.parse import urlencode, urljoin
 
 import requests
 from requests import Response, Session
@@ -326,6 +326,35 @@ class VectorVueClient:
             method="POST",
             path="/api/v1/client/events",
             json_payload=event,
+            raise_api_error=True,
+        )
+
+    def send_execution_graph_metadata(
+        self,
+        graph: dict[str, Any],
+    ) -> ResponseEnvelope:
+        """Push execution graph metadata for VectorVue cognitive processing."""
+        return self._request(
+            method="POST",
+            path="/api/v1/integrations/spectrastrike/execution-graph",
+            json_payload=graph,
+            raise_api_error=True,
+        )
+
+    def fetch_feedback_adjustments(
+        self,
+        tenant_id: str,
+        limit: int = 100,
+    ) -> ResponseEnvelope:
+        """Fetch VectorVue cognitive feedback adjustments for a tenant."""
+        if not tenant_id.strip():
+            raise VectorVueSerializationError("tenant_id is required")
+        if limit <= 0:
+            raise VectorVueSerializationError("limit must be greater than zero")
+        query = urlencode({"tenant_id": tenant_id, "limit": str(limit)})
+        return self._request(
+            method="GET",
+            path=f"/api/v1/integrations/spectrastrike/feedback/adjustments?{query}",
             raise_api_error=True,
         )
 

@@ -444,12 +444,12 @@ Sell derived competing products
 - [x] Commit Sprint 30 Broker Abstraction & Throughput
 
 ## Sprint 31 (Week 59-60): Cognitive Feedback Loop
-- [ ] Push execution graph metadata to VectorVue
-- [ ] Implement VectorVue → SpectraStrike feedback sync
-- [ ] Bind feedback adjustments to policy engine
-- [ ] Display defensive effectiveness metrics in UI
-- [ ] Validate end-to-end cognitive loop
-- [ ] Commit Sprint 31 Cognitive Feedback Loop
+- [x] Push execution graph metadata to VectorVue
+- [x] Implement VectorVue → SpectraStrike feedback sync
+- [x] Bind feedback adjustments to policy engine
+- [x] Display defensive effectiveness metrics in UI
+- [x] Validate end-to-end cognitive loop
+- [x] Commit Sprint 31 Cognitive Feedback Loop
 
 
 # Phase 9: Enterprise & Compliance Gate

@@ -162,6 +162,74 @@ def test_send_event_sets_idempotency_key() -> None:
     assert headers["Authorization"] == "Bearer jwt"
 
 
+def test_send_execution_graph_metadata_uses_cognitive_endpoint() -> None:
+    session = FakeSession(
+        [
+            FakeResponse(
+                202,
+                {"request_id": "graph-1", "status": "accepted", "data": {}, "errors": []},
+            )
+        ]
+    )
+    client = VectorVueClient(_config_with_creds(token="jwt"), session=session)
+
+    envelope = client.send_execution_graph_metadata(
+        {
+            "graph_id": "g-001",
+            "tenant_id": "10000000-0000-0000-0000-000000000001",
+            "nodes": [{"id": "n1", "type": "task"}],
+            "edges": [],
+        }
+    )
+
+    assert envelope.ok
+    assert session.calls[0]["url"].endswith(
+        "/api/v1/integrations/spectrastrike/execution-graph"
+    )
+
+
+def test_fetch_feedback_adjustments_uses_expected_query() -> None:
+    session = FakeSession(
+        [
+            FakeResponse(
+                200,
+                {
+                    "request_id": "fb-1",
+                    "status": "accepted",
+                    "data": [
+                        {
+                            "tenant_id": "tenant-a",
+                            "target_urn": "urn:target:ip:10.0.0.5",
+                            "action": "tighten",
+                            "confidence": 0.91,
+                        }
+                    ],
+                    "errors": [],
+                },
+            )
+        ]
+    )
+    client = VectorVueClient(_config_with_creds(token="jwt"), session=session)
+
+    envelope = client.fetch_feedback_adjustments("tenant-a", limit=25)
+
+    assert envelope.ok
+    assert (
+        "/api/v1/integrations/spectrastrike/feedback/adjustments?tenant_id=tenant-a&limit=25"
+        in session.calls[0]["url"]
+    )
+
+
+def test_fetch_feedback_adjustments_rejects_invalid_input() -> None:
+    session = FakeSession([])
+    client = VectorVueClient(_config_with_creds(token="jwt"), session=session)
+
+    with pytest.raises(VectorVueSerializationError, match="tenant_id is required"):
+        client.fetch_feedback_adjustments("", limit=10)
+    with pytest.raises(VectorVueSerializationError, match="limit must be greater than zero"):
+        client.fetch_feedback_adjustments("tenant-a", limit=0)
+
+
 def test_send_federated_telemetry_uses_internal_gateway_path(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
