@@ -193,6 +193,17 @@ PYTHONPATH=src .venv/bin/pytest -q \
 
 Expected current result: `12 passed`.
 
+### 4.10 Sprint 35 mutual attestation and key-derivation validation
+
+```bash
+PYTHONPATH=src .venv/bin/pytest -q \
+  tests/unit/test_runner_attestation.py \
+  tests/unit/test_universal_edge_runner.py \
+  tests/qa/test_sprint35_mutual_attestation_qa.py
+```
+
+Expected current result: `12 passed`.
+
 ## 5. Web UI QA Execution Path
 
 ### 5.1 Required dependency bootstrap

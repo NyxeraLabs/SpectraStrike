@@ -21,6 +21,17 @@ from .firecracker import (
     FirecrackerMicroVMRunner,
     RuntimeAttestationReport,
 )
+from .attestation import (
+    AttestationError,
+    TPMIdentityEvidence,
+    TPMIdentityProvider,
+    ExecutionEphemeralKey,
+    EphemeralKeyDeriver,
+    MutualAttestationResult,
+    MutualAttestationService,
+    IsolationStressResult,
+    MultiTenantIsolationStressValidator,
+)
 from .jws_verify import JWSVerificationError, RunnerJWSVerifier
 from .network_policy import (
     CiliumPolicyManager,
@@ -42,6 +53,15 @@ __all__ = [
     "CiliumPolicyManager",
     "CloudEventEnvelope",
     "map_execution_to_cloudevent",
+    "AttestationError",
+    "TPMIdentityEvidence",
+    "TPMIdentityProvider",
+    "ExecutionEphemeralKey",
+    "EphemeralKeyDeriver",
+    "MutualAttestationResult",
+    "MutualAttestationService",
+    "IsolationStressResult",
+    "MultiTenantIsolationStressValidator",
     "FirecrackerIsolationError",
     "FirecrackerMicroVMProfile",
     "FirecrackerMicroVMRunner",
