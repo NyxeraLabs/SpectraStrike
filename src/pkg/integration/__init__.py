@@ -14,6 +14,13 @@
 
 """Integration adapters for external systems."""
 
+from pkg.integration.c2_adapter_hardening import (
+    C2AdapterHardeningError,
+    C2DispatchBundle,
+    HardenedC2AdapterBoundary,
+    HardenedExecutionBoundaryConfig,
+    simulate_malicious_adapter_payload,
+)
 from pkg.integration.metasploit_manual import (
     IngestionCheckpoint,
     IngestionCheckpointStore,
@@ -30,6 +37,11 @@ from pkg.integration.metasploit_manual import (
 )
 
 __all__ = [
+    "C2AdapterHardeningError",
+    "C2DispatchBundle",
+    "HardenedC2AdapterBoundary",
+    "HardenedExecutionBoundaryConfig",
+    "simulate_malicious_adapter_payload",
     "IngestionCheckpoint",
     "IngestionCheckpointStore",
     "IngestionResult",

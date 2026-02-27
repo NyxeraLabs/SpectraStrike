@@ -419,12 +419,12 @@ Sell derived competing products
 # Phase 7: C2 Trust Extension Layer
 
 ## Sprint 28 (Week 53-54): C2 Adapter Trust Enforcement
-- [ ] Bind C2 dispatch to unified execution fingerprint
-- [ ] Enforce JWS verification at adapter boundary
-- [ ] Enforce policy hash validation at adapter boundary
-- [ ] Isolate adapters within hardened execution boundary
-- [ ] Simulate malicious adapter behavior
-- [ ] Commit Sprint 28 C2 Adapter Trust Enforcement
+- [x] Bind C2 dispatch to unified execution fingerprint
+- [x] Enforce JWS verification at adapter boundary
+- [x] Enforce policy hash validation at adapter boundary
+- [x] Isolate adapters within hardened execution boundary
+- [x] Simulate malicious adapter behavior
+- [x] Commit Sprint 28 C2 Adapter Trust Enforcement
 
 ## Sprint 29 (Week 55-56): Advanced C2 Implementations
 - [ ] Implement Sliver adapter hardened version
