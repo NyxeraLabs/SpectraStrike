@@ -40,3 +40,6 @@ local_docs/*
 docs/WHITEPAPER.md
 
 local_docs/
+
+# Local host E2E backup runner
+.host-integration-smoke-local.sh
