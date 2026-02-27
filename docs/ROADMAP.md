@@ -314,7 +314,7 @@ Sell derived competing products
 - [x] Enumerate cross-tenant escalation scenarios
 - [x] Map threats to existing mitigations
 - [x] Create unresolved risk backlog items
-- [ ] Commit Threat Model v1.0 document
+- [x] Commit Threat Model v1.0 document
 
 ## Sprint 19 – Control Plane Integrity Hardening
 
@@ -458,12 +458,12 @@ Sell derived competing products
 # Phase 9: Enterprise & Compliance Gate
 
 ## Sprint 32 (Week 61-62): Compliance Mapping
-- [ ] Map controls to SOC 2
-- [ ] Map controls to ISO 27001 Annex A
-- [ ] Map controls to NIST 800-53
-- [ ] Map telemetry to MITRE ATT&CK
-- [ ] Produce Secure SDLC documentation package
-- [ ] Commit Sprint 32 Compliance Mapping
+- [x] Map controls to SOC 2
+- [x] Map controls to ISO 27001 Annex A
+- [x] Map controls to NIST 800-53
+- [x] Map telemetry to MITRE ATT&CK
+- [x] Produce Secure SDLC documentation package
+- [x] Commit Sprint 32 Compliance Mapping
 
 ## Sprint 33 (Week 63-64): Specification Publication
 - [ ] Publish Execution Manifest Specification v1

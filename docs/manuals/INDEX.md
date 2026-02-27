@@ -56,6 +56,8 @@ This index tracks production manuals and governance documents aligned with curre
 - `docs/THREAT_MODEL.md`
 - `docs/PRIVACY_POLICY.md`
 - `docs/ACCEPTABLE_USE_POLICY.md`
+- `docs/compliance/INDEX.md`
+  - Sprint 32 compliance mapping package (SOC 2, ISO 27001 Annex A, NIST 800-53, MITRE ATT&CK telemetry, Secure SDLC package).
 
 ## Governance & Legal
 

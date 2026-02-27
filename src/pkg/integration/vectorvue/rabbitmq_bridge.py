@@ -272,28 +272,114 @@ def _to_attr_value(value: Any) -> str | int | float | bool | None:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
 
+def _default_mitre_mapping_for_event(
+    event_type: str,
+) -> tuple[list[str], list[str]]:
+    normalized = event_type.strip().lower()
+    mapping: dict[str, tuple[list[str], list[str]]] = {
+        "nmap_scan_completed": (["T1595"], ["TA0043"]),
+        "metasploit_exploit_completed": (["T1059"], ["TA0002"]),
+        "sliver_command_completed": (["T1105"], ["TA0011"]),
+        "mythic_task_completed": (["T1059"], ["TA0002"]),
+    }
+    return mapping.get(normalized, (["T1595"], ["TA0043"]))
+
+
+def _resolve_mitre_fields(
+    *,
+    event_type: str,
+    attrs: dict[str, Any],
+) -> tuple[list[str], list[str]]:
+    default_techniques, default_tactics = _default_mitre_mapping_for_event(event_type)
+    mitre_techniques_raw = attrs.get("mitre_techniques", default_techniques)
+    mitre_tactics_raw = attrs.get("mitre_tactics", default_tactics)
+    if not isinstance(mitre_techniques_raw, list) or not mitre_techniques_raw:
+        mitre_techniques_raw = default_techniques
+    if not isinstance(mitre_tactics_raw, list) or not mitre_tactics_raw:
+        mitre_tactics_raw = default_tactics
+    techniques = [str(v).upper() for v in mitre_techniques_raw if str(v).strip()]
+    tactics = [str(v).upper() for v in mitre_tactics_raw if str(v).strip()]
+    return (
+        techniques or default_techniques,
+        tactics or default_tactics,
+    )
+
+
+def _default_compliance_mapping_for_event(event_type: str) -> dict[str, list[str]]:
+    normalized = event_type.strip().lower()
+    baseline = {
+        "soc2_controls": ["CC7.2", "CC7.3", "A1.2"],
+        "iso27001_annex_a_controls": ["A.8.15", "A.8.16", "A.8.24"],
+        "nist_800_53_controls": ["AU-2", "AU-8", "SI-4"],
+    }
+    per_event: dict[str, dict[str, list[str]]] = {
+        "nmap_scan_completed": baseline,
+        "metasploit_exploit_completed": {
+            "soc2_controls": ["CC6.6", "CC7.3", "CC7.4"],
+            "iso27001_annex_a_controls": ["A.5.15", "A.8.15", "A.8.24"],
+            "nist_800_53_controls": ["AC-3", "AU-2", "AU-10"],
+        },
+        "sliver_command_completed": {
+            "soc2_controls": ["CC6.6", "CC7.3", "CC7.4"],
+            "iso27001_annex_a_controls": ["A.5.15", "A.8.15", "A.8.24"],
+            "nist_800_53_controls": ["AC-3", "AU-2", "AU-10"],
+        },
+        "mythic_task_completed": {
+            "soc2_controls": ["CC6.6", "CC7.3", "CC7.4"],
+            "iso27001_annex_a_controls": ["A.5.15", "A.8.15", "A.8.24"],
+            "nist_800_53_controls": ["AC-3", "AU-2", "AU-10"],
+        },
+    }
+    return per_event.get(normalized, baseline)
+
+
+def _resolve_compliance_fields(
+    *,
+    event_type: str,
+    attrs: dict[str, Any],
+) -> dict[str, list[str]]:
+    defaults = _default_compliance_mapping_for_event(event_type)
+    resolved: dict[str, list[str]] = {}
+    for key, default_values in defaults.items():
+        raw = attrs.get(key, default_values)
+        if not isinstance(raw, list) or not raw:
+            raw = default_values
+        values = [str(value).upper() for value in raw if str(value).strip()]
+        resolved[key] = values or default_values
+    return resolved
+
+
 def _canonical_payload_for_gateway(envelope: BrokerEnvelope) -> dict[str, Any]:
     attrs = dict(envelope.attributes)
     severity = str(attrs.get("severity", "medium")).lower()
-    mitre_techniques_raw = attrs.get("mitre_techniques", ["T1595"])
-    mitre_tactics_raw = attrs.get("mitre_tactics", ["TA0043"])
-    if not isinstance(mitre_techniques_raw, list) or not mitre_techniques_raw:
-        mitre_techniques_raw = ["T1595"]
-    if not isinstance(mitre_tactics_raw, list):
-        mitre_tactics_raw = ["TA0043"]
-    payload_attributes: dict[str, str | int | float | bool | None] = {
+    mitre_techniques, mitre_tactics = _resolve_mitre_fields(
+        event_type=envelope.event_type,
+        attrs=attrs,
+    )
+    compliance_mapping = _resolve_compliance_fields(
+        event_type=envelope.event_type,
+        attrs=attrs,
+    )
+    payload_attributes: dict[str, Any] = {
         "asset_ref": envelope.target,
     }
     for key, value in attrs.items():
         payload_attributes[str(key)] = _to_attr_value(value)
+    payload_attributes["soc2_controls"] = compliance_mapping["soc2_controls"]
+    payload_attributes["iso27001_annex_a_controls"] = compliance_mapping[
+        "iso27001_annex_a_controls"
+    ]
+    payload_attributes["nist_800_53_controls"] = compliance_mapping[
+        "nist_800_53_controls"
+    ]
     return {
         "event_id": envelope.event_id,
         "event_type": envelope.event_type.upper(),
         "source_system": "spectrastrike",
         "severity": severity,
         "observed_at": envelope.timestamp,
-        "mitre_techniques": [str(v).upper() for v in mitre_techniques_raw],
-        "mitre_tactics": [str(v).upper() for v in mitre_tactics_raw],
+        "mitre_techniques": mitre_techniques,
+        "mitre_tactics": mitre_tactics,
         "description": str(
             attrs.get(
                 "message",
