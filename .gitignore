@@ -43,3 +43,6 @@ local_docs/
 
 # Local host E2E backup runner
 .host-integration-smoke-local.sh
+
+# Local federation assessment notes (non-tracked)
+docs/.federation-*.md

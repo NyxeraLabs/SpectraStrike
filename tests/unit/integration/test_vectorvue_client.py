@@ -17,6 +17,8 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -308,6 +310,140 @@ def test_fetch_feedback_adjustments_rejects_unsigned_response(
             "10000000-0000-0000-0000-000000000001",
             limit=10,
         )
+
+
+def test_fetch_feedback_adjustments_rejects_signature_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tenant_id = "10000000-0000-0000-0000-000000000001"
+    session = FakeSession(
+        [
+            FakeResponse(
+                200,
+                {
+                    "request_id": "fb-mismatch",
+                    "status": "accepted",
+                    "data": [
+                        {
+                            "tenant_id": tenant_id,
+                            "execution_fingerprint": "e" * 64,
+                            "target_urn": "urn:target:ip:10.0.0.5",
+                            "action": "tighten",
+                            "confidence": 0.91,
+                            "rationale": "risk cluster",
+                            "timestamp": 1760000000,
+                            "schema_version": "feedback.adjustment.v1",
+                        }
+                    ],
+                    "errors": [],
+                    "signed_at": 1700000000,
+                    "nonce": "feedback-nonce-mismatch",
+                    "signature": "deadbeef",
+                },
+            )
+        ]
+    )
+    client = VectorVueClient(
+        _config_with_creds(token="jwt", signature_secret="feedback-secret"),
+        session=session,
+    )
+    monkeypatch.setattr(
+        client,
+        "_build_federation_headers",
+        lambda **_: {
+            "X-Service-Identity": "spectrastrike-producer",
+            "X-Client-Cert-Sha256": "a" * 64,
+            "X-Telemetry-Timestamp": "1760000000",
+            "X-Telemetry-Nonce": "nonce-feedback",
+            "X-Telemetry-Signature": "sig",
+        },
+    )
+    monkeypatch.setattr("pkg.integration.vectorvue.client.time.time", lambda: 1700000000)
+
+    with pytest.raises(
+        VectorVueSerializationError,
+        match="feedback response signature verification failed",
+    ):
+        client.fetch_feedback_adjustments(tenant_id, limit=10)
+
+
+def test_fetch_feedback_adjustments_rejects_replayed_nonce(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    tenant_id = "10000000-0000-0000-0000-000000000001"
+    signed_at = 1700000000
+    nonce = "feedback-nonce-replay"
+    data = [
+        {
+            "tenant_id": tenant_id,
+            "execution_fingerprint": "e" * 64,
+            "target_urn": "urn:target:ip:10.0.0.5",
+            "action": "tighten",
+            "confidence": 0.91,
+            "rationale": "risk cluster",
+            "timestamp": 1760000000,
+            "schema_version": "feedback.adjustment.v1",
+        }
+    ]
+    canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
+    secret = "feedback-secret"
+    signature = hmac.new(
+        secret.encode("utf-8"),
+        f"{tenant_id}|{signed_at}|{nonce}|{canonical}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    session = FakeSession(
+        [
+            FakeResponse(
+                200,
+                {
+                    "request_id": "fb-replay-1",
+                    "status": "accepted",
+                    "data": data,
+                    "errors": [],
+                    "signed_at": signed_at,
+                    "nonce": nonce,
+                    "signature": signature,
+                },
+            ),
+            FakeResponse(
+                200,
+                {
+                    "request_id": "fb-replay-2",
+                    "status": "accepted",
+                    "data": data,
+                    "errors": [],
+                    "signed_at": signed_at,
+                    "nonce": nonce,
+                    "signature": signature,
+                },
+            ),
+        ]
+    )
+    client = VectorVueClient(
+        _config_with_creds(token="jwt", signature_secret=secret),
+        session=session,
+    )
+    monkeypatch.setattr(
+        client,
+        "_build_federation_headers",
+        lambda **_: {
+            "X-Service-Identity": "spectrastrike-producer",
+            "X-Client-Cert-Sha256": "a" * 64,
+            "X-Telemetry-Timestamp": "1760000000",
+            "X-Telemetry-Nonce": "nonce-feedback",
+            "X-Telemetry-Signature": "sig",
+        },
+    )
+    monkeypatch.setattr("pkg.integration.vectorvue.client.time.time", lambda: signed_at)
+
+    first = client.fetch_feedback_adjustments(tenant_id, limit=10)
+    assert first.verified is True
+
+    with pytest.raises(
+        VectorVueSerializationError, match="feedback replay detected: nonce already used"
+    ):
+        client.fetch_feedback_adjustments(tenant_id, limit=10)
 
 
 def test_send_federated_telemetry_uses_internal_gateway_path(

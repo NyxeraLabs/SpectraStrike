@@ -107,7 +107,10 @@ def test_sprint31_end_to_end_cognitive_loop_validation() -> None:
         execution_graph={
             "graph_id": "qa-graph",
             "tenant_id": "tenant-a",
-            "nodes": [{"id": "n1", "type": "task"}],
+            "execution_fingerprint": "b" * 64,
+            "nodes": [
+                {"id": "n1", "type": "task", "execution_fingerprint": "b" * 64}
+            ],
             "edges": [{"from": "n1", "to": "n1"}],
         },
     )

@@ -27,6 +27,7 @@ class FeedbackAdjustment:
     """One policy-relevant adjustment received from VectorVue feedback."""
 
     tenant_id: str
+    execution_fingerprint: str
     target_urn: str
     action: str
     confidence: float
@@ -121,6 +122,22 @@ class CognitiveFeedbackLoopService:
     def push_execution_graph_metadata(self, graph: dict[str, Any]) -> ResponseEnvelope:
         return self.client.send_execution_graph_metadata(graph)
 
+    @staticmethod
+    def _extract_execution_fingerprints(execution_graph: dict[str, Any]) -> set[str]:
+        anchors: set[str] = set()
+        root = str(execution_graph.get("execution_fingerprint", "")).strip().lower()
+        if len(root) == 64:
+            anchors.add(root)
+        nodes = execution_graph.get("nodes", [])
+        if isinstance(nodes, list):
+            for node in nodes:
+                if not isinstance(node, dict):
+                    continue
+                candidate = str(node.get("execution_fingerprint", "")).strip().lower()
+                if len(candidate) == 64:
+                    anchors.add(candidate)
+        return anchors
+
     def sync_feedback_adjustments(
         self, tenant_id: str, limit: int = 100
     ) -> list[FeedbackAdjustment]:
@@ -147,6 +164,7 @@ class CognitiveFeedbackLoopService:
             parsed.append(
                 FeedbackAdjustment(
                     tenant_id=item_tenant_id,
+                    execution_fingerprint=execution_fingerprint,
                     target_urn=str(item.get("target_urn", "unknown")),
                     action=str(item.get("action", "observe")),
                     confidence=float(item.get("confidence", 0.0)),
@@ -166,6 +184,13 @@ class CognitiveFeedbackLoopService:
     ) -> CognitiveLoopRunResult:
         graph_result = self.push_execution_graph_metadata(execution_graph)
         adjustments = self.sync_feedback_adjustments(tenant_id, limit=feedback_limit)
+        anchors = self._extract_execution_fingerprints(execution_graph)
+        if anchors:
+            adjustments = [
+                item
+                for item in adjustments
+                if item.execution_fingerprint in anchors
+            ]
         applied = self.policy_engine.apply_adjustments(adjustments)
         return CognitiveLoopRunResult(
             graph_push_ok=graph_result.ok,

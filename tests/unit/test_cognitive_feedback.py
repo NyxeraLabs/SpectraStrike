@@ -81,6 +81,7 @@ def test_run_cognitive_loop_pushes_syncs_and_applies() -> None:
         execution_graph={
             "graph_id": "graph-1",
             "tenant_id": "tenant-a",
+            "execution_fingerprint": "a" * 64,
             "nodes": [{"id": "n1", "type": "task"}],
             "edges": [],
         },
@@ -106,6 +107,7 @@ def test_compute_defensive_effectiveness_metrics() -> None:
     adjustments = [
         FeedbackAdjustment(
             tenant_id="tenant-a",
+            execution_fingerprint="a" * 64,
             target_urn="urn:target:ip:10.0.0.5",
             action="tighten",
             confidence=0.9,
@@ -144,3 +146,50 @@ def test_rejects_unsigned_feedback_response() -> None:
         assert False, "expected unsigned feedback response to be rejected"
     except ValueError as exc:
         assert str(exc) == "unsigned_or_unverified_feedback_response"
+
+
+def test_run_cognitive_loop_rejects_unanchored_feedback_fingerprint() -> None:
+    class _ForgedFeedbackClient(_FakeCognitiveClient):
+        def fetch_feedback_adjustments(
+            self, tenant_id: str, limit: int = 100
+        ) -> ResponseEnvelope:
+            response = super().fetch_feedback_adjustments(tenant_id, limit)
+            response.data = [
+                {
+                    "tenant_id": "tenant-a",
+                    "execution_fingerprint": "f" * 64,
+                    "target_urn": "urn:target:ip:10.0.0.9",
+                    "action": "deny",
+                    "confidence": 0.99,
+                    "rationale": "forged payload",
+                    "control": "execution",
+                    "ttl_seconds": 1200,
+                    "timestamp": 1760000000,
+                    "schema_version": "feedback.adjustment.v1",
+                }
+            ]
+            return response
+
+    policy = FeedbackPolicyEngine()
+    service = CognitiveFeedbackLoopService(
+        client=_ForgedFeedbackClient(),
+        policy_engine=policy,
+    )
+
+    result = service.run_cognitive_loop(
+        tenant_id="tenant-a",
+        execution_graph={
+            "graph_id": "graph-1",
+            "tenant_id": "tenant-a",
+            "execution_fingerprint": "a" * 64,
+            "nodes": [{"id": "n1", "type": "task"}],
+            "edges": [],
+        },
+        feedback_limit=10,
+    )
+
+    assert result.graph_push_ok
+    assert result.feedback_items == 0
+    assert result.applied_adjustments == 0
+    context = policy.policy_context("tenant-a", "urn:target:ip:10.0.0.9")
+    assert context["feedback_bound"] is False
