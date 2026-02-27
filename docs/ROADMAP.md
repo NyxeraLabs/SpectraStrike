@@ -390,12 +390,12 @@ Sell derived competing products
 # Phase 6: Merkle Ledger Architecture & Append-Only Authority
 
 ## Sprint 25 (Week 47-48): Ledger Model Definition
-- [ ] Define Merkle leaf schema using unified execution fingerprint
-- [ ] Define strict append-only insertion order
-- [ ] Define deterministic tree growth rules
-- [ ] Define root generation cadence
-- [ ] Define root signing procedure
-- [ ] Define inclusion proof structure
+- [x] Define Merkle leaf schema using unified execution fingerprint
+- [x] Define strict append-only insertion order
+- [x] Define deterministic tree growth rules
+- [x] Define root generation cadence
+- [x] Define root signing procedure
+- [x] Define inclusion proof structure
 - [ ] Commit Sprint 25 Ledger Model Definition
 
 ## Sprint 26 (Week 49-50): Ledger Core Implementation
