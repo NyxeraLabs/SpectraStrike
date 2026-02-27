@@ -22,7 +22,18 @@ from typing import Callable
 
 from pkg.armory.service import ArmoryService, ArmoryTool
 from pkg.orchestrator.manifest import ExecutionManifest
+from pkg.runner.attestation import (
+    EphemeralKeyDeriver,
+    MutualAttestationService,
+    TPMIdentityProvider,
+)
 from pkg.runner.cloudevents import CloudEventEnvelope, map_execution_to_cloudevent
+from pkg.runner.firecracker import (
+    FirecrackerIsolationError,
+    FirecrackerMicroVMProfile,
+    FirecrackerMicroVMRunner,
+    RuntimeAttestationReport,
+)
 from pkg.runner.jws_verify import RunnerJWSVerifier
 from pkg.runner.network_policy import CiliumPolicyManager, RunnerNetworkPolicy
 
@@ -35,9 +46,11 @@ class RunnerExecutionError(RuntimeError):
 class RunnerSandboxProfile:
     """Sandbox profile abstraction: gVisor preferred, AppArmor fallback."""
 
+    backend: str = "docker"
     runtime: str = "runsc"
     apparmor_profile: str = "spectrastrike-default"
     network_mode: str = "none"
+    firecracker_profile: FirecrackerMicroVMProfile | None = None
 
 
 @dataclass(slots=True)
@@ -48,6 +61,7 @@ class RunnerExecutionResult:
     stdout: str
     stderr: str
     event: CloudEventEnvelope
+    attestation_report: RuntimeAttestationReport | None = None
 
 
 class UniversalEdgeRunner:
@@ -63,12 +77,27 @@ class UniversalEdgeRunner:
             Callable[[list[str]], subprocess.CompletedProcess[str]] | None
         ) = None,
         policy_manager: CiliumPolicyManager | None = None,
+        firecracker_runner: FirecrackerMicroVMRunner | None = None,
+        tpm_identity_provider: TPMIdentityProvider | None = None,
+        key_deriver: EphemeralKeyDeriver | None = None,
+        mutual_attestation_service: MutualAttestationService | None = None,
     ) -> None:
         self._armory = armory
         self._jws_verifier = jws_verifier or RunnerJWSVerifier()
         self._sandbox = sandbox or RunnerSandboxProfile()
         self._command_runner = command_runner or self._default_command_runner
         self._policy_manager = policy_manager
+        self._firecracker_runner = firecracker_runner or FirecrackerMicroVMRunner(
+            profile=self._sandbox.firecracker_profile
+            or FirecrackerMicroVMProfile(launch_mode="simulate")
+        )
+        self._tpm_identity_provider = tpm_identity_provider or TPMIdentityProvider(
+            mode="simulate"
+        )
+        self._key_deriver = key_deriver or EphemeralKeyDeriver()
+        self._mutual_attestation_service = (
+            mutual_attestation_service or MutualAttestationService()
+        )
 
     def verify_manifest_jws(
         self,
@@ -105,6 +134,10 @@ class UniversalEdgeRunner:
         manifest: ExecutionManifest,
     ) -> list[str]:
         """Build strict container execution command with isolation controls."""
+        if self._sandbox.backend == "firecracker":
+            return self._firecracker_runner.build_microvm_command(
+                manifest=manifest, tool=tool
+            )
         return [
             "docker",
             "run",
@@ -129,6 +162,53 @@ class UniversalEdgeRunner:
         command: list[str],
     ) -> RunnerExecutionResult:
         """Execute isolated command and map output contract to CloudEvents."""
+        attestation_report: RuntimeAttestationReport | None = None
+        execution_metadata: dict[str, object] | None = None
+        if self._sandbox.backend == "firecracker":
+            if self._firecracker_runner.simulate_breakout_attempt(command):
+                raise RunnerExecutionError("microvm breakout attempt detected")
+            try:
+                isolation_checks = (
+                    self._firecracker_runner.verify_hardware_isolation_boundary()
+                )
+            except FirecrackerIsolationError as exc:
+                raise RunnerExecutionError(str(exc)) from exc
+            execution_fingerprint = manifest.deterministic_hash()
+            tpm_identity = self._tpm_identity_provider.issue_identity_evidence(
+                quote_nonce=manifest.nonce,
+                tenant_id=manifest.task_context.tenant_id,
+                operator_id=manifest.task_context.operator_id,
+            )
+            ephemeral_key = self._key_deriver.derive_execution_key(
+                execution_fingerprint=execution_fingerprint,
+                tenant_id=manifest.task_context.tenant_id,
+                operator_id=manifest.task_context.operator_id,
+            )
+            mutual_attestation = self._mutual_attestation_service.attest(
+                quote_nonce=manifest.nonce,
+                tenant_id=manifest.task_context.tenant_id,
+                operator_id=manifest.task_context.operator_id,
+                tpm_evidence=tpm_identity,
+                ephemeral_key=ephemeral_key,
+            )
+            if not mutual_attestation.approved:
+                raise RunnerExecutionError(
+                    f"runner-control-plane mutual attestation failed: {mutual_attestation.reason}"
+                )
+            attestation_report = self._firecracker_runner.build_runtime_attestation_report(
+                manifest=manifest,
+                tool=self.resolve_signed_tool(manifest),
+                execution_command=command,
+                isolation_checks=isolation_checks,
+            )
+            execution_metadata = {
+                "runtime": "firecracker",
+                "attestation": attestation_report.to_dict(),
+                "tpm_identity": tpm_identity.to_dict(),
+                "ephemeral_key": ephemeral_key.to_dict(),
+                "mutual_attestation": mutual_attestation.to_dict(),
+            }
+
         completed = self._command_runner(command)
         event = map_execution_to_cloudevent(
             task_id=manifest.task_context.task_id,
@@ -139,12 +219,14 @@ class UniversalEdgeRunner:
             stdout=completed.stdout,
             stderr=completed.stderr,
             manifest_jws=manifest_jws,
+            execution_metadata=execution_metadata,
         )
         return RunnerExecutionResult(
             exit_code=completed.returncode,
             stdout=completed.stdout,
             stderr=completed.stderr,
             event=event,
+            attestation_report=attestation_report,
         )
 
     def apply_dynamic_network_policy(

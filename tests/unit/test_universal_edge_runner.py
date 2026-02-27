@@ -22,7 +22,11 @@ import pytest
 from pkg.armory.service import ArmoryService
 from pkg.orchestrator.manifest import ExecutionManifest, ExecutionTaskContext
 from pkg.runner.network_policy import CiliumPolicyManager
-from pkg.runner.universal import RunnerExecutionError, UniversalEdgeRunner
+from pkg.runner.universal import (
+    RunnerExecutionError,
+    RunnerSandboxProfile,
+    UniversalEdgeRunner,
+)
 
 
 def _manifest(tool_sha256: str) -> ExecutionManifest:
@@ -107,3 +111,64 @@ def test_runner_applies_and_removes_dynamic_network_policy(tmp_path: Path) -> No
     assert calls[0][0] == ["kubectl", "apply", "-f", "-"]
     assert '"cidr": "10.10.10.10/32"' in (calls[0][1] or "")
     assert calls[1][0][0:3] == ["kubectl", "delete", "ciliumnetworkpolicy"]
+
+
+def test_firecracker_backend_adds_runtime_attestation_metadata(tmp_path: Path) -> None:
+    armory = ArmoryService(registry_path=str(tmp_path / "armory.json"))
+    ingested = armory.ingest_tool(
+        tool_name="nmap",
+        image_ref="registry.internal/security/nmap:1.0.0",
+        artifact=b"tool-bytes",
+    )
+    armory.approve_tool(tool_sha256=ingested.tool_sha256, approver="secops-1")
+    armory.approve_tool(tool_sha256=ingested.tool_sha256, approver="secops-2")
+    manifest = _manifest(ingested.tool_sha256)
+
+    def fake_runner(command: list[str]) -> subprocess.CompletedProcess[str]:
+        assert command[0] == "echo"
+        return subprocess.CompletedProcess(command, 0, "firecracker-sim", "")
+
+    runner = UniversalEdgeRunner(
+        armory=armory,
+        command_runner=fake_runner,
+        sandbox=RunnerSandboxProfile(backend="firecracker"),
+    )
+    tool = runner.resolve_signed_tool(manifest)
+    command = runner.build_sandbox_command(tool=tool, manifest=manifest)
+    result = runner.execute(
+        manifest=manifest, manifest_jws="abc.def.sig", command=command
+    )
+
+    payload = result.event.to_dict()["data"]
+    assert payload["status"] == "success"
+    assert payload["execution_metadata"]["runtime"] == "firecracker"
+    assert payload["execution_metadata"]["mutual_attestation"]["approved"] is True
+    assert payload["execution_metadata"]["tpm_identity"]["mode"] == "simulate"
+    assert payload["execution_metadata"]["ephemeral_key"]["algorithm"] == "HMAC-SHA256"
+    assert len(
+        payload["execution_metadata"]["attestation"]["measurement_hash"]
+    ) == 64
+    assert result.attestation_report is not None
+
+
+def test_firecracker_backend_rejects_breakout_attempt(tmp_path: Path) -> None:
+    armory = ArmoryService(registry_path=str(tmp_path / "armory.json"))
+    ingested = armory.ingest_tool(
+        tool_name="nmap",
+        image_ref="registry.internal/security/nmap:1.0.0",
+        artifact=b"tool-bytes",
+    )
+    armory.approve_tool(tool_sha256=ingested.tool_sha256, approver="secops-1")
+    armory.approve_tool(tool_sha256=ingested.tool_sha256, approver="secops-2")
+    manifest = _manifest(ingested.tool_sha256)
+    runner = UniversalEdgeRunner(
+        armory=armory,
+        sandbox=RunnerSandboxProfile(backend="firecracker"),
+    )
+
+    with pytest.raises(RunnerExecutionError, match="breakout attempt detected"):
+        runner.execute(
+            manifest=manifest,
+            manifest_jws="abc.def.sig",
+            command=["docker", "run", "--privileged", "busybox"],
+        )

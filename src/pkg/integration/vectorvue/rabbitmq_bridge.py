@@ -365,13 +365,13 @@ def _canonical_payload_for_gateway(envelope: BrokerEnvelope) -> dict[str, Any]:
     }
     for key, value in attrs.items():
         payload_attributes[str(key)] = _to_attr_value(value)
-    payload_attributes["soc2_controls"] = compliance_mapping["soc2_controls"]
-    payload_attributes["iso27001_annex_a_controls"] = compliance_mapping[
-        "iso27001_annex_a_controls"
-    ]
-    payload_attributes["nist_800_53_controls"] = compliance_mapping[
-        "nist_800_53_controls"
-    ]
+    payload_attributes["soc2_controls"] = ",".join(compliance_mapping["soc2_controls"])
+    payload_attributes["iso27001_annex_a_controls"] = ",".join(
+        compliance_mapping["iso27001_annex_a_controls"]
+    )
+    payload_attributes["nist_800_53_controls"] = ",".join(
+        compliance_mapping["nist_800_53_controls"]
+    )
     return {
         "event_id": envelope.event_id,
         "event_type": envelope.event_type.upper(),

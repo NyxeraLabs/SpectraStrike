@@ -57,22 +57,27 @@ def map_execution_to_cloudevent(
     stdout: str,
     stderr: str,
     manifest_jws: str,
+    execution_metadata: dict[str, Any] | None = None,
 ) -> CloudEventEnvelope:
     """Build CloudEvents-compliant result with stdout/stderr execution contract."""
     status = "success" if exit_code == 0 else "failed"
+    data: dict[str, Any] = {
+        "task_id": task_id,
+        "tenant_id": tenant_id,
+        "tool_sha256": tool_sha256,
+        "target_urn": target_urn,
+        "status": status,
+        "exit_code": exit_code,
+        "stdout": stdout,
+        "stderr": stderr,
+        "manifest_jws": manifest_jws,
+    }
+    if execution_metadata:
+        data["execution_metadata"] = dict(execution_metadata)
+
     return CloudEventEnvelope(
         source="urn:spectrastrike:runner",
         type="com.nyxeralabs.spectrastrike.runner.execution.v1",
         subject=task_id,
-        data={
-            "task_id": task_id,
-            "tenant_id": tenant_id,
-            "tool_sha256": tool_sha256,
-            "target_urn": target_urn,
-            "status": status,
-            "exit_code": exit_code,
-            "stdout": stdout,
-            "stderr": stderr,
-            "manifest_jws": manifest_jws,
-        },
+        data=data,
     )
