@@ -226,6 +226,10 @@ class AppendOnlyMerkleLedger:
         tool_hash: str,
         policy_decision_hash: str,
         timestamp: str,
+        c2_adapter: str = "",
+        c2_session_id: str = "",
+        c2_operation_id: str = "",
+        c2_target: str = "",
     ) -> ImmutableExecutionLeafRecord:
         """Append immutable leaf and trigger periodic root generation."""
         with self._lock:
@@ -244,6 +248,10 @@ class AppendOnlyMerkleLedger:
                 tool_hash=tool_hash,
                 policy_decision_hash=policy_decision_hash,
                 timestamp=timestamp,
+                c2_adapter=c2_adapter,
+                c2_session_id=c2_session_id,
+                c2_operation_id=c2_operation_id,
+                c2_target=c2_target,
             )
             record = self._store.append(leaf)
             if self._root_cadence.should_generate_root(leaf_count=len(self._store.records)):
