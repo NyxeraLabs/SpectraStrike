@@ -21,6 +21,13 @@ from pkg.integration.c2_adapter_hardening import (
     HardenedExecutionBoundaryConfig,
     simulate_malicious_adapter_payload,
 )
+from pkg.integration.c2_advanced import (
+    C2AdvancedAdapterError,
+    C2LiveSessionResult,
+    HardenedSliverAdapter,
+    MythicAdapterScaffold,
+    execute_zero_trust_live_session,
+)
 from pkg.integration.metasploit_manual import (
     IngestionCheckpoint,
     IngestionCheckpointStore,
@@ -42,6 +49,11 @@ __all__ = [
     "HardenedC2AdapterBoundary",
     "HardenedExecutionBoundaryConfig",
     "simulate_malicious_adapter_payload",
+    "C2AdvancedAdapterError",
+    "C2LiveSessionResult",
+    "HardenedSliverAdapter",
+    "MythicAdapterScaffold",
+    "execute_zero_trust_live_session",
     "IngestionCheckpoint",
     "IngestionCheckpointStore",
     "IngestionResult",

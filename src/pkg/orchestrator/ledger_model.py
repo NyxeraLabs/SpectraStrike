@@ -39,6 +39,10 @@ class MerkleLeafSchema:
     tool_hash: str
     policy_decision_hash: str
     timestamp: str
+    c2_adapter: str = ""
+    c2_session_id: str = ""
+    c2_operation_id: str = ""
+    c2_target: str = ""
 
     def __post_init__(self) -> None:
         if self.leaf_index < 1:
@@ -70,6 +74,10 @@ class MerkleLeafSchema:
                 "tenant_id": self.tenant_id,
                 "timestamp": self.timestamp,
                 "tool_hash": self.tool_hash,
+                "c2_adapter": self.c2_adapter,
+                "c2_session_id": self.c2_session_id,
+                "c2_operation_id": self.c2_operation_id,
+                "c2_target": self.c2_target,
             },
             sort_keys=True,
             separators=(",", ":"),
