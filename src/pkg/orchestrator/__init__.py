@@ -73,6 +73,15 @@ from .manifest import (
     deterministic_manifest_hash,
     parse_and_validate_manifest_submission,
 )
+from .merkle_ledger import (
+    AppendOnlyMerkleLedger,
+    HMACRootSigningAuthority,
+    ImmutableExecutionLeafRecord,
+    ImmutableExecutionLeafStore,
+    MerkleLedgerError,
+    RootSigningAuthority,
+    SignedMerkleRoot,
+)
 from .messaging import (
     BrokerEnvelope,
     InMemoryRabbitBroker,
@@ -174,6 +183,13 @@ __all__ = [
     "canonical_manifest_json",
     "deterministic_manifest_hash",
     "parse_and_validate_manifest_submission",
+    "MerkleLedgerError",
+    "RootSigningAuthority",
+    "ImmutableExecutionLeafRecord",
+    "SignedMerkleRoot",
+    "HMACRootSigningAuthority",
+    "ImmutableExecutionLeafStore",
+    "AppendOnlyMerkleLedger",
     "TelemetryPublisher",
     "TelemetryPublishResult",
     "PublishAttemptResult",

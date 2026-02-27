@@ -9,33 +9,42 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 ## Program Context
 
-- Phase: Phase 7
+- Phase: Phase 6
 - Sprint: Sprint 26
-- Status: Planned
-- Primary Architecture Layers: Telemetry Ingestion, Reporting / Compliance
+- Status: Completed
+- Primary Architecture Layers: Audit & State Plane, Cryptographic Integrity
 
 ## Architectural Intent
 
-Provide secure manual result ingestion API with AAA and audit guarantees.
+Implement the append-only Merkle ledger runtime based on Sprint 25 model definitions.
 
 ## Implementation Detail
 
-Planned implementation includes authenticated ingestion endpoints, authorization controls, audit logging, manual Metasploit connector alignment, and orchestrator integration.
+Implemented:
+
+- Append-only Merkle tree runtime with deterministic left-right growth and duplicate-last odd node strategy.
+- Immutable execution leaf persistence with hash-chained JSONL records.
+- Periodic root generation based on fixed leaf cadence.
+- Root signing using control-plane signing authority contract.
+- Root verification routine that validates both deterministic root recomputation and signature integrity.
+- Tamper simulation coverage that detects immutable record mutation.
 
 ## Security and Control Posture
 
-- AAA scope and authorization boundaries are enforced according to current orchestrator policy.
-- Telemetry and audit events are expected to remain structured, attributable, and export-ready.
-- Integration interfaces are maintained as loosely coupled contracts to preserve VectorVue interoperability.
+- Immutable leaf chain prevents silent mutation of persisted evidence.
+- Root signing establishes control-plane authority over ledger checkpoints.
+- Verification path fails closed on root mismatch or signature mismatch.
 
 ## QA and Validation Evidence
 
-Unit/integration tests planned for auth boundaries, payload validation, and ingestion traceability.
+- Unit tests validate deterministic root behavior, persistence, periodic root cadence, signature verification, and tamper detection.
+- Sprint QA test confirms roadmap closure lines and core module contract presence.
 
 ## Risk Register
 
-Risk is malformed manual payloads and attribution gaps; mitigation through schema validation and strict audit fields.
+- Risk: production authority integration currently relies on abstract signer contract.
+- Mitigation: wire Vault transit-backed signer adapter in Sprint 27/28 verifier runtime.
 
 ## Forward Linkage
 
-Sprint 27 validates manual-ingestion QA.
+Sprint 27 adds inclusion proof API, deterministic rebuild/export, and read-only verifier node workflows.
