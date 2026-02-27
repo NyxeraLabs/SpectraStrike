@@ -35,6 +35,13 @@ from .control_plane_integrity import (
     StartupIntegrityResult,
     UnsignedConfigurationError,
 )
+from .cognitive_feedback import (
+    CognitiveFeedbackLoopService,
+    CognitiveLoopRunResult,
+    DefensiveEffectivenessMetrics,
+    FeedbackAdjustment,
+    FeedbackPolicyEngine,
+)
 from .engine import OrchestratorEngine, TaskSubmissionRequest
 from .execution_fingerprint import (
     ExecutionFingerprintError,
@@ -85,6 +92,9 @@ from .merkle_ledger import (
 )
 from .messaging import (
     BrokerEnvelope,
+    KafkaRoutingModel,
+    KafkaTelemetryPublisher,
+    InMemoryKafkaBroker,
     InMemoryRabbitBroker,
     PikaRabbitMQTelemetryPublisher,
     PublishAttemptResult,
@@ -155,6 +165,11 @@ __all__ = [
     "StartupIntegrityResult",
     "ImmutableConfigurationHistory",
     "ControlPlaneIntegrityEnforcer",
+    "FeedbackAdjustment",
+    "CognitiveLoopRunResult",
+    "DefensiveEffectivenessMetrics",
+    "FeedbackPolicyEngine",
+    "CognitiveFeedbackLoopService",
     "OrchestratorEngine",
     "TaskSubmissionRequest",
     "ExecutionFingerprintError",
@@ -197,9 +212,12 @@ __all__ = [
     "PublishAttemptResult",
     "PublishStatus",
     "BrokerEnvelope",
+    "KafkaRoutingModel",
     "RabbitRoutingModel",
     "RabbitMQConnectionConfig",
+    "InMemoryKafkaBroker",
     "InMemoryRabbitBroker",
+    "KafkaTelemetryPublisher",
     "RabbitMQTelemetryPublisher",
     "PikaRabbitMQTelemetryPublisher",
     "OPAConfig",

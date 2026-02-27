@@ -31,6 +31,13 @@ SpectraStrike can be mapped by customer governance teams to:
 - CIS Controls implementation practices
 - GDPR security and accountability obligations
 
+Sprint 32 implementation package:
+- `docs/compliance/SOC2_CONTROL_MAPPING.md`
+- `docs/compliance/ISO27001_ANNEXA_MAPPING.md`
+- `docs/compliance/NIST_800_53_MAPPING.md`
+- `docs/compliance/MITRE_ATTACK_TELEMETRY_MAPPING.md`
+- `docs/compliance/SECURE_SDLC_PACKAGE.md`
+
 ## 4. Evidence Artifacts Produced by Platform
 
 Core artifacts available for audits and internal assurance:

@@ -16,8 +16,11 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
+from pkg.orchestrator.messaging import InMemoryRabbitBroker, RabbitMQTelemetryPublisher
 from pkg.orchestrator.telemetry_ingestion import TelemetryIngestionPipeline
 
 
@@ -104,3 +107,45 @@ def test_ingest_payload_parses_cloudevent() -> None:
     assert event.status == "success"
     assert event.tenant_id == "tenant-a"
     assert event.attributes["exit_code"] == 0
+
+
+def test_ingest_assigns_monotonic_stream_position() -> None:
+    pipeline = TelemetryIngestionPipeline(batch_size=10)
+    first = pipeline.ingest("event_a", "alice", "nmap", "success", tenant_id="tenant-a")
+    second = pipeline.ingest(
+        "event_b",
+        "alice",
+        "nmap",
+        "success",
+        tenant_id="tenant-a",
+    )
+
+    assert first.stream_position == 1
+    assert second.stream_position == 2
+
+
+def test_flush_embeds_ml_normalized_payload() -> None:
+    broker = InMemoryRabbitBroker()
+    publisher = RabbitMQTelemetryPublisher(broker=broker)
+    pipeline = TelemetryIngestionPipeline(batch_size=10, publisher=publisher)
+    pipeline.ingest(
+        "com.nyxeralabs.runner.execution.v1",
+        "alice",
+        "urn:target:ip:10.0.0.5",
+        "success",
+        tenant_id="tenant-a",
+        exit_code=0,
+    )
+
+    result = asyncio.run(pipeline.flush_all_async())
+    assert result.published == 1
+
+    message = broker.consume("telemetry.events")[0]
+    assert message.schema_version == "telemetry.ml.v1"
+    assert message.ordering_key == "tenant-a"
+    assert message.stream_position == 1
+    assert "ml_record" in message.attributes
+    ml_record = message.attributes["ml_record"]
+    assert isinstance(ml_record, dict)
+    assert ml_record["schema_version"] == "telemetry.ml.v1"
+    assert ml_record["status_code"] == 1

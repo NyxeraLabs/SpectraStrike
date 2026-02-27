@@ -29,6 +29,10 @@ class ResponseEnvelope:
     data: dict[str, Any] | list[Any] | None
     errors: list[dict[str, Any]] = field(default_factory=list)
     signature: str | None = None
+    signed_at: int | None = None
+    nonce: str | None = None
+    schema_version: str | None = None
+    verified: bool = False
     http_status: int = 0
     headers: dict[str, str] = field(default_factory=dict)
 
