@@ -79,6 +79,7 @@ from .merkle_ledger import (
     ImmutableExecutionLeafRecord,
     ImmutableExecutionLeafStore,
     MerkleLedgerError,
+    ReadOnlyMerkleVerifierNode,
     RootSigningAuthority,
     SignedMerkleRoot,
 )
@@ -190,6 +191,7 @@ __all__ = [
     "HMACRootSigningAuthority",
     "ImmutableExecutionLeafStore",
     "AppendOnlyMerkleLedger",
+    "ReadOnlyMerkleVerifierNode",
     "TelemetryPublisher",
     "TelemetryPublishResult",
     "PublishAttemptResult",
