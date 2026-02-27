@@ -71,7 +71,14 @@ jobs:
           fi
           version="${latest_tag#v}"
           IFS='.' read -r major minor patch <<< "$version"
-          patch=$((patch + 1))
+          # Project convention:
+          # v0.0.9 -> v0.1.0, then continue patch increments from v0.1.1.
+          if [ "$major" -eq 0 ] && [ "$minor" -eq 0 ] && [ "$patch" -ge 9 ]; then
+            minor=1
+            patch=0
+          else
+            patch=$((patch + 1))
+          fi
           new_tag="v${major}.${minor}.${patch}"
           if git rev-parse "$new_tag" >/dev/null 2>&1; then
             echo "Tag $new_tag already exists; skipping."
@@ -79,7 +86,7 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag "$new_tag"
+          git tag -a "$new_tag" -m "Release $new_tag"
           git push origin "$new_tag"
           echo "New tag: $new_tag"
 
