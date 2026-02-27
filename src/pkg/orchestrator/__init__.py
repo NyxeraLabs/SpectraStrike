@@ -52,6 +52,16 @@ from .dual_signature import (
 )
 from .event_loop import AsyncEventLoop
 from .jws import CompactJWSGenerator, JWSConfig, JWSPayloadError
+from .ledger_model import (
+    AppendOnlyInsertionOrder,
+    DeterministicTreeGrowthRules,
+    InclusionProofNode,
+    InclusionProofStructure,
+    LedgerModelError,
+    MerkleLeafSchema,
+    RootGenerationCadence,
+    RootSigningProcedure,
+)
 from .manifest import (
     ManifestSchemaVersionError,
     ManifestSchemaVersionPolicy,
@@ -147,6 +157,14 @@ __all__ = [
     "CompactJWSGenerator",
     "JWSConfig",
     "JWSPayloadError",
+    "LedgerModelError",
+    "MerkleLeafSchema",
+    "AppendOnlyInsertionOrder",
+    "DeterministicTreeGrowthRules",
+    "RootGenerationCadence",
+    "RootSigningProcedure",
+    "InclusionProofNode",
+    "InclusionProofStructure",
     "ExecutionTaskContext",
     "ExecutionManifest",
     "ExecutionManifestValidationError",

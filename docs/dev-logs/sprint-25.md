@@ -9,33 +9,42 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 ## Program Context
 
-- Phase: Phase 7
+- Phase: Phase 6
 - Sprint: Sprint 25
-- Status: Planned
-- Primary Architecture Layers: Orchestration Pipeline, Reporting / Compliance
+- Status: Completed
+- Primary Architecture Layers: Audit & State Plane, Cryptographic Integrity
 
 ## Architectural Intent
 
-Validate adversary simulation scenarios and telemetry output quality for operational readiness.
+Define the formal Merkle ledger model contracts required for append-only non-repudiation authority.
 
 ## Implementation Detail
 
-QA focus includes scenario determinism, failure-injection handling, and telemetry trace completeness.
+Implemented model definitions for:
+
+- Merkle leaf schema bound to unified execution fingerprint and write-ahead intent lineage.
+- Strict append-only insertion order with contiguous index enforcement.
+- Deterministic tree growth rules (left-right pairing, SHA-256, duplicate-last strategy).
+- Root generation cadence based on fixed leaf intervals.
+- Root signing procedure contract using control-plane signing authority and canonical JWS payload.
+- Inclusion proof structure with typed audit path nodes and signature metadata.
 
 ## Security and Control Posture
 
-- AAA scope and authorization boundaries are enforced according to current orchestrator policy.
-- Telemetry and audit events are expected to remain structured, attributable, and export-ready.
-- Integration interfaces are maintained as loosely coupled contracts to preserve VectorVue interoperability.
+- Ledger model definitions enforce deterministic hashing and immutable ordering constraints.
+- Root signing payload contract is canonicalized to prevent signature ambiguity.
+- Inclusion proof schema fixes verifier-facing structure before implementation in Sprint 27.
 
 ## QA and Validation Evidence
 
-Planned QA suite includes scenario replay baselines and artifact consistency checks.
+- Added unit tests covering deterministic leaf hashing, append-order enforcement, cadence behavior, signing payload validation, and inclusion proof constraints.
+- Added Sprint 25 QA assertions ensuring roadmap checklist and required model contracts are present.
 
 ## Risk Register
 
-Risk is non-repeatable scenario behavior; mitigation through deterministic parameterization.
+- Risk: model parameters may diverge from upcoming runtime implementation.
+- Mitigation: Sprint 26 must implement against these exact contracts and retain deterministic tests.
 
 ## Forward Linkage
 
-Sprint 26 develops manual input API.
+Sprint 26 implements append-only Merkle tree runtime and immutable persistence using this model baseline.
