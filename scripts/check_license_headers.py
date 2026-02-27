@@ -32,8 +32,6 @@ TARGET_EXTENSIONS = {
     ".tsx",
     ".js",
     ".mjs",
-    ".md",
-    ".txt",
     ".sh",
     ".yml",
     ".yaml",
