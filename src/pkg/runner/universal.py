@@ -22,6 +22,11 @@ from typing import Callable
 
 from pkg.armory.service import ArmoryService, ArmoryTool
 from pkg.orchestrator.manifest import ExecutionManifest
+from pkg.runner.attestation import (
+    EphemeralKeyDeriver,
+    MutualAttestationService,
+    TPMIdentityProvider,
+)
 from pkg.runner.cloudevents import CloudEventEnvelope, map_execution_to_cloudevent
 from pkg.runner.firecracker import (
     FirecrackerIsolationError,
@@ -73,6 +78,9 @@ class UniversalEdgeRunner:
         ) = None,
         policy_manager: CiliumPolicyManager | None = None,
         firecracker_runner: FirecrackerMicroVMRunner | None = None,
+        tpm_identity_provider: TPMIdentityProvider | None = None,
+        key_deriver: EphemeralKeyDeriver | None = None,
+        mutual_attestation_service: MutualAttestationService | None = None,
     ) -> None:
         self._armory = armory
         self._jws_verifier = jws_verifier or RunnerJWSVerifier()
@@ -82,6 +90,13 @@ class UniversalEdgeRunner:
         self._firecracker_runner = firecracker_runner or FirecrackerMicroVMRunner(
             profile=self._sandbox.firecracker_profile
             or FirecrackerMicroVMProfile(launch_mode="simulate")
+        )
+        self._tpm_identity_provider = tpm_identity_provider or TPMIdentityProvider(
+            mode="simulate"
+        )
+        self._key_deriver = key_deriver or EphemeralKeyDeriver()
+        self._mutual_attestation_service = (
+            mutual_attestation_service or MutualAttestationService()
         )
 
     def verify_manifest_jws(
@@ -158,6 +173,28 @@ class UniversalEdgeRunner:
                 )
             except FirecrackerIsolationError as exc:
                 raise RunnerExecutionError(str(exc)) from exc
+            execution_fingerprint = manifest.deterministic_hash()
+            tpm_identity = self._tpm_identity_provider.issue_identity_evidence(
+                quote_nonce=manifest.nonce,
+                tenant_id=manifest.task_context.tenant_id,
+                operator_id=manifest.task_context.operator_id,
+            )
+            ephemeral_key = self._key_deriver.derive_execution_key(
+                execution_fingerprint=execution_fingerprint,
+                tenant_id=manifest.task_context.tenant_id,
+                operator_id=manifest.task_context.operator_id,
+            )
+            mutual_attestation = self._mutual_attestation_service.attest(
+                quote_nonce=manifest.nonce,
+                tenant_id=manifest.task_context.tenant_id,
+                operator_id=manifest.task_context.operator_id,
+                tpm_evidence=tpm_identity,
+                ephemeral_key=ephemeral_key,
+            )
+            if not mutual_attestation.approved:
+                raise RunnerExecutionError(
+                    f"runner-control-plane mutual attestation failed: {mutual_attestation.reason}"
+                )
             attestation_report = self._firecracker_runner.build_runtime_attestation_report(
                 manifest=manifest,
                 tool=self.resolve_signed_tool(manifest),
@@ -167,6 +204,9 @@ class UniversalEdgeRunner:
             execution_metadata = {
                 "runtime": "firecracker",
                 "attestation": attestation_report.to_dict(),
+                "tpm_identity": tpm_identity.to_dict(),
+                "ephemeral_key": ephemeral_key.to_dict(),
+                "mutual_attestation": mutual_attestation.to_dict(),
             }
 
         completed = self._command_runner(command)

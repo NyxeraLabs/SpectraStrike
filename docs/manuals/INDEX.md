@@ -24,6 +24,9 @@ This index tracks production manuals and governance documents aligned with curre
 - `docs/manuals/FIRECRACKER_MICROVM_TRANSITION.md`
   - Sprint 34 firecracker backend integration, isolation enforcement, and runtime attestation runbook.
 
+- `docs/manuals/MUTUAL_ATTESTATION_KEY_DERIVATION.md`
+  - Sprint 35 mutual attestation, TPM identity contracts, and per-execution key derivation controls.
+
 - `docs/manuals/VECTORVUE_API_CLIENT_DESIGN.md`
   - VectorVue client contracts, retry behavior, and integration error model.
 

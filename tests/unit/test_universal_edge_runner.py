@@ -142,6 +142,9 @@ def test_firecracker_backend_adds_runtime_attestation_metadata(tmp_path: Path) -
     payload = result.event.to_dict()["data"]
     assert payload["status"] == "success"
     assert payload["execution_metadata"]["runtime"] == "firecracker"
+    assert payload["execution_metadata"]["mutual_attestation"]["approved"] is True
+    assert payload["execution_metadata"]["tpm_identity"]["mode"] == "simulate"
+    assert payload["execution_metadata"]["ephemeral_key"]["algorithm"] == "HMAC-SHA256"
     assert len(
         payload["execution_metadata"]["attestation"]["measurement_hash"]
     ) == 64

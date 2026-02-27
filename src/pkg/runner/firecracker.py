@@ -127,7 +127,13 @@ class FirecrackerMicroVMRunner:
             "seccomp_hardened": seccomp_hardened,
             "jailer_enabled": self._profile.enable_jailer,
         }
-        if self._profile.launch_mode == "native" and not all(checks.values()):
+        required_checks = {
+            "firecracker_binary_available": firecracker_available,
+            "jailer_binary_available": jailer_available,
+            "kvm_device_available": kvm_available,
+            "seccomp_hardened": seccomp_hardened,
+        }
+        if self._profile.launch_mode == "native" and not all(required_checks.values()):
             raise FirecrackerIsolationError("firecracker isolation boundary checks failed")
         if not seccomp_hardened:
             raise FirecrackerIsolationError("seccomp hardening is required")

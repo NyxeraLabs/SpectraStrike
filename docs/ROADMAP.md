@@ -485,8 +485,8 @@ Sell derived competing products
 - [x] Commit Sprint 34 MicroVM Transition
 
 ## Sprint 35 (Week 67-68): Mutual Attestation & Key Derivation
-- [ ] Implement TPM-backed identity (on-prem)
-- [ ] Implement per-execution ephemeral key derivation
-- [ ] Implement Runner ↔ Control Plane mutual attestation
-- [ ] Validate multi-tenant stress isolation
-- [ ] Commit Sprint 35 Mutual Attestation & Isolation Validation
+- [x] Implement TPM-backed identity (on-prem)
+- [x] Implement per-execution ephemeral key derivation
+- [x] Implement Runner ↔ Control Plane mutual attestation
+- [x] Validate multi-tenant stress isolation
+- [x] Commit Sprint 35 Mutual Attestation & Isolation Validation

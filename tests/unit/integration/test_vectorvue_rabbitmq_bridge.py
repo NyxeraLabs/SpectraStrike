@@ -139,13 +139,9 @@ def test_inmemory_bridge_drains_and_forwards_event_and_finding() -> None:
     attrs = event_payload["attributes"]  # type: ignore[index]
     assert attrs["intent_id"].startswith("intent-")  # type: ignore[index]
     assert len(attrs["intent_hash"]) == 64  # type: ignore[index]
-    assert attrs["soc2_controls"] == ["CC7.2", "CC7.3", "A1.2"]  # type: ignore[index]
-    assert attrs["iso27001_annex_a_controls"] == [  # type: ignore[index]
-        "A.8.15",
-        "A.8.16",
-        "A.8.24",
-    ]
-    assert attrs["nist_800_53_controls"] == ["AU-2", "AU-8", "SI-4"]  # type: ignore[index]
+    assert attrs["soc2_controls"] == "CC7.2,CC7.3,A1.2"  # type: ignore[index]
+    assert attrs["iso27001_annex_a_controls"] == "A.8.15,A.8.16,A.8.24"  # type: ignore[index]
+    assert attrs["nist_800_53_controls"] == "AU-2,AU-8,SI-4"  # type: ignore[index]
 
 
 def test_inmemory_bridge_applies_event_specific_control_mapping() -> None:
@@ -167,13 +163,9 @@ def test_inmemory_bridge_applies_event_specific_control_mapping() -> None:
     assert event_payload["mitre_techniques"] == ["T1059"]  # type: ignore[index]
     assert event_payload["mitre_tactics"] == ["TA0002"]  # type: ignore[index]
     attrs = event_payload["attributes"]  # type: ignore[index]
-    assert attrs["soc2_controls"] == ["CC6.6", "CC7.3", "CC7.4"]  # type: ignore[index]
-    assert attrs["iso27001_annex_a_controls"] == [  # type: ignore[index]
-        "A.5.15",
-        "A.8.15",
-        "A.8.24",
-    ]
-    assert attrs["nist_800_53_controls"] == ["AC-3", "AU-2", "AU-10"]  # type: ignore[index]
+    assert attrs["soc2_controls"] == "CC6.6,CC7.3,CC7.4"  # type: ignore[index]
+    assert attrs["iso27001_annex_a_controls"] == "A.5.15,A.8.15,A.8.24"  # type: ignore[index]
+    assert attrs["nist_800_53_controls"] == "AC-3,AU-2,AU-10"  # type: ignore[index]
 
 
 def test_inmemory_bridge_preserves_explicit_control_overrides() -> None:
@@ -205,9 +197,9 @@ def test_inmemory_bridge_preserves_explicit_control_overrides() -> None:
     assert event_payload["mitre_techniques"] == ["T1027"]  # type: ignore[index]
     assert event_payload["mitre_tactics"] == ["TA0005"]  # type: ignore[index]
     attrs = event_payload["attributes"]  # type: ignore[index]
-    assert attrs["soc2_controls"] == ["CC6.1"]  # type: ignore[index]
-    assert attrs["iso27001_annex_a_controls"] == ["A.5.17"]  # type: ignore[index]
-    assert attrs["nist_800_53_controls"] == ["AC-6"]  # type: ignore[index]
+    assert attrs["soc2_controls"] == "CC6.1"  # type: ignore[index]
+    assert attrs["iso27001_annex_a_controls"] == "A.5.17"  # type: ignore[index]
+    assert attrs["nist_800_53_controls"] == "AC-6"  # type: ignore[index]
 
 
 def test_inmemory_bridge_records_failure_on_api_error() -> None:
