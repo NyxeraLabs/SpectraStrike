@@ -107,6 +107,7 @@ def test_enforces_policy_hash_validation_at_adapter_boundary() -> None:
         {
             "execution_fingerprint": bundle.execution_fingerprint,
             "policy_decision_hash": "policy-deny-999",
+            "attestation_measurement_hash": "a" * 64,
             "target": bundle.target,
         },
         "secret",

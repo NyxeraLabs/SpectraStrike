@@ -77,3 +77,17 @@ def test_send_to_orchestrator_emits_sdk_event() -> None:
     )
     assert event.event_type == "sliver_command_completed"
     assert event.tenant_id == "tenant-a"
+
+
+def test_execute_dry_run_is_cli_compatible() -> None:
+    wrapper = SliverWrapper()
+    result = wrapper.execute(
+        SliverCommandRequest(
+            target="10.0.0.5",
+            command="whoami",
+            extra_args=["--dry-run"],
+        )
+    )
+    assert result.status == "success"
+    assert result.task_id.startswith("sliver-dry-run-")
+    assert "dry-run compatible" in result.output
