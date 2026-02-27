@@ -399,12 +399,12 @@ Sell derived competing products
 - [ ] Commit Sprint 25 Ledger Model Definition
 
 ## Sprint 26 (Week 49-50): Ledger Core Implementation
-- [ ] Implement append-only Merkle tree
-- [ ] Persist immutable execution leaves
-- [ ] Implement periodic root generation
-- [ ] Sign root with Control Plane signing authority
-- [ ] Implement root verification routine
-- [ ] Add tamper simulation test
+- [x] Implement append-only Merkle tree
+- [x] Persist immutable execution leaves
+- [x] Implement periodic root generation
+- [x] Sign root with Control Plane signing authority
+- [x] Implement root verification routine
+- [x] Add tamper simulation test
 - [ ] Commit Sprint 26 Ledger Core Implementation
 
 ## Sprint 27 (Week 51-52): Ledger Verification & Export
