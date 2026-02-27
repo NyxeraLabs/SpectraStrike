@@ -147,6 +147,14 @@ Expected output shape:
 If `--check-metasploit-rpc` is enabled, `MSF_RPC_*` must point to a reachable RPC endpoint.
 If `--check-vectorvue` is enabled, `VECTORVUE_*` credentials and endpoint must be configured.
 
+Latest local federation evidence (2026-02-27):
+- `nmap + metasploit + sliver + vectorvue` host smoke accepted:
+  - `vectorvue_event_status=accepted`
+  - `vectorvue_finding_status=accepted`
+  - `vectorvue_status_poll_status=accepted`
+- Mythic-inclusive host smoke currently blocks with:
+  - `HostIntegrationError: required binary not found on host: mythic-cli`
+
 ### 4.7 Sprint 17 zero-trust QA
 
 Run explicit Sprint 17 denial and containment checks:
