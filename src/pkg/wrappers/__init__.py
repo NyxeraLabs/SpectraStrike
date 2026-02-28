@@ -77,6 +77,18 @@ from pkg.wrappers.responder import (
     ResponderResult,
     ResponderWrapper,
 )
+from pkg.wrappers.gobuster import (
+    GobusterExecutionError,
+    GobusterScanRequest,
+    GobusterScanResult,
+    GobusterWrapper,
+)
+from pkg.wrappers.ffuf import (
+    FfufExecutionError,
+    FfufScanRequest,
+    FfufScanResult,
+    FfufWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -140,6 +152,14 @@ __all__ = [
     "ResponderRequest",
     "ResponderResult",
     "ResponderWrapper",
+    "GobusterExecutionError",
+    "GobusterScanRequest",
+    "GobusterScanResult",
+    "GobusterWrapper",
+    "FfufExecutionError",
+    "FfufScanRequest",
+    "FfufScanResult",
+    "FfufWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",

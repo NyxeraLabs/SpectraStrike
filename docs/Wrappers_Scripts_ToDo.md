@@ -35,21 +35,21 @@ Category completion:
 | Wrapper | Priority | Impl | Docs | Unit Tests | Smoke Tests | Telemetry Validation |
 |---|---|---|---|---|---|---|
 | [x] Nuclei | P0 | [x] | [x] | [x] | [x] | [x] |
-| [ ] Gobuster | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
-| [ ] DirBuster | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
-| [ ] Dirsearch | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
-| [ ] ffuf | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [x] Gobuster | P0 | [x] | [x] | [x] | [x] | [x] |
+| [ ] DirBuster | P1 | [ ] | [ ] | [ ] | [ ] | [ ] |
+| [ ] Dirsearch | P1 | [ ] | [ ] | [ ] | [ ] | [ ] |
+| [x] ffuf | P0 | [x] | [x] | [x] | [x] | [x] |
 | [ ] sqlmap | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
-| [ ] Katana | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] Katana | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] Nikto | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
-| [ ] BurpSuite | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] BurpSuite | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
 
 Category completion:
-- Implementation: 1/9 (11.1%)
-- Documentation: 7/9 (77.8%)
-- Unit Tests: 1/9 (11.1%)
-- Smoke Tests: 1/9 (11.1%)
-- Telemetry Validation: 1/9 (11.1%)
+- Implementation: 3/9 (33.3%)
+- Documentation: 8/9 (88.9%)
+- Unit Tests: 3/9 (33.3%)
+- Smoke Tests: 3/9 (33.3%)
+- Telemetry Validation: 3/9 (33.3%)
 
 ## 3) Exploitation & Identity (12)
 
@@ -103,6 +103,8 @@ Category completion:
 - [x] Impacket ntlmrelayx.py full wrapper docs set created
 - [x] BloodHound Collector full wrapper docs set created
 - [x] Nuclei full wrapper docs set created
+- [x] Gobuster full wrapper docs set created
+- [x] ffuf full wrapper docs set created
 - [x] Prowler full wrapper docs set created
 - [x] Responder full wrapper docs set created
 - [ ] All remaining wrappers documentation scaffolds created
@@ -132,6 +134,8 @@ Already implemented in codebase:
 - Impacket ntlmrelayx.py
 - BloodHound Collector
 - Nuclei
+- Gobuster
+- ffuf
 - Prowler
 - Responder
 
@@ -139,16 +143,14 @@ Remaining P0 wrappers:
 - Netcat
 - Hashcat
 - John the Ripper
-- Gobuster
-- DirBuster
-- Dirsearch
+- BurpSuite
 
 Overall completion (current matrix entries):
-- Implementation: 12/33 (36.4%)
-- Documentation: 28/33 (84.8%)
-- Unit Tests: 12/33 (36.4%)
-- Smoke Tests: 12/33 (36.4%)
-- Telemetry Validation: 12/33 (36.4%)
+- Implementation: 14/33 (42.4%)
+- Documentation: 29/33 (87.9%)
+- Unit Tests: 14/33 (42.4%)
+- Smoke Tests: 14/33 (42.4%)
+- Telemetry Validation: 14/33 (42.4%)
 
 ## Latest E2E Federation Audit (2026-02-28)
 
@@ -163,6 +165,8 @@ Implemented wrappers audit status:
 - [x] Impacket ntlmrelayx.py: host smoke executed (`impacket_ntlmrelayx_command_ok=True`) and telemetry emitted (`impacket_ntlmrelayx_completed`); live E2E currently gated by missing `IMPACKET_NTLMRELAYX_PASSWORD` or `IMPACKET_NTLMRELAYX_HASHES`.
 - [x] BloodHound Collector: host smoke executed (`bloodhound_collector_command_ok=True`) and telemetry emitted (`bloodhound_collector_completed`); live E2E currently gated by missing `BLOODHOUND_COLLECTOR_PASSWORD`.
 - [x] Nuclei: host smoke executed (`nuclei_command_ok=True`) and telemetry emitted (`nuclei_scan_completed`); live E2E currently gated by missing `NUCLEI_LIVE_TARGET`.
+- [x] Gobuster: host smoke executed (`gobuster_command_ok=True`) and telemetry emitted (`gobuster_scan_completed`); live E2E currently gated by missing `GOBUSTER_LIVE_TARGET`.
+- [x] ffuf: host smoke executed (`ffuf_command_ok=True`) and telemetry emitted (`ffuf_scan_completed`); live E2E currently gated by missing `FFUF_LIVE_TARGET`.
 - [x] Prowler: host smoke executed (`prowler_command_ok=True`) and telemetry emitted (`prowler_scan_completed`); live E2E currently gated by missing `PROWLER_LIVE_TARGET`.
 - [x] Responder: host smoke executed (`responder_command_ok=True`) and telemetry emitted (`responder_session_completed`); live E2E currently gated by missing `RESPONDER_LIVE_INTERFACE`.
 - [x] Sliver: host smoke command path executed (`sliver_binary_ok=True`, `sliver_command_ok=True`) when run outside sandbox restrictions.

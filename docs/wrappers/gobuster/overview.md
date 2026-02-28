@@ -5,9 +5,9 @@ Licensed under BSL 1.1
 Change Date: 2033-02-22 -> Apache-2.0
 -->
 
-# ffuf Wrapper Overview
+# Gobuster Wrapper Overview
 
-ffuf is tracked in the SpectraStrike wrapper matrix under Web and API Offensive with priority P0.
+Gobuster is tracked in the SpectraStrike wrapper matrix under Web and API Offensive with priority P0.
 
 Current implementation state: Implemented.
 

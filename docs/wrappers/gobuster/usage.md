@@ -5,13 +5,13 @@ Licensed under BSL 1.1
 Change Date: 2033-02-22 -> Apache-2.0
 -->
 
-# ffuf Wrapper Usage
+# Gobuster Wrapper Usage
 
-Module path target: pkg.wrappers.ffuf.
+Module path target: pkg.wrappers.gobuster.
 
 Expected usage flow:
-1. Build validated request input.
-2. Execute wrapper against authorized target scope.
+1. Build validated request input with authorized target and mode.
+2. Execute wrapper against approved engagement boundary.
 3. Send normalized output to orchestrator telemetry pipeline.
 4. Validate live E2E behavior before promoting wrapper state.
 

@@ -60,6 +60,8 @@ from pkg.wrappers.bloodhound_collector import (
 from pkg.wrappers.nuclei import NucleiScanRequest, NucleiWrapper
 from pkg.wrappers.prowler import ProwlerScanRequest, ProwlerWrapper
 from pkg.wrappers.responder import ResponderRequest, ResponderWrapper
+from pkg.wrappers.gobuster import GobusterScanRequest, GobusterWrapper
+from pkg.wrappers.ffuf import FfufScanRequest, FfufWrapper
 from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
 _LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
@@ -98,6 +100,10 @@ class HostIntegrationResult:
     prowler_command_ok: bool | None = None
     responder_binary_ok: bool | None = None
     responder_command_ok: bool | None = None
+    gobuster_binary_ok: bool | None = None
+    gobuster_command_ok: bool | None = None
+    ffuf_binary_ok: bool | None = None
+    ffuf_command_ok: bool | None = None
     sliver_binary_ok: bool | None = None
     sliver_command_ok: bool | None = None
     mythic_binary_ok: bool | None = None
@@ -210,6 +216,10 @@ def run_host_integration_smoke(
     check_prowler_live: bool = False,
     check_responder: bool = False,
     check_responder_live: bool = False,
+    check_gobuster: bool = False,
+    check_gobuster_live: bool = False,
+    check_ffuf: bool = False,
+    check_ffuf_live: bool = False,
     check_mythic_task: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
@@ -241,6 +251,10 @@ def run_host_integration_smoke(
     prowler_result: object | None = None
     responder_wrapper: ResponderWrapper | None = None
     responder_result: object | None = None
+    gobuster_wrapper: GobusterWrapper | None = None
+    gobuster_result: object | None = None
+    ffuf_wrapper: FfufWrapper | None = None
+    ffuf_result: object | None = None
     mythic_wrapper: MythicWrapper | None = None
     mythic_result: object | None = None
 
@@ -764,6 +778,98 @@ def run_host_integration_smoke(
             "responder.command.live" if check_responder_live else "responder.command"
         )
 
+    if check_gobuster:
+        gobuster_binary = os.getenv("GOBUSTER_BINARY", "gobuster")
+        _require_binary(gobuster_binary)
+        try:
+            _run_command([gobuster_binary, "version"], timeout_seconds)
+        except Exception:
+            _run_command([gobuster_binary, "-h"], timeout_seconds)
+        result.gobuster_binary_ok = True
+        result.checks.append("gobuster.version")
+        gobuster_wrapper = GobusterWrapper(timeout_seconds=timeout_seconds)
+        gobuster_target = (
+            os.getenv("GOBUSTER_LIVE_TARGET", "").strip()
+            if check_gobuster_live
+            else os.getenv("GOBUSTER_TARGET", "http://127.0.0.1").strip()
+        )
+        if check_gobuster_live and not gobuster_target:
+            raise HostIntegrationError(
+                "GOBUSTER_LIVE_TARGET is required for live gobuster e2e"
+            )
+        gobuster_command = os.getenv(
+            "GOBUSTER_COMMAND",
+            f"dir -u {gobuster_target} -w /usr/share/wordlists/dirb/common.txt",
+        )
+        gobuster_extra_args = [] if check_gobuster_live else ["--dry-run"]
+        gobuster_result = gobuster_wrapper.execute(
+            GobusterScanRequest(
+                target=gobuster_target,
+                command=gobuster_command,
+                extra_args=gobuster_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        gobuster_event = gobuster_wrapper.send_to_orchestrator(
+            gobuster_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.gobuster_command_ok = (
+            gobuster_event.event_type == "gobuster_scan_completed"
+            and gobuster_event.tenant_id == resolved_tenant
+        )
+        result.checks.append(
+            "gobuster.command.live" if check_gobuster_live else "gobuster.command"
+        )
+
+    if check_ffuf:
+        ffuf_binary = os.getenv("FFUF_BINARY", "ffuf")
+        _require_binary(ffuf_binary)
+        try:
+            _run_command([ffuf_binary, "-V"], timeout_seconds)
+        except Exception:
+            _run_command([ffuf_binary, "-h"], timeout_seconds)
+        result.ffuf_binary_ok = True
+        result.checks.append("ffuf.version")
+        ffuf_wrapper = FfufWrapper(timeout_seconds=timeout_seconds)
+        ffuf_target = (
+            os.getenv("FFUF_LIVE_TARGET", "").strip()
+            if check_ffuf_live
+            else os.getenv("FFUF_TARGET", "http://127.0.0.1/FUZZ").strip()
+        )
+        if check_ffuf_live and not ffuf_target:
+            raise HostIntegrationError("FFUF_LIVE_TARGET is required for live ffuf e2e")
+        ffuf_command = os.getenv(
+            "FFUF_COMMAND",
+            f"-u {ffuf_target} -w /usr/share/wordlists/dirb/common.txt -mc all -fc 404",
+        )
+        ffuf_extra_args = [] if check_ffuf_live else ["--dry-run"]
+        ffuf_result = ffuf_wrapper.execute(
+            FfufScanRequest(
+                target=ffuf_target,
+                command=ffuf_command,
+                extra_args=ffuf_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        ffuf_event = ffuf_wrapper.send_to_orchestrator(
+            ffuf_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.ffuf_command_ok = (
+            ffuf_event.event_type == "ffuf_scan_completed"
+            and ffuf_event.tenant_id == resolved_tenant
+        )
+        result.checks.append("ffuf.command.live" if check_ffuf_live else "ffuf.command")
+
     if check_sliver_command:
         _require_binary(os.getenv("SLIVER_BINARY", "sliver-client"))
         sliver_binary = os.getenv("SLIVER_BINARY", "sliver-client")
@@ -945,6 +1051,22 @@ def run_host_integration_smoke(
                 operator_id=integration_actor,
                 actor=integration_actor,
             )
+        if check_gobuster and gobuster_wrapper is not None and gobuster_result is not None:
+            gobuster_wrapper.send_to_orchestrator(
+                gobuster_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
+        if check_ffuf and ffuf_wrapper is not None and ffuf_result is not None:
+            ffuf_wrapper.send_to_orchestrator(
+                ffuf_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
         if check_mythic_task and mythic_wrapper is not None and mythic_result is not None:
             mythic_wrapper.send_to_orchestrator(
                 mythic_result,
@@ -1098,6 +1220,26 @@ def _build_parser() -> argparse.ArgumentParser:
         help="execute one responder live command (requires RESPONDER_LIVE_INTERFACE)",
     )
     parser.add_argument(
+        "--check-gobuster",
+        action="store_true",
+        help="execute one gobuster dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-gobuster-live",
+        action="store_true",
+        help="execute one gobuster live command (requires GOBUSTER_LIVE_TARGET)",
+    )
+    parser.add_argument(
+        "--check-ffuf",
+        action="store_true",
+        help="execute one ffuf dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-ffuf-live",
+        action="store_true",
+        help="execute one ffuf live command (requires FFUF_LIVE_TARGET)",
+    )
+    parser.add_argument(
         "--check-mythic-task",
         action="store_true",
         help="execute one Mythic dry-run task and emit SDK telemetry",
@@ -1139,6 +1281,10 @@ def main() -> int:
         check_prowler_live=args.check_prowler_live,
         check_responder=args.check_responder,
         check_responder_live=args.check_responder_live,
+        check_gobuster=args.check_gobuster,
+        check_gobuster_live=args.check_gobuster_live,
+        check_ffuf=args.check_ffuf,
+        check_ffuf_live=args.check_ffuf_live,
         check_mythic_task=args.check_mythic_task,
         check_vectorvue=args.check_vectorvue,
     )
@@ -1169,6 +1315,10 @@ def main() -> int:
         f" prowler_command_ok={result.prowler_command_ok}"
         f" responder_binary_ok={result.responder_binary_ok}"
         f" responder_command_ok={result.responder_command_ok}"
+        f" gobuster_binary_ok={result.gobuster_binary_ok}"
+        f" gobuster_command_ok={result.gobuster_command_ok}"
+        f" ffuf_binary_ok={result.ffuf_binary_ok}"
+        f" ffuf_command_ok={result.ffuf_command_ok}"
         f" sliver_binary_ok={result.sliver_binary_ok}"
         f" sliver_command_ok={result.sliver_command_ok}"
         f" mythic_binary_ok={result.mythic_binary_ok}"

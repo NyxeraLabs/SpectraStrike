@@ -5,12 +5,12 @@ Licensed under BSL 1.1
 Change Date: 2033-02-22 -> Apache-2.0
 -->
 
-# ffuf Example Execution
+# Gobuster Example Execution
 
 ```json
 {
-  "event_type": "ffuf_scan_completed",
-  "actor": "ffuf-wrapper",
+  "event_type": "gobuster_scan_completed",
+  "actor": "gobuster-wrapper",
   "target": "orchestrator",
   "status": "success",
   "tenant_id": "tenant-a",
@@ -31,11 +31,11 @@ PYTHONPATH=src:/usr/lib/python3.14/site-packages .venv/bin/python \
   -m pkg.integration.host_integration_smoke \
   --tenant-id 10000000-0000-0000-0000-000000000001 \
   --timeout-seconds 30 \
-  --check-ffuf
+  --check-gobuster
 ```
 
 ```text
-HOST_SMOKE tenant_id=10000000-0000-0000-0000-000000000001 ... ffuf_binary_ok=True ffuf_command_ok=True ... checks=...ffuf.version,ffuf.command
+HOST_SMOKE tenant_id=10000000-0000-0000-0000-000000000001 ... gobuster_binary_ok=True gobuster_command_ok=True ... checks=...gobuster.version,gobuster.command
 ```
 
 Smoke test 2:
@@ -45,10 +45,10 @@ PYTHONPATH=src:/usr/lib/python3.14/site-packages .venv/bin/python \
   -m pkg.integration.host_integration_smoke \
   --tenant-id 10000000-0000-0000-0000-000000000001 \
   --timeout-seconds 30 \
-  --check-ffuf \
-  --check-ffuf-live
+  --check-gobuster \
+  --check-gobuster-live
 ```
 
 ```text
-HostIntegrationError: FFUF_LIVE_TARGET is required for live ffuf e2e
+HostIntegrationError: GOBUSTER_LIVE_TARGET is required for live gobuster e2e
 ```
