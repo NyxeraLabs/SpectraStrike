@@ -18,21 +18,29 @@ import (
 	"bytes"
 	"fmt"
 	"os/exec"
+	"regexp"
 )
 
+func vmID(taskID string) string {
+	normalized := regexp.MustCompile(`[^a-zA-Z0-9-]`).ReplaceAllString(taskID, "-")
+	if normalized == "" {
+		return "task"
+	}
+	if len(normalized) > 63 {
+		return normalized[:63]
+	}
+	return normalized
+}
+
 func BuildSandboxCommand(tool ArmoryTool, manifest ExecutionManifest) []string {
+	toolPrefix := tool.ToolSHA256
+	if len(toolPrefix) > 16 {
+		toolPrefix = toolPrefix[:16]
+	}
+	// Firecracker microVM simulation is the standard local launch contract.
 	return []string{
-		"docker",
-		"run",
-		"--rm",
-		"--read-only",
-		"--cap-drop=ALL",
-		"--runtime=runsc",
-		"--security-opt=apparmor=spectrastrike-default",
-		"--network=none",
-		"-e", "SPECTRA_TASK_ID=" + manifest.TaskContext.TaskID,
-		"-e", "SPECTRA_TARGET_URN=" + manifest.TargetURN,
-		tool.ImageRef,
+		"echo",
+		fmt.Sprintf("firecracker_simulated:%s:%s", vmID(manifest.TaskContext.TaskID), toolPrefix),
 	}
 }
 

@@ -46,7 +46,7 @@ class RunnerExecutionError(RuntimeError):
 class RunnerSandboxProfile:
     """Sandbox profile abstraction: gVisor preferred, AppArmor fallback."""
 
-    backend: str = "docker"
+    backend: str = "firecracker"
     runtime: str = "runsc"
     apparmor_profile: str = "spectrastrike-default"
     network_mode: str = "none"

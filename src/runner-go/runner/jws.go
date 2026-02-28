@@ -15,10 +15,11 @@
 package runner
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
+	"crypto/ed25519"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"strings"
@@ -27,7 +28,8 @@ import (
 var (
 	ErrInvalidJWSFormat    = errors.New("invalid compact jws format")
 	ErrUnsupportedJWSAlg   = errors.New("unsupported jws algorithm")
-	ErrMissingHMACSecret   = errors.New("missing hmac secret for HS256")
+	ErrMissingVerifyKey    = errors.New("missing Ed25519 verify key")
+	ErrInvalidVerifyKey    = errors.New("invalid Ed25519 verify key")
 	ErrSignatureValidation = errors.New("jws signature validation failed")
 )
 
@@ -35,7 +37,7 @@ func parseSegment(seg string) ([]byte, error) {
 	return base64.RawURLEncoding.DecodeString(seg)
 }
 
-func VerifyHS256JWS(compact, hmacSecret string) (map[string]any, error) {
+func VerifyEdDSAJWS(compact, publicKeyPEM string) (map[string]any, error) {
 	parts := strings.Split(compact, ".")
 	if len(parts) != 3 {
 		return nil, ErrInvalidJWSFormat
@@ -58,18 +60,27 @@ func VerifyHS256JWS(compact, hmacSecret string) (map[string]any, error) {
 		return nil, fmt.Errorf("parse header: %w", err)
 	}
 	alg, _ := header["alg"].(string)
-	if alg != "HS256" {
+	if alg != "EdDSA" {
 		return nil, ErrUnsupportedJWSAlg
 	}
-	if hmacSecret == "" {
-		return nil, ErrMissingHMACSecret
+	if publicKeyPEM == "" {
+		return nil, ErrMissingVerifyKey
 	}
 
 	signingInput := []byte(parts[0] + "." + parts[1])
-	mac := hmac.New(sha256.New, []byte(hmacSecret))
-	mac.Write(signingInput)
-	expected := mac.Sum(nil)
-	if !hmac.Equal(expected, signatureRaw) {
+	block, _ := pem.Decode([]byte(publicKeyPEM))
+	if block == nil {
+		return nil, ErrInvalidVerifyKey
+	}
+	parsed, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, ErrInvalidVerifyKey
+	}
+	publicKey, ok := parsed.(ed25519.PublicKey)
+	if !ok {
+		return nil, ErrInvalidVerifyKey
+	}
+	if !ed25519.Verify(publicKey, signingInput, signatureRaw) {
 		return nil, ErrSignatureValidation
 	}
 
