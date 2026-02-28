@@ -65,6 +65,12 @@ from pkg.wrappers.nuclei import (
     NucleiScanResult,
     NucleiWrapper,
 )
+from pkg.wrappers.prowler import (
+    ProwlerExecutionError,
+    ProwlerScanRequest,
+    ProwlerScanResult,
+    ProwlerWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -120,6 +126,10 @@ __all__ = [
     "NucleiScanRequest",
     "NucleiScanResult",
     "NucleiWrapper",
+    "ProwlerExecutionError",
+    "ProwlerScanRequest",
+    "ProwlerScanResult",
+    "ProwlerWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",

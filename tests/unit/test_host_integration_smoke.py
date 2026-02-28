@@ -477,6 +477,57 @@ class _FakeNucleiWrapper:
         return _FakeEvent(event_type="nuclei_scan_completed", tenant_id=tenant_id)
 
 
+class _FakeProwlerWrapper:
+    def __init__(self, timeout_seconds: float) -> None:
+        self._timeout_seconds = timeout_seconds
+
+    def execute(
+        self,
+        _request: object,
+        *,
+        tenant_id: str,
+        operator_id: str,
+    ) -> object:
+        assert tenant_id == "tenant-a"
+        assert operator_id == "host-integration-smoke"
+
+        class _R:
+            status = "success"
+            return_code = 0
+            target = "aws"
+            command = "aws -M json"
+            tool_version = "4.5.0"
+            output = "ok"
+            execution_fingerprint = "9" * 64
+            attestation_measurement_hash = "0" * 64
+            payload_signature = "sig"
+            payload_signature_algorithm = "Ed25519"
+
+        return _R()
+
+    def send_to_orchestrator(
+        self,
+        _result: object,
+        *,
+        telemetry: object,
+        tenant_id: str,
+        operator_id: str,
+        actor: str,
+    ) -> _FakeEvent:
+        assert operator_id == "host-integration-smoke"
+        ingest = getattr(telemetry, "ingest", None)
+        if callable(ingest):
+            ingest(
+                event_type="prowler_scan_completed",
+                actor=actor,
+                target="orchestrator",
+                status="success",
+                tenant_id=tenant_id,
+                module="scanner",
+            )
+        return _FakeEvent(event_type="prowler_scan_completed", tenant_id=tenant_id)
+
+
 class _FakeMythicWrapper:
     def __init__(self, timeout_seconds: float) -> None:
         self._timeout_seconds = timeout_seconds
@@ -668,6 +719,10 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         _FakeNucleiWrapper,
     )
     monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.ProwlerWrapper",
+        _FakeProwlerWrapper,
+    )
+    monkeypatch.setattr(
         "pkg.integration.host_integration_smoke.MythicWrapper",
         _FakeMythicWrapper,
     )
@@ -690,6 +745,7 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         check_impacket_ntlmrelayx=True,
         check_bloodhound_collector=True,
         check_nuclei=True,
+        check_prowler=True,
         check_sliver_command=True,
         check_mythic_task=True,
         check_vectorvue=True,
@@ -712,6 +768,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert result.bloodhound_collector_command_ok is True
     assert result.nuclei_binary_ok is True
     assert result.nuclei_command_ok is True
+    assert result.prowler_binary_ok is True
+    assert result.prowler_command_ok is True
     assert result.mythic_binary_ok is True
     assert result.mythic_task_ok is True
     assert result.rabbitmq_publish_ok is True
@@ -734,6 +792,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert "bloodhound.collector.command" in result.checks
     assert "nuclei.version" in result.checks
     assert "nuclei.command" in result.checks
+    assert "prowler.version" in result.checks
+    assert "prowler.command" in result.checks
     assert "sliver.version" in result.checks
     assert "sliver.command" in result.checks
     assert "mythic.version" in result.checks
@@ -925,4 +985,30 @@ def test_host_smoke_nuclei_live_requires_target(
             tenant_id="tenant-a",
             check_nuclei=True,
             check_nuclei_live=True,
+        )
+
+
+def test_host_smoke_prowler_live_requires_target(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._require_binary", lambda _name: None
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._run_command",
+        lambda _cmd, _timeout: "ok",
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.NmapWrapper",
+        _FakeNmapWrapper,
+    )
+    monkeypatch.delenv("PROWLER_LIVE_TARGET", raising=False)
+    with pytest.raises(
+        HostIntegrationError,
+        match="PROWLER_LIVE_TARGET is required",
+    ):
+        run_host_integration_smoke(
+            tenant_id="tenant-a",
+            check_prowler=True,
+            check_prowler_live=True,
         )

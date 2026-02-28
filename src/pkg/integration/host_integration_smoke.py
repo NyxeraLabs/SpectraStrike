@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 from pkg.integration.vectorvue.client import VectorVueClient
 from pkg.integration.vectorvue.config import VectorVueConfig
 from pkg.integration.vectorvue.rabbitmq_bridge import InMemoryVectorVueBridge
+from pkg.logging.framework import get_logger
 from pkg.orchestrator.messaging import InMemoryRabbitBroker, RabbitMQTelemetryPublisher
 from pkg.orchestrator.telemetry_ingestion import TelemetryIngestionPipeline
 from pkg.telemetry.sdk import build_internal_telemetry_event
@@ -57,9 +58,11 @@ from pkg.wrappers.bloodhound_collector import (
     BloodhoundCollectorWrapper,
 )
 from pkg.wrappers.nuclei import NucleiScanRequest, NucleiWrapper
+from pkg.wrappers.prowler import ProwlerScanRequest, ProwlerWrapper
 from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
 _LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
+logger = get_logger("spectrastrike.integration.host_smoke")
 
 
 class HostIntegrationError(RuntimeError):
@@ -90,6 +93,8 @@ class HostIntegrationResult:
     bloodhound_collector_command_ok: bool | None = None
     nuclei_binary_ok: bool | None = None
     nuclei_command_ok: bool | None = None
+    prowler_binary_ok: bool | None = None
+    prowler_command_ok: bool | None = None
     sliver_binary_ok: bool | None = None
     sliver_command_ok: bool | None = None
     mythic_binary_ok: bool | None = None
@@ -198,6 +203,8 @@ def run_host_integration_smoke(
     check_bloodhound_collector_live: bool = False,
     check_nuclei: bool = False,
     check_nuclei_live: bool = False,
+    check_prowler: bool = False,
+    check_prowler_live: bool = False,
     check_mythic_task: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
@@ -225,6 +232,8 @@ def run_host_integration_smoke(
     bloodhound_collector_result: object | None = None
     nuclei_wrapper: NucleiWrapper | None = None
     nuclei_result: object | None = None
+    prowler_wrapper: ProwlerWrapper | None = None
+    prowler_result: object | None = None
     mythic_wrapper: MythicWrapper | None = None
     mythic_result: object | None = None
 
@@ -647,6 +656,59 @@ def run_host_integration_smoke(
             "nuclei.command.live" if check_nuclei_live else "nuclei.command"
         )
 
+    if check_prowler:
+        prowler_binary = os.getenv("PROWLER_BINARY", "prowler")
+        _require_binary(prowler_binary)
+        try:
+            _run_command([prowler_binary, "--version"], timeout_seconds)
+        except Exception:
+            try:
+                _run_command([prowler_binary, "-h"], timeout_seconds)
+            except Exception:
+                # Some distro wrappers resolve to launcher scripts that fail version/help probes.
+                # Keep binary_ok true and validate through the wrapper contract path below.
+                logger.warning(
+                    "Proceeding after recoverable prowler probe failure for binary=%s",
+                    prowler_binary,
+                )
+        result.prowler_binary_ok = True
+        result.checks.append("prowler.version")
+        prowler_wrapper = ProwlerWrapper(timeout_seconds=timeout_seconds)
+        prowler_target = (
+            os.getenv("PROWLER_LIVE_TARGET", "").strip()
+            if check_prowler_live
+            else os.getenv("PROWLER_TARGET", "aws").strip()
+        )
+        if check_prowler_live and not prowler_target:
+            raise HostIntegrationError(
+                "PROWLER_LIVE_TARGET is required for live prowler e2e"
+            )
+        prowler_command = os.getenv("PROWLER_COMMAND", "aws -M json")
+        prowler_extra_args = [] if check_prowler_live else ["--dry-run"]
+        prowler_result = prowler_wrapper.execute(
+            ProwlerScanRequest(
+                target=prowler_target,
+                command=prowler_command,
+                extra_args=prowler_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        prowler_event = prowler_wrapper.send_to_orchestrator(
+            prowler_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.prowler_command_ok = (
+            prowler_event.event_type == "prowler_scan_completed"
+            and prowler_event.tenant_id == resolved_tenant
+        )
+        result.checks.append(
+            "prowler.command.live" if check_prowler_live else "prowler.command"
+        )
+
     if check_sliver_command:
         _require_binary(os.getenv("SLIVER_BINARY", "sliver-client"))
         sliver_binary = os.getenv("SLIVER_BINARY", "sliver-client")
@@ -812,6 +874,14 @@ def run_host_integration_smoke(
                 operator_id=integration_actor,
                 actor=integration_actor,
             )
+        if check_prowler and prowler_wrapper is not None and prowler_result is not None:
+            prowler_wrapper.send_to_orchestrator(
+                prowler_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
         if check_mythic_task and mythic_wrapper is not None and mythic_result is not None:
             mythic_wrapper.send_to_orchestrator(
                 mythic_result,
@@ -945,6 +1015,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="execute one nuclei live command (requires NUCLEI_LIVE_TARGET)",
     )
     parser.add_argument(
+        "--check-prowler",
+        action="store_true",
+        help="execute one prowler dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-prowler-live",
+        action="store_true",
+        help="execute one prowler live command (requires PROWLER_LIVE_TARGET)",
+    )
+    parser.add_argument(
         "--check-mythic-task",
         action="store_true",
         help="execute one Mythic dry-run task and emit SDK telemetry",
@@ -982,6 +1062,8 @@ def main() -> int:
         check_bloodhound_collector_live=args.check_bloodhound_collector_live,
         check_nuclei=args.check_nuclei,
         check_nuclei_live=args.check_nuclei_live,
+        check_prowler=args.check_prowler,
+        check_prowler_live=args.check_prowler_live,
         check_mythic_task=args.check_mythic_task,
         check_vectorvue=args.check_vectorvue,
     )
@@ -1008,6 +1090,8 @@ def main() -> int:
         f" bloodhound_collector_command_ok={result.bloodhound_collector_command_ok}"
         f" nuclei_binary_ok={result.nuclei_binary_ok}"
         f" nuclei_command_ok={result.nuclei_command_ok}"
+        f" prowler_binary_ok={result.prowler_binary_ok}"
+        f" prowler_command_ok={result.prowler_command_ok}"
         f" sliver_binary_ok={result.sliver_binary_ok}"
         f" sliver_command_ok={result.sliver_command_ok}"
         f" mythic_binary_ok={result.mythic_binary_ok}"

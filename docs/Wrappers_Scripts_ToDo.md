@@ -79,7 +79,7 @@ Category completion:
 
 | Wrapper | Priority | Impl | Docs | Unit Tests | Smoke Tests | Telemetry Validation |
 |---|---|---|---|---|---|---|
-| [ ] Prowler | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [x] Prowler | P0 | [x] | [x] | [x] | [x] | [x] |
 | [ ] ScoutSuite | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] CloudFox | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] RoadRecon | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
@@ -87,11 +87,11 @@ Category completion:
 | [ ] Azure CLI Security Wrapper | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
 
 Category completion:
-- Implementation: 0/6 (0.0%)
+- Implementation: 1/6 (16.7%)
 - Documentation: 6/6 (100.0%)
-- Unit Tests: 0/6 (0.0%)
-- Smoke Tests: 0/6 (0.0%)
-- Telemetry Validation: 0/6 (0.0%)
+- Unit Tests: 1/6 (16.7%)
+- Smoke Tests: 1/6 (16.7%)
+- Telemetry Validation: 1/6 (16.7%)
 
 ## Documentation Tasks
 
@@ -103,6 +103,7 @@ Category completion:
 - [x] Impacket ntlmrelayx.py full wrapper docs set created
 - [x] BloodHound Collector full wrapper docs set created
 - [x] Nuclei full wrapper docs set created
+- [x] Prowler full wrapper docs set created
 - [ ] All remaining wrappers documentation scaffolds created
 - [x] Wrapper federation E2E audit updated (2026-02-28)
 
@@ -130,6 +131,7 @@ Already implemented in codebase:
 - Impacket ntlmrelayx.py
 - BloodHound Collector
 - Nuclei
+- Prowler
 
 Remaining P0 wrappers:
 - Responder
@@ -139,14 +141,13 @@ Remaining P0 wrappers:
 - Gobuster
 - DirBuster
 - Dirsearch
-- Prowler
 
 Overall completion (current matrix entries):
-- Implementation: 10/33 (30.3%)
+- Implementation: 11/33 (33.3%)
 - Documentation: 27/33 (81.8%)
-- Unit Tests: 10/33 (30.3%)
-- Smoke Tests: 10/33 (30.3%)
-- Telemetry Validation: 10/33 (30.3%)
+- Unit Tests: 11/33 (33.3%)
+- Smoke Tests: 11/33 (33.3%)
+- Telemetry Validation: 11/33 (33.3%)
 
 ## Latest E2E Federation Audit (2026-02-28)
 
@@ -161,6 +162,7 @@ Implemented wrappers audit status:
 - [x] Impacket ntlmrelayx.py: host smoke executed (`impacket_ntlmrelayx_command_ok=True`) and telemetry emitted (`impacket_ntlmrelayx_completed`); live E2E currently gated by missing `IMPACKET_NTLMRELAYX_PASSWORD` or `IMPACKET_NTLMRELAYX_HASHES`.
 - [x] BloodHound Collector: host smoke executed (`bloodhound_collector_command_ok=True`) and telemetry emitted (`bloodhound_collector_completed`); live E2E currently gated by missing `BLOODHOUND_COLLECTOR_PASSWORD`.
 - [x] Nuclei: host smoke executed (`nuclei_command_ok=True`) and telemetry emitted (`nuclei_scan_completed`); live E2E currently gated by missing `NUCLEI_LIVE_TARGET`.
+- [x] Prowler: host smoke executed (`prowler_command_ok=True`) and telemetry emitted (`prowler_scan_completed`); live E2E currently gated by missing `PROWLER_LIVE_TARGET`.
 - [x] Sliver: host smoke command path executed (`sliver_binary_ok=True`, `sliver_command_ok=True`) when run outside sandbox restrictions.
 - [ ] Mythic: blocked in this environment (`mythic-cli` missing on host PATH).
 - [ ] Metasploit RPC live auth: blocked by unresolved default RPC endpoint (`metasploit.remote.operator`) until local RPC endpoint is configured.

@@ -21,3 +21,34 @@ Change Date: 2033-02-22 -> Apache-2.0
   }
 }
 ```
+
+## Host Integration Smoke Evidence (2026-02-28)
+
+Successful prowler smoke execution:
+
+```bash
+PYTHONPATH=src:/usr/lib/python3.14/site-packages .venv/bin/python \
+  -m pkg.integration.host_integration_smoke \
+  --tenant-id 10000000-0000-0000-0000-000000000001 \
+  --timeout-seconds 30 \
+  --check-prowler
+```
+
+```text
+HOST_SMOKE tenant_id=10000000-0000-0000-0000-000000000001 ... prowler_binary_ok=True prowler_command_ok=True ... checks=...prowler.version,prowler.command
+```
+
+Live prowler E2E gate (documented blocker):
+
+```bash
+PYTHONPATH=src:/usr/lib/python3.14/site-packages .venv/bin/python \
+  -m pkg.integration.host_integration_smoke \
+  --tenant-id 10000000-0000-0000-0000-000000000001 \
+  --timeout-seconds 30 \
+  --check-prowler \
+  --check-prowler-live
+```
+
+```text
+HostIntegrationError: PROWLER_LIVE_TARGET is required for live prowler e2e
+```
