@@ -528,6 +528,57 @@ class _FakeProwlerWrapper:
         return _FakeEvent(event_type="prowler_scan_completed", tenant_id=tenant_id)
 
 
+class _FakeResponderWrapper:
+    def __init__(self, timeout_seconds: float) -> None:
+        self._timeout_seconds = timeout_seconds
+
+    def execute(
+        self,
+        _request: object,
+        *,
+        tenant_id: str,
+        operator_id: str,
+    ) -> object:
+        assert tenant_id == "tenant-a"
+        assert operator_id == "host-integration-smoke"
+
+        class _R:
+            status = "success"
+            return_code = 0
+            target = "lo"
+            command = "-I lo -A -w -v"
+            tool_version = "3.1.5.0"
+            output = "ok"
+            execution_fingerprint = "a1" * 32
+            attestation_measurement_hash = "b2" * 32
+            payload_signature = "sig"
+            payload_signature_algorithm = "Ed25519"
+
+        return _R()
+
+    def send_to_orchestrator(
+        self,
+        _result: object,
+        *,
+        telemetry: object,
+        tenant_id: str,
+        operator_id: str,
+        actor: str,
+    ) -> _FakeEvent:
+        assert operator_id == "host-integration-smoke"
+        ingest = getattr(telemetry, "ingest", None)
+        if callable(ingest):
+            ingest(
+                event_type="responder_session_completed",
+                actor=actor,
+                target="orchestrator",
+                status="success",
+                tenant_id=tenant_id,
+                module="mitm",
+            )
+        return _FakeEvent(event_type="responder_session_completed", tenant_id=tenant_id)
+
+
 class _FakeMythicWrapper:
     def __init__(self, timeout_seconds: float) -> None:
         self._timeout_seconds = timeout_seconds
@@ -723,6 +774,10 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         _FakeProwlerWrapper,
     )
     monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.ResponderWrapper",
+        _FakeResponderWrapper,
+    )
+    monkeypatch.setattr(
         "pkg.integration.host_integration_smoke.MythicWrapper",
         _FakeMythicWrapper,
     )
@@ -746,6 +801,7 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         check_bloodhound_collector=True,
         check_nuclei=True,
         check_prowler=True,
+        check_responder=True,
         check_sliver_command=True,
         check_mythic_task=True,
         check_vectorvue=True,
@@ -770,6 +826,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert result.nuclei_command_ok is True
     assert result.prowler_binary_ok is True
     assert result.prowler_command_ok is True
+    assert result.responder_binary_ok is True
+    assert result.responder_command_ok is True
     assert result.mythic_binary_ok is True
     assert result.mythic_task_ok is True
     assert result.rabbitmq_publish_ok is True
@@ -794,6 +852,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert "nuclei.command" in result.checks
     assert "prowler.version" in result.checks
     assert "prowler.command" in result.checks
+    assert "responder.version" in result.checks
+    assert "responder.command" in result.checks
     assert "sliver.version" in result.checks
     assert "sliver.command" in result.checks
     assert "mythic.version" in result.checks
@@ -1011,4 +1071,30 @@ def test_host_smoke_prowler_live_requires_target(
             tenant_id="tenant-a",
             check_prowler=True,
             check_prowler_live=True,
+        )
+
+
+def test_host_smoke_responder_live_requires_interface(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._require_binary", lambda _name: None
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._run_command",
+        lambda _cmd, _timeout: "ok",
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.NmapWrapper",
+        _FakeNmapWrapper,
+    )
+    monkeypatch.delenv("RESPONDER_LIVE_INTERFACE", raising=False)
+    with pytest.raises(
+        HostIntegrationError,
+        match="RESPONDER_LIVE_INTERFACE is required",
+    ):
+        run_host_integration_smoke(
+            tenant_id="tenant-a",
+            check_responder=True,
+            check_responder_live=True,
         )

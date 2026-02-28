@@ -61,7 +61,7 @@ Category completion:
 | [x] Impacket secretsdump.py | P0 | [x] | [x] | [x] | [x] | [x] |
 | [x] Impacket ntlmrelayx.py | P0 | [x] | [x] | [x] | [x] | [x] |
 | [x] BloodHound Collector | P0 | [x] | [x] | [x] | [x] | [x] |
-| [ ] Responder | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
+| [x] Responder | P0 | [x] | [x] | [x] | [x] | [x] |
 | [ ] Netcat | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
 | [ ] Hashcat | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
 | [ ] John the Ripper | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -69,11 +69,11 @@ Category completion:
 | [x] Sliver | P1 | [x] | [x] | [x] | [x] | [x] |
 
 Category completion:
-- Implementation: 8/12 (66.7%)
-- Documentation: 8/12 (66.7%)
-- Unit Tests: 8/12 (66.7%)
-- Smoke Tests: 8/12 (66.7%)
-- Telemetry Validation: 8/12 (66.7%)
+- Implementation: 9/12 (75.0%)
+- Documentation: 9/12 (75.0%)
+- Unit Tests: 9/12 (75.0%)
+- Smoke Tests: 9/12 (75.0%)
+- Telemetry Validation: 9/12 (75.0%)
 
 ## 4) Cloud & Enterprise Attack Surface (6)
 
@@ -104,6 +104,7 @@ Category completion:
 - [x] BloodHound Collector full wrapper docs set created
 - [x] Nuclei full wrapper docs set created
 - [x] Prowler full wrapper docs set created
+- [x] Responder full wrapper docs set created
 - [ ] All remaining wrappers documentation scaffolds created
 - [x] Wrapper federation E2E audit updated (2026-02-28)
 
@@ -132,9 +133,9 @@ Already implemented in codebase:
 - BloodHound Collector
 - Nuclei
 - Prowler
+- Responder
 
 Remaining P0 wrappers:
-- Responder
 - Netcat
 - Hashcat
 - John the Ripper
@@ -143,11 +144,11 @@ Remaining P0 wrappers:
 - Dirsearch
 
 Overall completion (current matrix entries):
-- Implementation: 11/33 (33.3%)
-- Documentation: 27/33 (81.8%)
-- Unit Tests: 11/33 (33.3%)
-- Smoke Tests: 11/33 (33.3%)
-- Telemetry Validation: 11/33 (33.3%)
+- Implementation: 12/33 (36.4%)
+- Documentation: 28/33 (84.8%)
+- Unit Tests: 12/33 (36.4%)
+- Smoke Tests: 12/33 (36.4%)
+- Telemetry Validation: 12/33 (36.4%)
 
 ## Latest E2E Federation Audit (2026-02-28)
 
@@ -163,6 +164,7 @@ Implemented wrappers audit status:
 - [x] BloodHound Collector: host smoke executed (`bloodhound_collector_command_ok=True`) and telemetry emitted (`bloodhound_collector_completed`); live E2E currently gated by missing `BLOODHOUND_COLLECTOR_PASSWORD`.
 - [x] Nuclei: host smoke executed (`nuclei_command_ok=True`) and telemetry emitted (`nuclei_scan_completed`); live E2E currently gated by missing `NUCLEI_LIVE_TARGET`.
 - [x] Prowler: host smoke executed (`prowler_command_ok=True`) and telemetry emitted (`prowler_scan_completed`); live E2E currently gated by missing `PROWLER_LIVE_TARGET`.
+- [x] Responder: host smoke executed (`responder_command_ok=True`) and telemetry emitted (`responder_session_completed`); live E2E currently gated by missing `RESPONDER_LIVE_INTERFACE`.
 - [x] Sliver: host smoke command path executed (`sliver_binary_ok=True`, `sliver_command_ok=True`) when run outside sandbox restrictions.
 - [ ] Mythic: blocked in this environment (`mythic-cli` missing on host PATH).
 - [ ] Metasploit RPC live auth: blocked by unresolved default RPC endpoint (`metasploit.remote.operator`) until local RPC endpoint is configured.

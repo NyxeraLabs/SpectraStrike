@@ -59,6 +59,7 @@ from pkg.wrappers.bloodhound_collector import (
 )
 from pkg.wrappers.nuclei import NucleiScanRequest, NucleiWrapper
 from pkg.wrappers.prowler import ProwlerScanRequest, ProwlerWrapper
+from pkg.wrappers.responder import ResponderRequest, ResponderWrapper
 from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
 _LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
@@ -95,6 +96,8 @@ class HostIntegrationResult:
     nuclei_command_ok: bool | None = None
     prowler_binary_ok: bool | None = None
     prowler_command_ok: bool | None = None
+    responder_binary_ok: bool | None = None
+    responder_command_ok: bool | None = None
     sliver_binary_ok: bool | None = None
     sliver_command_ok: bool | None = None
     mythic_binary_ok: bool | None = None
@@ -205,6 +208,8 @@ def run_host_integration_smoke(
     check_nuclei_live: bool = False,
     check_prowler: bool = False,
     check_prowler_live: bool = False,
+    check_responder: bool = False,
+    check_responder_live: bool = False,
     check_mythic_task: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
@@ -234,6 +239,8 @@ def run_host_integration_smoke(
     nuclei_result: object | None = None
     prowler_wrapper: ProwlerWrapper | None = None
     prowler_result: object | None = None
+    responder_wrapper: ResponderWrapper | None = None
+    responder_result: object | None = None
     mythic_wrapper: MythicWrapper | None = None
     mythic_result: object | None = None
 
@@ -709,6 +716,54 @@ def run_host_integration_smoke(
             "prowler.command.live" if check_prowler_live else "prowler.command"
         )
 
+    if check_responder:
+        responder_binary = os.getenv("RESPONDER_BINARY", "responder")
+        _require_binary(responder_binary)
+        try:
+            _run_command([responder_binary, "--version"], timeout_seconds)
+        except Exception:
+            _run_command([responder_binary, "-h"], timeout_seconds)
+        result.responder_binary_ok = True
+        result.checks.append("responder.version")
+        responder_wrapper = ResponderWrapper(timeout_seconds=timeout_seconds)
+        responder_target = (
+            os.getenv("RESPONDER_LIVE_INTERFACE", "").strip()
+            if check_responder_live
+            else os.getenv("RESPONDER_INTERFACE", "lo").strip()
+        )
+        if check_responder_live and not responder_target:
+            raise HostIntegrationError(
+                "RESPONDER_LIVE_INTERFACE is required for live responder e2e"
+            )
+        responder_command = os.getenv(
+            "RESPONDER_COMMAND",
+            f"-I {responder_target} -A -w -v",
+        )
+        responder_extra_args = [] if check_responder_live else ["--dry-run"]
+        responder_result = responder_wrapper.execute(
+            ResponderRequest(
+                target=responder_target,
+                command=responder_command,
+                extra_args=responder_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        responder_event = responder_wrapper.send_to_orchestrator(
+            responder_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.responder_command_ok = (
+            responder_event.event_type == "responder_session_completed"
+            and responder_event.tenant_id == resolved_tenant
+        )
+        result.checks.append(
+            "responder.command.live" if check_responder_live else "responder.command"
+        )
+
     if check_sliver_command:
         _require_binary(os.getenv("SLIVER_BINARY", "sliver-client"))
         sliver_binary = os.getenv("SLIVER_BINARY", "sliver-client")
@@ -882,6 +937,14 @@ def run_host_integration_smoke(
                 operator_id=integration_actor,
                 actor=integration_actor,
             )
+        if check_responder and responder_wrapper is not None and responder_result is not None:
+            responder_wrapper.send_to_orchestrator(
+                responder_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
         if check_mythic_task and mythic_wrapper is not None and mythic_result is not None:
             mythic_wrapper.send_to_orchestrator(
                 mythic_result,
@@ -1025,6 +1088,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="execute one prowler live command (requires PROWLER_LIVE_TARGET)",
     )
     parser.add_argument(
+        "--check-responder",
+        action="store_true",
+        help="execute one responder dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-responder-live",
+        action="store_true",
+        help="execute one responder live command (requires RESPONDER_LIVE_INTERFACE)",
+    )
+    parser.add_argument(
         "--check-mythic-task",
         action="store_true",
         help="execute one Mythic dry-run task and emit SDK telemetry",
@@ -1064,6 +1137,8 @@ def main() -> int:
         check_nuclei_live=args.check_nuclei_live,
         check_prowler=args.check_prowler,
         check_prowler_live=args.check_prowler_live,
+        check_responder=args.check_responder,
+        check_responder_live=args.check_responder_live,
         check_mythic_task=args.check_mythic_task,
         check_vectorvue=args.check_vectorvue,
     )
@@ -1092,6 +1167,8 @@ def main() -> int:
         f" nuclei_command_ok={result.nuclei_command_ok}"
         f" prowler_binary_ok={result.prowler_binary_ok}"
         f" prowler_command_ok={result.prowler_command_ok}"
+        f" responder_binary_ok={result.responder_binary_ok}"
+        f" responder_command_ok={result.responder_command_ok}"
         f" sliver_binary_ok={result.sliver_binary_ok}"
         f" sliver_command_ok={result.sliver_command_ok}"
         f" mythic_binary_ok={result.mythic_binary_ok}"

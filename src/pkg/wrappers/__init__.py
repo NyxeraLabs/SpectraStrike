@@ -71,6 +71,12 @@ from pkg.wrappers.prowler import (
     ProwlerScanResult,
     ProwlerWrapper,
 )
+from pkg.wrappers.responder import (
+    ResponderExecutionError,
+    ResponderRequest,
+    ResponderResult,
+    ResponderWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -130,6 +136,10 @@ __all__ = [
     "ProwlerScanRequest",
     "ProwlerScanResult",
     "ProwlerWrapper",
+    "ResponderExecutionError",
+    "ResponderRequest",
+    "ResponderResult",
+    "ResponderWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",
