@@ -53,7 +53,7 @@ Category completion:
 | Wrapper | Priority | Impl | Docs | Unit Tests | Smoke Tests | Telemetry Validation |
 |---|---|---|---|---|---|---|
 | [x] Impacket psexec.py | P0 | [x] | [x] | [x] | [x] | [x] |
-| [ ] Impacket wmiexec.py | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [x] Impacket wmiexec.py | P0 | [x] | [x] | [x] | [x] | [x] |
 | [ ] Impacket smbexec.py | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] Impacket secretsdump.py | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] Impacket ntlmrelayx.py | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
@@ -62,11 +62,11 @@ Category completion:
 | [x] Sliver | P1 | [x] | [x] | [x] | [x] | [x] |
 
 Category completion:
-- Implementation: 3/8 (37.5%)
+- Implementation: 4/8 (50.0%)
 - Documentation: 8/8 (100.0%)
-- Unit Tests: 3/8 (37.5%)
-- Smoke Tests: 3/8 (37.5%)
-- Telemetry Validation: 3/8 (37.5%)
+- Unit Tests: 4/8 (50.0%)
+- Smoke Tests: 4/8 (50.0%)
+- Telemetry Validation: 4/8 (50.0%)
 
 ## 4) Cloud & Enterprise Attack Surface (6)
 
@@ -113,9 +113,9 @@ Already implemented in codebase:
 - Metasploit
 - Sliver
 - Impacket psexec.py
+- Impacket wmiexec.py
 
 Remaining P0 wrappers:
-- Impacket wmiexec.py
 - Impacket smbexec.py
 - Impacket secretsdump.py
 - Impacket ntlmrelayx.py
@@ -124,11 +124,11 @@ Remaining P0 wrappers:
 - Prowler
 
 Overall completion (current matrix entries):
-- Implementation: 4/26 (15.4%)
+- Implementation: 5/26 (19.2%)
 - Documentation: 26/26 (100.0%)
-- Unit Tests: 4/26 (15.4%)
-- Smoke Tests: 4/26 (15.4%)
-- Telemetry Validation: 4/26 (15.4%)
+- Unit Tests: 5/26 (19.2%)
+- Smoke Tests: 5/26 (19.2%)
+- Telemetry Validation: 5/26 (19.2%)
 
 ## Latest E2E Federation Audit (2026-02-28)
 
@@ -137,6 +137,7 @@ Implemented wrappers audit status:
 - [x] Nmap: host smoke + federation bridge executed (recoverable sendOK warning path handled).
 - [x] Metasploit: binary/version + host smoke telemetry path executed.
 - [x] Impacket psexec.py: signed execution contract path executed (`impacket_psexec_command_ok=True`) with local key path.
+- [x] Impacket wmiexec.py: host smoke executed (`impacket_wmiexec_command_ok=True`) and telemetry emitted (`impacket_wmiexec_completed`); live E2E currently gated by missing `IMPACKET_WMIEXEC_PASSWORD` or `IMPACKET_WMIEXEC_HASHES`.
 - [x] Sliver: host smoke command path executed (`sliver_binary_ok=True`, `sliver_command_ok=True`) when run outside sandbox restrictions.
 - [ ] Mythic: blocked in this environment (`mythic-cli` missing on host PATH).
 - [ ] Metasploit RPC live auth: blocked by unresolved default RPC endpoint (`metasploit.remote.operator`) until local RPC endpoint is configured.

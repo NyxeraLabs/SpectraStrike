@@ -29,6 +29,12 @@ from pkg.wrappers.impacket_psexec import (
     ImpacketPsexecResult,
     ImpacketPsexecWrapper,
 )
+from pkg.wrappers.impacket_wmiexec import (
+    ImpacketWmiexecError,
+    ImpacketWmiexecRequest,
+    ImpacketWmiexecResult,
+    ImpacketWmiexecWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -60,6 +66,10 @@ __all__ = [
     "ImpacketPsexecRequest",
     "ImpacketPsexecResult",
     "ImpacketPsexecWrapper",
+    "ImpacketWmiexecError",
+    "ImpacketWmiexecRequest",
+    "ImpacketWmiexecResult",
+    "ImpacketWmiexecWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",

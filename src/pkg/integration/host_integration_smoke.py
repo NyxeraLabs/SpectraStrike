@@ -36,6 +36,10 @@ from pkg.wrappers.impacket_psexec import (
     ImpacketPsexecRequest,
     ImpacketPsexecWrapper,
 )
+from pkg.wrappers.impacket_wmiexec import (
+    ImpacketWmiexecRequest,
+    ImpacketWmiexecWrapper,
+)
 from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
 _LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
@@ -57,6 +61,8 @@ class HostIntegrationResult:
     metasploit_rpc_ok: bool | None = None
     impacket_psexec_binary_ok: bool | None = None
     impacket_psexec_command_ok: bool | None = None
+    impacket_wmiexec_binary_ok: bool | None = None
+    impacket_wmiexec_command_ok: bool | None = None
     sliver_binary_ok: bool | None = None
     sliver_command_ok: bool | None = None
     mythic_binary_ok: bool | None = None
@@ -153,6 +159,8 @@ def run_host_integration_smoke(
     check_sliver_command: bool = False,
     check_impacket_psexec: bool = False,
     check_impacket_psexec_live: bool = False,
+    check_impacket_wmiexec: bool = False,
+    check_impacket_wmiexec_live: bool = False,
     check_mythic_task: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
@@ -168,6 +176,8 @@ def run_host_integration_smoke(
     sliver_result: object | None = None
     impacket_psexec_wrapper: ImpacketPsexecWrapper | None = None
     impacket_psexec_result: object | None = None
+    impacket_wmiexec_wrapper: ImpacketWmiexecWrapper | None = None
+    impacket_wmiexec_result: object | None = None
     mythic_wrapper: MythicWrapper | None = None
     mythic_result: object | None = None
 
@@ -271,6 +281,59 @@ def run_host_integration_smoke(
             else "impacket.psexec.command"
         )
 
+    if check_impacket_wmiexec:
+        impacket_binary = os.getenv("IMPACKET_WMIEXEC_BINARY", "wmiexec.py")
+        _require_binary(impacket_binary)
+        try:
+            _run_command([impacket_binary, "--version"], timeout_seconds)
+        except Exception:
+            _run_command([impacket_binary, "-h"], timeout_seconds)
+        result.impacket_wmiexec_binary_ok = True
+        result.checks.append("impacket.wmiexec.version")
+        impacket_wmiexec_wrapper = ImpacketWmiexecWrapper(timeout_seconds=timeout_seconds)
+        impacket_target = nmap_target
+        impacket_username = os.getenv("IMPACKET_WMIEXEC_USERNAME", "smoke")
+        impacket_domain = os.getenv("IMPACKET_WMIEXEC_DOMAIN", "").strip() or None
+        impacket_password = os.getenv("IMPACKET_WMIEXEC_PASSWORD", "").strip() or None
+        impacket_hashes = os.getenv("IMPACKET_WMIEXEC_HASHES", "").strip() or None
+        impacket_command = os.getenv("IMPACKET_WMIEXEC_COMMAND", "whoami")
+        impacket_extra_args = [] if check_impacket_wmiexec_live else ["--dry-run"]
+        if check_impacket_wmiexec_live and not (impacket_password or impacket_hashes):
+            raise HostIntegrationError(
+                "IMPACKET_WMIEXEC_PASSWORD or IMPACKET_WMIEXEC_HASHES is required for live wmiexec e2e"
+            )
+        impacket_wmiexec_result = impacket_wmiexec_wrapper.execute(
+            ImpacketWmiexecRequest(
+                target=impacket_target,
+                username=impacket_username,
+                domain=impacket_domain,
+                password=impacket_password,
+                hashes=impacket_hashes,
+                no_pass=not check_impacket_wmiexec_live
+                and not (impacket_password or impacket_hashes),
+                command=impacket_command,
+                extra_args=impacket_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        impacket_event = impacket_wmiexec_wrapper.send_to_orchestrator(
+            impacket_wmiexec_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.impacket_wmiexec_command_ok = (
+            impacket_event.event_type == "impacket_wmiexec_completed"
+            and impacket_event.tenant_id == resolved_tenant
+        )
+        result.checks.append(
+            "impacket.wmiexec.command.live"
+            if check_impacket_wmiexec_live
+            else "impacket.wmiexec.command"
+        )
+
     if check_sliver_command:
         _require_binary(os.getenv("SLIVER_BINARY", "sliver-client"))
         sliver_binary = os.getenv("SLIVER_BINARY", "sliver-client")
@@ -368,6 +431,18 @@ def run_host_integration_smoke(
                 operator_id=integration_actor,
                 actor=integration_actor,
             )
+        if (
+            check_impacket_wmiexec
+            and impacket_wmiexec_wrapper is not None
+            and impacket_wmiexec_result is not None
+        ):
+            impacket_wmiexec_wrapper.send_to_orchestrator(
+                impacket_wmiexec_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
         if check_mythic_task and mythic_wrapper is not None and mythic_result is not None:
             mythic_wrapper.send_to_orchestrator(
                 mythic_result,
@@ -441,6 +516,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="execute one Impacket psexec live command (requires IMPACKET_PSEXEC_* credentials)",
     )
     parser.add_argument(
+        "--check-impacket-wmiexec",
+        action="store_true",
+        help="execute one Impacket wmiexec dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-impacket-wmiexec-live",
+        action="store_true",
+        help="execute one Impacket wmiexec live command (requires IMPACKET_WMIEXEC_* credentials)",
+    )
+    parser.add_argument(
         "--check-mythic-task",
         action="store_true",
         help="execute one Mythic dry-run task and emit SDK telemetry",
@@ -466,6 +551,8 @@ def main() -> int:
         check_sliver_command=args.check_sliver_command,
         check_impacket_psexec=args.check_impacket_psexec,
         check_impacket_psexec_live=args.check_impacket_psexec_live,
+        check_impacket_wmiexec=args.check_impacket_wmiexec,
+        check_impacket_wmiexec_live=args.check_impacket_wmiexec_live,
         check_mythic_task=args.check_mythic_task,
         check_vectorvue=args.check_vectorvue,
     )
@@ -480,6 +567,8 @@ def main() -> int:
         f" metasploit_rpc_ok={result.metasploit_rpc_ok}"
         f" impacket_psexec_binary_ok={result.impacket_psexec_binary_ok}"
         f" impacket_psexec_command_ok={result.impacket_psexec_command_ok}"
+        f" impacket_wmiexec_binary_ok={result.impacket_wmiexec_binary_ok}"
+        f" impacket_wmiexec_command_ok={result.impacket_wmiexec_command_ok}"
         f" sliver_binary_ok={result.sliver_binary_ok}"
         f" sliver_command_ok={result.sliver_command_ok}"
         f" mythic_binary_ok={result.mythic_binary_ok}"
