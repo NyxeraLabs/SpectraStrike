@@ -66,6 +66,7 @@ from pkg.wrappers.netcat import NetcatRequest, NetcatWrapper
 from pkg.wrappers.netexec import NetExecRequest, NetExecWrapper
 from pkg.wrappers.john import JohnRequest, JohnWrapper
 from pkg.wrappers.wget import WgetRequest, WgetWrapper
+from pkg.wrappers.burpsuite import BurpSuiteRequest, BurpSuiteWrapper
 from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
 _LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
@@ -116,6 +117,8 @@ class HostIntegrationResult:
     john_command_ok: bool | None = None
     wget_binary_ok: bool | None = None
     wget_command_ok: bool | None = None
+    burpsuite_binary_ok: bool | None = None
+    burpsuite_command_ok: bool | None = None
     sliver_binary_ok: bool | None = None
     sliver_command_ok: bool | None = None
     mythic_binary_ok: bool | None = None
@@ -240,6 +243,8 @@ def run_host_integration_smoke(
     check_john_live: bool = False,
     check_wget: bool = False,
     check_wget_live: bool = False,
+    check_burpsuite: bool = False,
+    check_burpsuite_live: bool = False,
     check_mythic_task: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
@@ -283,6 +288,8 @@ def run_host_integration_smoke(
     john_result: object | None = None
     wget_wrapper: WgetWrapper | None = None
     wget_result: object | None = None
+    burpsuite_wrapper: BurpSuiteWrapper | None = None
+    burpsuite_result: object | None = None
     mythic_wrapper: MythicWrapper | None = None
     mythic_result: object | None = None
 
@@ -1096,6 +1103,53 @@ def run_host_integration_smoke(
         )
         result.checks.append("wget.command.live" if check_wget_live else "wget.command")
 
+    if check_burpsuite:
+        burpsuite_binary = os.getenv("BURPSUITE_BINARY", "burpsuite")
+        _require_binary(burpsuite_binary)
+        try:
+            _run_command([burpsuite_binary, "--version"], timeout_seconds)
+        except Exception:
+            _run_command([burpsuite_binary, "--help"], timeout_seconds)
+        result.burpsuite_binary_ok = True
+        result.checks.append("burpsuite.version")
+        burpsuite_wrapper = BurpSuiteWrapper(timeout_seconds=timeout_seconds)
+        burpsuite_target = (
+            os.getenv("BURPSUITE_LIVE_TARGET", "").strip()
+            if check_burpsuite_live
+            else os.getenv("BURPSUITE_TARGET", "local-burp").strip()
+        )
+        if check_burpsuite_live and not burpsuite_target:
+            raise HostIntegrationError(
+                "BURPSUITE_LIVE_TARGET is required for live burpsuite e2e"
+            )
+        burpsuite_command = os.getenv("BURPSUITE_COMMAND", "--help")
+        burpsuite_extra_args = [] if check_burpsuite_live else ["--dry-run"]
+        burpsuite_result = burpsuite_wrapper.execute(
+            BurpSuiteRequest(
+                target=burpsuite_target,
+                command=burpsuite_command,
+                extra_args=burpsuite_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        burpsuite_event = burpsuite_wrapper.send_to_orchestrator(
+            burpsuite_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.burpsuite_command_ok = (
+            burpsuite_event.event_type == "burpsuite_session_completed"
+            and burpsuite_event.tenant_id == resolved_tenant
+        )
+        result.checks.append(
+            "burpsuite.command.live"
+            if check_burpsuite_live
+            else "burpsuite.command"
+        )
+
     if check_sliver_command:
         _require_binary(os.getenv("SLIVER_BINARY", "sliver-client"))
         sliver_binary = os.getenv("SLIVER_BINARY", "sliver-client")
@@ -1325,6 +1379,18 @@ def run_host_integration_smoke(
                 operator_id=integration_actor,
                 actor=integration_actor,
             )
+        if (
+            check_burpsuite
+            and burpsuite_wrapper is not None
+            and burpsuite_result is not None
+        ):
+            burpsuite_wrapper.send_to_orchestrator(
+                burpsuite_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
         if check_mythic_task and mythic_wrapper is not None and mythic_result is not None:
             mythic_wrapper.send_to_orchestrator(
                 mythic_result,
@@ -1538,6 +1604,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="execute one wget live command (requires WGET_LIVE_TARGET)",
     )
     parser.add_argument(
+        "--check-burpsuite",
+        action="store_true",
+        help="execute one burpsuite dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-burpsuite-live",
+        action="store_true",
+        help="execute one burpsuite live command (requires BURPSUITE_LIVE_TARGET)",
+    )
+    parser.add_argument(
         "--check-mythic-task",
         action="store_true",
         help="execute one Mythic dry-run task and emit SDK telemetry",
@@ -1591,6 +1667,8 @@ def main() -> int:
         check_john_live=args.check_john_live,
         check_wget=args.check_wget,
         check_wget_live=args.check_wget_live,
+        check_burpsuite=args.check_burpsuite,
+        check_burpsuite_live=args.check_burpsuite_live,
         check_mythic_task=args.check_mythic_task,
         check_vectorvue=args.check_vectorvue,
     )
@@ -1633,6 +1711,8 @@ def main() -> int:
         f" john_command_ok={result.john_command_ok}"
         f" wget_binary_ok={result.wget_binary_ok}"
         f" wget_command_ok={result.wget_command_ok}"
+        f" burpsuite_binary_ok={result.burpsuite_binary_ok}"
+        f" burpsuite_command_ok={result.burpsuite_command_ok}"
         f" sliver_binary_ok={result.sliver_binary_ok}"
         f" sliver_command_ok={result.sliver_command_ok}"
         f" mythic_binary_ok={result.mythic_binary_ok}"

@@ -113,6 +113,12 @@ from pkg.wrappers.wget import (
     WgetResult,
     WgetWrapper,
 )
+from pkg.wrappers.burpsuite import (
+    BurpSuiteExecutionError,
+    BurpSuiteRequest,
+    BurpSuiteResult,
+    BurpSuiteWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -200,6 +206,10 @@ __all__ = [
     "WgetRequest",
     "WgetResult",
     "WgetWrapper",
+    "BurpSuiteExecutionError",
+    "BurpSuiteRequest",
+    "BurpSuiteResult",
+    "BurpSuiteWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",

@@ -42,14 +42,14 @@ Category completion:
 | [ ] sqlmap | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] Katana | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] Nikto | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
-| [ ] BurpSuite | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [x] BurpSuite | P0 | [x] | [x] | [x] | [x] | [x] |
 
 Category completion:
-- Implementation: 3/9 (33.3%)
+- Implementation: 4/9 (44.4%)
 - Documentation: 8/9 (88.9%)
-- Unit Tests: 3/9 (33.3%)
-- Smoke Tests: 3/9 (33.3%)
-- Telemetry Validation: 3/9 (33.3%)
+- Unit Tests: 4/9 (44.4%)
+- Smoke Tests: 4/9 (44.4%)
+- Telemetry Validation: 4/9 (44.4%)
 
 ## 3) Exploitation & Identity (17)
 
@@ -112,6 +112,7 @@ Category completion:
 - [x] Nuclei full wrapper docs set created
 - [x] Gobuster full wrapper docs set created
 - [x] ffuf full wrapper docs set created
+- [x] BurpSuite full wrapper docs set created
 - [x] Prowler full wrapper docs set created
 - [x] Responder full wrapper docs set created
 - [x] Netcat full wrapper docs set created
@@ -148,6 +149,7 @@ Already implemented in codebase:
 - Nuclei
 - Gobuster
 - ffuf
+- BurpSuite
 - Prowler
 - Responder
 - Netcat
@@ -157,17 +159,16 @@ Already implemented in codebase:
 - Mythic (implementation and unit tests complete; full E2E pending)
 
 Remaining P0 wrappers:
-- BurpSuite
 - SCP
 - SSH
 - Curl
 
 Overall completion (current matrix entries):
-- Implementation: 19/38 (50.0%)
+- Implementation: 20/38 (52.6%)
 - Documentation: 32/38 (84.2%)
-- Unit Tests: 19/38 (50.0%)
-- Smoke Tests: 18/38 (47.4%)
-- Telemetry Validation: 18/38 (47.4%)
+- Unit Tests: 20/38 (52.6%)
+- Smoke Tests: 19/38 (50.0%)
+- Telemetry Validation: 19/38 (50.0%)
 
 ## Latest E2E Federation Audit (2026-02-28)
 
@@ -184,6 +185,7 @@ Implemented wrappers audit status:
 - [x] Nuclei: host smoke executed (`nuclei_command_ok=True`) and telemetry emitted (`nuclei_scan_completed`); live E2E currently gated by missing `NUCLEI_LIVE_TARGET`.
 - [x] Gobuster: host smoke executed (`gobuster_command_ok=True`) and telemetry emitted (`gobuster_scan_completed`); live E2E currently gated by missing `GOBUSTER_LIVE_TARGET`.
 - [x] ffuf: host smoke executed (`ffuf_command_ok=True`) and telemetry emitted (`ffuf_scan_completed`); live E2E currently gated by missing `FFUF_LIVE_TARGET`.
+- [x] BurpSuite: host smoke executed (`burpsuite_command_ok=True`) and telemetry emitted (`burpsuite_session_completed`); live e2e command path validated (`burpsuite.command.live`).
 - [x] Prowler: host smoke executed (`prowler_command_ok=True`) and telemetry emitted (`prowler_scan_completed`); live E2E currently gated by missing `PROWLER_LIVE_TARGET`.
 - [x] Responder: host smoke executed (`responder_command_ok=True`) and telemetry emitted (`responder_session_completed`); live E2E currently gated by missing `RESPONDER_LIVE_INTERFACE`.
 - [x] Netcat: host smoke executed (`netcat_command_ok=True`) and telemetry emitted (`netcat_session_completed`); live E2E currently gated by missing `NETCAT_LIVE_TARGET` and `NETCAT_LIVE_PORT`.

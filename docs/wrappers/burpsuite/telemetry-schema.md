@@ -7,7 +7,7 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 # BurpSuite Telemetry Schema
 
-Primary event type target: burpsuite_scan_completed.
+Primary event type target: burpsuite_session_completed.
 
 Canonical telemetry fields:
 - event_type
