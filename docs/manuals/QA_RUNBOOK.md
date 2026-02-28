@@ -193,6 +193,20 @@ PYTHONPATH=src .venv/bin/pytest -q \
 
 Expected current result: `12 passed`.
 
+### 4.9.1 Go runner standard validation
+
+Run Go runner validation under workspace-local build cache:
+
+```bash
+cd src/runner-go
+GOCACHE=../../.gocache go test ./...
+```
+
+Expected current result:
+- `spectrastrike/runner-go/runner` test suite passes
+- Ed25519 (`EdDSA`) JWS verification tests pass
+- Firecracker simulation command contract tests pass
+
 ### 4.10 Sprint 35 mutual attestation and key-derivation validation
 
 ```bash

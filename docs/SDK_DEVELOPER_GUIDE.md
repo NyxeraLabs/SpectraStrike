@@ -7,59 +7,70 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 # SpectraStrike SDK Developer Guide
 
-## Architecture Overview
+## 1. Standardized SDK Contract
 
-- Wrappers execute tools and emit normalized telemetry.
-- Orchestrator enriches payloads with tenant/operator/policy/attestation context.
-- VectorVue client signs payloads and sends over mTLS.
-- Feedback responses are verified before policy application.
+All wrappers and runner integrations must follow one contract:
 
-## How Federation Signing Works
+1. Detect tool version.
+2. Generate execution fingerprint.
+3. Embed attestation measurement hash.
+4. Sign payload with Ed25519 only.
+5. Emit canonical telemetry through the unified ingestion path.
+6. Validate schema before ingestion.
+7. Pass unit + smoke + real E2E validation.
 
-- Outbound: SpectraStrike signs `{timestamp}.{nonce}.{canonical_payload}` with Ed25519.
-- Inbound feedback: SpectraStrike verifies Ed25519 signature using `kid`-selected verify key.
+## 2. Canonical Telemetry Fields
 
-## Canonical Telemetry Schema Definition
-
-Required normalized fields include:
-
-- `event_id`, `event_type`, `tenant_id`, `operator_id`
-- `attributes.schema_version`
+Required normalized fields:
+- `event_type`
+- `actor`
+- `target`
+- `status`
+- `tenant_id`
+- `attributes.execution_fingerprint`
 - `attributes.attestation_measurement_hash`
-- `attributes.policy_decision_hash`
-- `execution_fingerprint`
+- `attributes.payload_signature`
+- `attributes.payload_signature_algorithm` (`Ed25519`)
 
-## How To Extend Tool Wrappers (Metasploit, Sliver, Mythic)
+## 3. Wrapper SDK Components
 
-1. Add execution method in wrapper module.
-2. Normalize command output into SDK event schema.
-3. Attach tenant/operator metadata.
-4. Attach `attestation_measurement_hash`.
-5. Emit through telemetry ingestion pipeline.
+- `pkg.wrappers.base.BaseWrapper`
+- `pkg.telemetry.sdk`
+- `pkg.specs.validation_sdk.validate_telemetry_extension_v1`
+- `pkg.orchestrator.telemetry_ingestion.TelemetryIngestionPipeline`
 
-## How To Emit Signed Telemetry
+## 4. Runner Standard
 
-1. Configure `VECTORVUE_FEDERATION_SIGNING_KEY_PATH`.
-2. Configure mTLS cert/key and CA file.
-3. Use `VectorVueClient.send_federated_telemetry(...)`.
-4. Ensure nonces/timestamps are unique and current.
+Standard execution runtime:
+- Firecracker microVM path (`runtime=firecracker`) is the default runner standard.
 
-## How To Validate Feedback Signatures
+Standard edge runner implementation:
+- Go runner (`src/runner-go`) is the reference edge implementation.
 
-1. Configure `VECTORVUE_FEEDBACK_VERIFY_KEYS_JSON`.
-2. Validate `kid`, `signature_algorithm`, `signed_at`, `nonce`, `schema_version`.
-3. Verify Ed25519 signature on canonical response tuple.
-4. Reject replayed nonce or stale timestamp.
+Standard manifest signature verification:
+- Compact JWS verified with Ed25519 (`alg=EdDSA`) on edge side.
+- Symmetric signing fallback is not permitted in standard path.
 
-## Test Strategy
+## 5. Federation Signing
 
-- Unit tests for signing, verification, replay, schema validation.
-- Integration tests for gateway acceptance/rejection paths.
-- Host smoke tests for nmap/metasploit/sliver/firecracker workflows.
+- Outbound telemetry signing tuple: `{timestamp}.{nonce}.{canonical_payload}`
+- Algorithm: Ed25519
 
-## Key Rotation Strategy
+## 6. Documentation Requirement Per Wrapper
 
-- Maintain keyring map: `{kid: public_key_ref}` on verifier side.
-- Rotate by adding new key and switching active `kid` on signer side.
-- Keep old key for overlap window, then remove.
-- Test old/new `kid` handling in CI before cutover.
+Each wrapper must include:
+- `overview.md`
+- `architecture.md` (Mermaid)
+- `usage.md`
+- `telemetry-schema.md`
+- `example-execution.md`
+- `signature-verification.md`
+- `security-considerations.md`
+
+## 7. Test Gates
+
+Mandatory before wrapper completion:
+- Unit tests
+- Smoke tests
+- Real E2E test (non-dry-run) in controlled environment
+- Telemetry schema validation checks

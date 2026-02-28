@@ -108,6 +108,58 @@ class _FakeSliverWrapper:
         return _FakeEvent(event_type="sliver_command_completed", tenant_id=tenant_id)
 
 
+class _FakeImpacketPsexecWrapper:
+    def __init__(self, timeout_seconds: float) -> None:
+        self._timeout_seconds = timeout_seconds
+
+    def execute(
+        self,
+        _request: object,
+        *,
+        tenant_id: str,
+        operator_id: str,
+    ) -> object:
+        assert tenant_id == "tenant-a"
+        assert operator_id == "host-integration-smoke"
+
+        class _R:
+            status = "success"
+            return_code = 0
+            target = "127.0.0.1"
+            username = "smoke"
+            command = "whoami"
+            tool_version = "0.13.0"
+            output = "ok"
+            execution_fingerprint = "a" * 64
+            attestation_measurement_hash = "b" * 64
+            payload_signature = "sig"
+            payload_signature_algorithm = "Ed25519"
+
+        return _R()
+
+    def send_to_orchestrator(
+        self,
+        _result: object,
+        *,
+        telemetry: object,
+        tenant_id: str,
+        operator_id: str,
+        actor: str,
+    ) -> _FakeEvent:
+        assert operator_id == "host-integration-smoke"
+        ingest = getattr(telemetry, "ingest", None)
+        if callable(ingest):
+            ingest(
+                event_type="impacket_psexec_completed",
+                actor=actor,
+                target="orchestrator",
+                status="success",
+                tenant_id=tenant_id,
+                module="psexec.py",
+            )
+        return _FakeEvent(event_type="impacket_psexec_completed", tenant_id=tenant_id)
+
+
 class _FakeMythicWrapper:
     def __init__(self, timeout_seconds: float) -> None:
         self._timeout_seconds = timeout_seconds
@@ -271,6 +323,10 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         _FakeSliverWrapper,
     )
     monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.ImpacketPsexecWrapper",
+        _FakeImpacketPsexecWrapper,
+    )
+    monkeypatch.setattr(
         "pkg.integration.host_integration_smoke.MythicWrapper",
         _FakeMythicWrapper,
     )
@@ -286,6 +342,7 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     result = run_host_integration_smoke(
         tenant_id="tenant-a",
         check_metasploit_rpc=True,
+        check_impacket_psexec=True,
         check_sliver_command=True,
         check_mythic_task=True,
         check_vectorvue=True,
@@ -294,6 +351,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert result.metasploit_rpc_ok is True
     assert result.sliver_binary_ok is True
     assert result.sliver_command_ok is True
+    assert result.impacket_psexec_binary_ok is True
+    assert result.impacket_psexec_command_ok is True
     assert result.mythic_binary_ok is True
     assert result.mythic_task_ok is True
     assert result.rabbitmq_publish_ok is True
@@ -302,6 +361,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert result.vectorvue_finding_status == "accepted"
     assert result.vectorvue_status_poll_status == "accepted"
     assert "metasploit.rpc" in result.checks
+    assert "impacket.psexec.version" in result.checks
+    assert "impacket.psexec.command" in result.checks
     assert "sliver.version" in result.checks
     assert "sliver.command" in result.checks
     assert "mythic.version" in result.checks

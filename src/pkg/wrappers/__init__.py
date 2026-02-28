@@ -23,6 +23,12 @@ from pkg.wrappers.metasploit import (
     MetasploitWrapper,
     SessionTranscript,
 )
+from pkg.wrappers.impacket_psexec import (
+    ImpacketPsexecError,
+    ImpacketPsexecRequest,
+    ImpacketPsexecResult,
+    ImpacketPsexecWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -50,6 +56,10 @@ __all__ = [
     "MetasploitRPCError",
     "MetasploitTransportError",
     "MetasploitWrapper",
+    "ImpacketPsexecError",
+    "ImpacketPsexecRequest",
+    "ImpacketPsexecResult",
+    "ImpacketPsexecWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",

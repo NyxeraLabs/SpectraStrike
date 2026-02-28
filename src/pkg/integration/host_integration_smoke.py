@@ -32,6 +32,10 @@ from pkg.telemetry.sdk import build_internal_telemetry_event
 from pkg.wrappers.metasploit import MetasploitConfig, MetasploitWrapper
 from pkg.wrappers.mythic import MythicTaskRequest, MythicWrapper
 from pkg.wrappers.nmap import NmapScanOptions, NmapWrapper
+from pkg.wrappers.impacket_psexec import (
+    ImpacketPsexecRequest,
+    ImpacketPsexecWrapper,
+)
 from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
 _LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
@@ -51,6 +55,8 @@ class HostIntegrationResult:
     telemetry_ingest_ok: bool = False
     metasploit_binary_ok: bool = False
     metasploit_rpc_ok: bool | None = None
+    impacket_psexec_binary_ok: bool | None = None
+    impacket_psexec_command_ok: bool | None = None
     sliver_binary_ok: bool | None = None
     sliver_command_ok: bool | None = None
     mythic_binary_ok: bool | None = None
@@ -145,6 +151,8 @@ def run_host_integration_smoke(
     timeout_seconds: float = 8.0,
     check_metasploit_rpc: bool = False,
     check_sliver_command: bool = False,
+    check_impacket_psexec: bool = False,
+    check_impacket_psexec_live: bool = False,
     check_mythic_task: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
@@ -158,6 +166,8 @@ def run_host_integration_smoke(
     metasploit_version_output = ""
     sliver_wrapper: SliverWrapper | None = None
     sliver_result: object | None = None
+    impacket_psexec_wrapper: ImpacketPsexecWrapper | None = None
+    impacket_psexec_result: object | None = None
     mythic_wrapper: MythicWrapper | None = None
     mythic_result: object | None = None
 
@@ -200,6 +210,58 @@ def run_host_integration_smoke(
         wrapper.connect()
         result.metasploit_rpc_ok = True
         result.checks.append("metasploit.rpc")
+
+    if check_impacket_psexec:
+        impacket_binary = os.getenv("IMPACKET_PSEXEC_BINARY", "psexec.py")
+        _require_binary(impacket_binary)
+        try:
+            _run_command([impacket_binary, "--version"], timeout_seconds)
+        except Exception:
+            _run_command([impacket_binary, "-h"], timeout_seconds)
+        result.impacket_psexec_binary_ok = True
+        result.checks.append("impacket.psexec.version")
+        impacket_psexec_wrapper = ImpacketPsexecWrapper(timeout_seconds=timeout_seconds)
+        impacket_target = nmap_target
+        impacket_username = os.getenv("IMPACKET_PSEXEC_USERNAME", "smoke")
+        impacket_domain = os.getenv("IMPACKET_PSEXEC_DOMAIN", "").strip() or None
+        impacket_password = os.getenv("IMPACKET_PSEXEC_PASSWORD", "").strip() or None
+        impacket_hashes = os.getenv("IMPACKET_PSEXEC_HASHES", "").strip() or None
+        impacket_command = os.getenv("IMPACKET_PSEXEC_COMMAND", "whoami")
+        impacket_extra_args = [] if check_impacket_psexec_live else ["--dry-run"]
+        if check_impacket_psexec_live and not (impacket_password or impacket_hashes):
+            raise HostIntegrationError(
+                "IMPACKET_PSEXEC_PASSWORD or IMPACKET_PSEXEC_HASHES is required for live psexec e2e"
+            )
+        impacket_psexec_result = impacket_psexec_wrapper.execute(
+            ImpacketPsexecRequest(
+                target=impacket_target,
+                username=impacket_username,
+                domain=impacket_domain,
+                password=impacket_password,
+                hashes=impacket_hashes,
+                no_pass=not check_impacket_psexec_live and not (impacket_password or impacket_hashes),
+                command=impacket_command,
+                extra_args=impacket_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        impacket_event = impacket_psexec_wrapper.send_to_orchestrator(
+            impacket_psexec_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.impacket_psexec_command_ok = (
+            impacket_event.event_type == "impacket_psexec_completed"
+            and impacket_event.tenant_id == resolved_tenant
+        )
+        result.checks.append(
+            "impacket.psexec.command.live"
+            if check_impacket_psexec_live
+            else "impacket.psexec.command"
+        )
 
     if check_sliver_command:
         _require_binary(os.getenv("SLIVER_BINARY", "sliver-client"))
@@ -286,6 +348,18 @@ def run_host_integration_smoke(
                 tenant_id=resolved_tenant,
                 actor=integration_actor,
             )
+        if (
+            check_impacket_psexec
+            and impacket_psexec_wrapper is not None
+            and impacket_psexec_result is not None
+        ):
+            impacket_psexec_wrapper.send_to_orchestrator(
+                impacket_psexec_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
         if check_mythic_task and mythic_wrapper is not None and mythic_result is not None:
             mythic_wrapper.send_to_orchestrator(
                 mythic_result,
@@ -349,6 +423,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="execute one Sliver dry-run command and emit SDK telemetry",
     )
     parser.add_argument(
+        "--check-impacket-psexec",
+        action="store_true",
+        help="execute one Impacket psexec dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-impacket-psexec-live",
+        action="store_true",
+        help="execute one Impacket psexec live command (requires IMPACKET_PSEXEC_* credentials)",
+    )
+    parser.add_argument(
         "--check-mythic-task",
         action="store_true",
         help="execute one Mythic dry-run task and emit SDK telemetry",
@@ -372,6 +456,8 @@ def main() -> int:
         timeout_seconds=args.timeout_seconds,
         check_metasploit_rpc=args.check_metasploit_rpc,
         check_sliver_command=args.check_sliver_command,
+        check_impacket_psexec=args.check_impacket_psexec,
+        check_impacket_psexec_live=args.check_impacket_psexec_live,
         check_mythic_task=args.check_mythic_task,
         check_vectorvue=args.check_vectorvue,
     )
@@ -384,6 +470,8 @@ def main() -> int:
         f" telemetry_ingest_ok={result.telemetry_ingest_ok}"
         f" metasploit_binary_ok={result.metasploit_binary_ok}"
         f" metasploit_rpc_ok={result.metasploit_rpc_ok}"
+        f" impacket_psexec_binary_ok={result.impacket_psexec_binary_ok}"
+        f" impacket_psexec_command_ok={result.impacket_psexec_command_ok}"
         f" sliver_binary_ok={result.sliver_binary_ok}"
         f" sliver_command_ok={result.sliver_command_ok}"
         f" mythic_binary_ok={result.mythic_binary_ok}"

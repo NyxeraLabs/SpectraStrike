@@ -70,7 +70,8 @@ def test_build_and_execute_maps_cloudevent_contract(tmp_path: Path) -> None:
     manifest = _manifest(ingested.tool_sha256)
 
     def fake_runner(command: list[str]) -> subprocess.CompletedProcess[str]:
-        assert "--runtime=runsc" in command
+        assert command[0] == "echo"
+        assert "firecracker_simulated" in command[1]
         return subprocess.CompletedProcess(command, 0, "ok", "")
 
     runner = UniversalEdgeRunner(armory=armory, command_runner=fake_runner)

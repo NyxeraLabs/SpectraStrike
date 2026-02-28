@@ -18,30 +18,33 @@ Sell derived competing products
 ![SpectraStrike Logo](../../ui/web/assets/images/SprectraStrike_Logo.png)
 
 ## Scope
-This document captures Phase 4 Sprint 11-13 implementation boundaries for Armory registry controls, universal runner verification, and QA gates.
+This document captures Armory registry controls and standardized edge-runner execution behavior.
 
 ## Armory Workflow
 1. Ingest BYOT artifact (`tool_name`, `image_ref`, binary payload).
 2. Compute immutable digest (`sha256`).
 3. Generate SBOM metadata.
 4. Run vulnerability summary pipeline.
-5. Generate signing metadata (Cosign/Sigstore-equivalent contract).
+5. Generate signing metadata.
 6. Require explicit approval before digest becomes execution-authorized.
 
-## Runner Workflow
-Runner reference implementation is in Go under `src/runner-go`.
+## Standard Runner Workflow
+Primary edge runner reference implementation:
+- `src/runner-go`
 
-1. Validate compact JWS on edge side.
+Standard controls:
+1. Verify compact JWS on edge side using Ed25519 (`alg=EdDSA`).
 2. Resolve authorized tool digest from Armory.
-3. Enforce exact digest match against signed manifest.
-4. Build isolated command contract (`runsc` + AppArmor + read-only + no capabilities + no network baseline).
-5. Execute workload and map output to CloudEvents (`stdout`, `stderr`, `exit_code`, `manifest_jws`).
+3. Enforce exact digest match against manifest.
+4. Execute via firecracker microVM contract (simulation in dev/CI, native in hardened runtime).
+5. Map output to CloudEvents (`stdout`, `stderr`, `exit_code`, `manifest_jws`).
 
-## QA Controls (Sprint 13)
-- Forged JWS signatures must fail.
+## QA Controls
+- Forged Ed25519 JWS signatures must fail.
 - Tampered tool digests must fail.
 - Execution output must map to standardized CloudEvents payload.
 
-## Current Constraints
-- HS256 path is fully verified in deterministic QA suites.
-- ES256 verifier backend is not yet wired in Go runtime and remains a planned integration task.
+## Current Standardization Status
+- Go runner verification path is Ed25519-first.
+- Firecracker microVM path is the standard runner backend.
+- Wrapper SDK contract remains aligned to telemetry/fingerprint/attestation/signature requirements.
