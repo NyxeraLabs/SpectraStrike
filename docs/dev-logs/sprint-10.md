@@ -1,10 +1,10 @@
 <!-- NYXERA_BRANDING_HEADER_START -->
 <p align="center">
-  <img src="https://docs.nyxera.cloud/assets/img/product-logo.png" alt="SpectraStrike" width="220" />
+  <img src="https://spectrastrike.nyxera.cloud/branding/spectrastrike-logo.png" alt="SpectraStrike" width="220" />
 </p>
 
 <p align="center">
-  <a href="https://docs.nyxera.cloud">Docs</a> |
+  <a href="https://docs.spectrastrike.nyxera.cloud">Docs</a> |
   <a href="https://spectrastrike.nyxera.cloud">SpectraStrike</a> |
   <a href="https://nexus.nyxera.cloud">Nexus</a> |
   <a href="https://nyxera.cloud">Nyxera Labs</a>
@@ -98,7 +98,7 @@ Sprint 11 proceeds with Armory implementation (immutable tool registry, ingestio
 ---
 
 <p align="center">
-  <img src="https://docs.nyxera.cloud/assets/img/nyxera-logo.png" alt="Nyxera Labs" width="110" />
+  <img src="https://spectrastrike.nyxera.cloud/branding/nyxera-logo.png" alt="Nyxera Labs" width="110" />
 </p>
 
 <p align="center">
@@ -106,7 +106,7 @@ Sprint 11 proceeds with Armory implementation (immutable tool registry, ingestio
 </p>
 
 <p align="center">
-  <a href="https://docs.nyxera.cloud">Docs</a> |
+  <a href="https://docs.spectrastrike.nyxera.cloud">Docs</a> |
   <a href="https://spectrastrike.nyxera.cloud">SpectraStrike</a> |
   <a href="https://nexus.nyxera.cloud">Nexus</a> |
   <a href="https://nyxera.cloud">Nyxera Labs</a>
