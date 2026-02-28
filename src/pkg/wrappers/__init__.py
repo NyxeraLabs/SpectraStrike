@@ -125,6 +125,12 @@ from pkg.wrappers.amass import (
     AmassResult,
     AmassWrapper,
 )
+from pkg.wrappers.sqlmap import (
+    SqlmapExecutionError,
+    SqlmapRequest,
+    SqlmapResult,
+    SqlmapWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -220,6 +226,10 @@ __all__ = [
     "AmassRequest",
     "AmassResult",
     "AmassWrapper",
+    "SqlmapExecutionError",
+    "SqlmapRequest",
+    "SqlmapResult",
+    "SqlmapWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",

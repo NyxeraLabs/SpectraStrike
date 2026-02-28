@@ -21,3 +21,35 @@ Change Date: 2033-02-22 -> Apache-2.0
   }
 }
 ```
+
+## Host Integration Smoke Evidence (2026-02-28)
+
+E2E test 1:
+
+```bash
+SQLMAP_LIVE_TARGET=http://127.0.0.1 SQLMAP_COMMAND='--version' PYTHONPATH=src:/usr/lib/python3.14/site-packages .venv/bin/python \
+  -m pkg.integration.host_integration_smoke \
+  --tenant-id 10000000-0000-0000-0000-000000000001 \
+  --timeout-seconds 30 \
+  --check-sqlmap \
+  --check-sqlmap-live
+```
+
+```text
+HOST_SMOKE tenant_id=10000000-0000-0000-0000-000000000001 ... sqlmap_binary_ok=True sqlmap_command_ok=True ... checks=...sqlmap.version,sqlmap.command.live
+```
+
+E2E test 2:
+
+```bash
+SQLMAP_LIVE_TARGET=http://127.0.0.1 SQLMAP_COMMAND='--help' PYTHONPATH=src:/usr/lib/python3.14/site-packages .venv/bin/python \
+  -m pkg.integration.host_integration_smoke \
+  --tenant-id 10000000-0000-0000-0000-000000000001 \
+  --timeout-seconds 30 \
+  --check-sqlmap \
+  --check-sqlmap-live
+```
+
+```text
+HOST_SMOKE tenant_id=10000000-0000-0000-0000-000000000001 ... sqlmap_binary_ok=True sqlmap_command_ok=True ... checks=...sqlmap.version,sqlmap.command.live
+```

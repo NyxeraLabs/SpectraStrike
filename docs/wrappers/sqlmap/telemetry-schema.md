@@ -15,7 +15,11 @@ Canonical telemetry fields:
 - target
 - status
 - tenant_id
+- attributes.adapter (sqlmap)
+- attributes.module (scanner)
 - attributes.execution_fingerprint
 - attributes.attestation_measurement_hash
 - attributes.payload_signature
 - attributes.payload_signature_algorithm (must be Ed25519)
+- attributes.signature_input_hash
+- attributes.tool_sha256

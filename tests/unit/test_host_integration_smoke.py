@@ -987,6 +987,57 @@ class _FakeAmassWrapper:
         return _FakeEvent(event_type="amass_enum_completed", tenant_id=tenant_id)
 
 
+class _FakeSqlmapWrapper:
+    def __init__(self, timeout_seconds: float) -> None:
+        self._timeout_seconds = timeout_seconds
+
+    def execute(
+        self,
+        _request: object,
+        *,
+        tenant_id: str,
+        operator_id: str,
+    ) -> object:
+        assert tenant_id == "tenant-a"
+        assert operator_id == "host-integration-smoke"
+
+        class _R:
+            status = "success"
+            return_code = 0
+            target = "http://127.0.0.1/vuln.php?id=1"
+            command = "-u http://127.0.0.1/vuln.php?id=1 --batch --risk=1 --level=1"
+            tool_version = "1.8.2"
+            output = "ok"
+            execution_fingerprint = "01" * 32
+            attestation_measurement_hash = "02" * 32
+            payload_signature = "sig"
+            payload_signature_algorithm = "Ed25519"
+
+        return _R()
+
+    def send_to_orchestrator(
+        self,
+        _result: object,
+        *,
+        telemetry: object,
+        tenant_id: str,
+        operator_id: str,
+        actor: str,
+    ) -> _FakeEvent:
+        assert operator_id == "host-integration-smoke"
+        ingest = getattr(telemetry, "ingest", None)
+        if callable(ingest):
+            ingest(
+                event_type="sqlmap_scan_completed",
+                actor=actor,
+                target="orchestrator",
+                status="success",
+                tenant_id=tenant_id,
+                module="scanner",
+            )
+        return _FakeEvent(event_type="sqlmap_scan_completed", tenant_id=tenant_id)
+
+
 class _FakeMythicWrapper:
     def __init__(self, timeout_seconds: float) -> None:
         self._timeout_seconds = timeout_seconds
@@ -1218,6 +1269,10 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         _FakeAmassWrapper,
     )
     monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.SqlmapWrapper",
+        _FakeSqlmapWrapper,
+    )
+    monkeypatch.setattr(
         "pkg.integration.host_integration_smoke.MythicWrapper",
         _FakeMythicWrapper,
     )
@@ -1250,6 +1305,7 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         check_wget=True,
         check_burpsuite=True,
         check_amass=True,
+        check_sqlmap=True,
         check_sliver_command=True,
         check_mythic_task=True,
         check_vectorvue=True,
@@ -1292,6 +1348,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert result.burpsuite_command_ok is True
     assert result.amass_binary_ok is True
     assert result.amass_command_ok is True
+    assert result.sqlmap_binary_ok is True
+    assert result.sqlmap_command_ok is True
     assert result.mythic_binary_ok is True
     assert result.mythic_task_ok is True
     assert result.rabbitmq_publish_ok is True
@@ -1334,6 +1392,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert "burpsuite.command" in result.checks
     assert "amass.version" in result.checks
     assert "amass.command" in result.checks
+    assert "sqlmap.version" in result.checks
+    assert "sqlmap.command" in result.checks
     assert "sliver.version" in result.checks
     assert "sliver.command" in result.checks
     assert "mythic.version" in result.checks
@@ -1788,4 +1848,30 @@ def test_host_smoke_amass_live_requires_target(
             tenant_id="tenant-a",
             check_amass=True,
             check_amass_live=True,
+        )
+
+
+def test_host_smoke_sqlmap_live_requires_target(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._require_binary", lambda _name: None
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._run_command",
+        lambda _cmd, _timeout: "ok",
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.NmapWrapper",
+        _FakeNmapWrapper,
+    )
+    monkeypatch.delenv("SQLMAP_LIVE_TARGET", raising=False)
+    with pytest.raises(
+        HostIntegrationError,
+        match="SQLMAP_LIVE_TARGET is required",
+    ):
+        run_host_integration_smoke(
+            tenant_id="tenant-a",
+            check_sqlmap=True,
+            check_sqlmap_live=True,
         )
