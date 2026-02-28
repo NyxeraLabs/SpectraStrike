@@ -63,6 +63,7 @@ from pkg.wrappers.responder import ResponderRequest, ResponderWrapper
 from pkg.wrappers.gobuster import GobusterScanRequest, GobusterWrapper
 from pkg.wrappers.ffuf import FfufScanRequest, FfufWrapper
 from pkg.wrappers.netcat import NetcatRequest, NetcatWrapper
+from pkg.wrappers.netexec import NetExecRequest, NetExecWrapper
 from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
 _LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
@@ -107,6 +108,8 @@ class HostIntegrationResult:
     ffuf_command_ok: bool | None = None
     netcat_binary_ok: bool | None = None
     netcat_command_ok: bool | None = None
+    netexec_binary_ok: bool | None = None
+    netexec_command_ok: bool | None = None
     sliver_binary_ok: bool | None = None
     sliver_command_ok: bool | None = None
     mythic_binary_ok: bool | None = None
@@ -225,6 +228,8 @@ def run_host_integration_smoke(
     check_ffuf_live: bool = False,
     check_netcat: bool = False,
     check_netcat_live: bool = False,
+    check_netexec: bool = False,
+    check_netexec_live: bool = False,
     check_mythic_task: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
@@ -262,6 +267,8 @@ def run_host_integration_smoke(
     ffuf_result: object | None = None
     netcat_wrapper: NetcatWrapper | None = None
     netcat_result: object | None = None
+    netexec_wrapper: NetExecWrapper | None = None
+    netexec_result: object | None = None
     mythic_wrapper: MythicWrapper | None = None
     mythic_result: object | None = None
 
@@ -927,6 +934,64 @@ def run_host_integration_smoke(
             "netcat.command.live" if check_netcat_live else "netcat.command"
         )
 
+    if check_netexec:
+        netexec_binary = os.getenv("NETEXEC_BINARY", "nxc")
+        _require_binary(netexec_binary)
+        try:
+            _run_command([netexec_binary, "--version"], timeout_seconds)
+        except Exception:
+            _run_command([netexec_binary, "-h"], timeout_seconds)
+        result.netexec_binary_ok = True
+        result.checks.append("netexec.version")
+        netexec_wrapper = NetExecWrapper(timeout_seconds=timeout_seconds)
+        netexec_target = (
+            os.getenv("NETEXEC_LIVE_TARGET", "").strip()
+            if check_netexec_live
+            else os.getenv("NETEXEC_TARGET", "127.0.0.1").strip()
+        )
+        netexec_username = (
+            os.getenv("NETEXEC_LIVE_USERNAME", "").strip()
+            if check_netexec_live
+            else os.getenv("NETEXEC_USERNAME", "smoke").strip()
+        )
+        netexec_password = (
+            os.getenv("NETEXEC_LIVE_PASSWORD", "").strip()
+            if check_netexec_live
+            else os.getenv("NETEXEC_PASSWORD", "smoke").strip()
+        )
+        if check_netexec_live and (not netexec_target or not netexec_username or not netexec_password):
+            raise HostIntegrationError(
+                "NETEXEC_LIVE_TARGET, NETEXEC_LIVE_USERNAME, and NETEXEC_LIVE_PASSWORD are required for live netexec e2e"
+            )
+        netexec_command = os.getenv(
+            "NETEXEC_COMMAND",
+            f"smb {netexec_target} -u {netexec_username} -p {netexec_password} --shares",
+        )
+        netexec_extra_args = [] if check_netexec_live else ["--dry-run"]
+        netexec_result = netexec_wrapper.execute(
+            NetExecRequest(
+                target=netexec_target,
+                command=netexec_command,
+                extra_args=netexec_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        netexec_event = netexec_wrapper.send_to_orchestrator(
+            netexec_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.netexec_command_ok = (
+            netexec_event.event_type == "netexec_session_completed"
+            and netexec_event.tenant_id == resolved_tenant
+        )
+        result.checks.append(
+            "netexec.command.live" if check_netexec_live else "netexec.command"
+        )
+
     if check_sliver_command:
         _require_binary(os.getenv("SLIVER_BINARY", "sliver-client"))
         sliver_binary = os.getenv("SLIVER_BINARY", "sliver-client")
@@ -1132,6 +1197,14 @@ def run_host_integration_smoke(
                 operator_id=integration_actor,
                 actor=integration_actor,
             )
+        if check_netexec and netexec_wrapper is not None and netexec_result is not None:
+            netexec_wrapper.send_to_orchestrator(
+                netexec_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
         if check_mythic_task and mythic_wrapper is not None and mythic_result is not None:
             mythic_wrapper.send_to_orchestrator(
                 mythic_result,
@@ -1315,6 +1388,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="execute one netcat live command (requires NETCAT_LIVE_TARGET and NETCAT_LIVE_PORT)",
     )
     parser.add_argument(
+        "--check-netexec",
+        action="store_true",
+        help="execute one netexec dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-netexec-live",
+        action="store_true",
+        help="execute one netexec live command (requires NETEXEC_LIVE_TARGET, NETEXEC_LIVE_USERNAME, and NETEXEC_LIVE_PASSWORD)",
+    )
+    parser.add_argument(
         "--check-mythic-task",
         action="store_true",
         help="execute one Mythic dry-run task and emit SDK telemetry",
@@ -1362,6 +1445,8 @@ def main() -> int:
         check_ffuf_live=args.check_ffuf_live,
         check_netcat=args.check_netcat,
         check_netcat_live=args.check_netcat_live,
+        check_netexec=args.check_netexec,
+        check_netexec_live=args.check_netexec_live,
         check_mythic_task=args.check_mythic_task,
         check_vectorvue=args.check_vectorvue,
     )
@@ -1398,6 +1483,8 @@ def main() -> int:
         f" ffuf_command_ok={result.ffuf_command_ok}"
         f" netcat_binary_ok={result.netcat_binary_ok}"
         f" netcat_command_ok={result.netcat_command_ok}"
+        f" netexec_binary_ok={result.netexec_binary_ok}"
+        f" netexec_command_ok={result.netexec_command_ok}"
         f" sliver_binary_ok={result.sliver_binary_ok}"
         f" sliver_command_ok={result.sliver_command_ok}"
         f" mythic_binary_ok={result.mythic_binary_ok}"

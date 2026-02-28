@@ -732,6 +732,57 @@ class _FakeNetcatWrapper:
         return _FakeEvent(event_type="netcat_session_completed", tenant_id=tenant_id)
 
 
+class _FakeNetExecWrapper:
+    def __init__(self, timeout_seconds: float) -> None:
+        self._timeout_seconds = timeout_seconds
+
+    def execute(
+        self,
+        _request: object,
+        *,
+        tenant_id: str,
+        operator_id: str,
+    ) -> object:
+        assert tenant_id == "tenant-a"
+        assert operator_id == "host-integration-smoke"
+
+        class _R:
+            status = "success"
+            return_code = 0
+            target = "127.0.0.1"
+            command = "smb 127.0.0.1 -u smoke -p smoke --shares"
+            tool_version = "1.3.0"
+            output = "ok"
+            execution_fingerprint = "c9" * 32
+            attestation_measurement_hash = "d0" * 32
+            payload_signature = "sig"
+            payload_signature_algorithm = "Ed25519"
+
+        return _R()
+
+    def send_to_orchestrator(
+        self,
+        _result: object,
+        *,
+        telemetry: object,
+        tenant_id: str,
+        operator_id: str,
+        actor: str,
+    ) -> _FakeEvent:
+        assert operator_id == "host-integration-smoke"
+        ingest = getattr(telemetry, "ingest", None)
+        if callable(ingest):
+            ingest(
+                event_type="netexec_session_completed",
+                actor=actor,
+                target="orchestrator",
+                status="success",
+                tenant_id=tenant_id,
+                module="lateral",
+            )
+        return _FakeEvent(event_type="netexec_session_completed", tenant_id=tenant_id)
+
+
 class _FakeMythicWrapper:
     def __init__(self, timeout_seconds: float) -> None:
         self._timeout_seconds = timeout_seconds
@@ -943,6 +994,10 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         _FakeNetcatWrapper,
     )
     monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.NetExecWrapper",
+        _FakeNetExecWrapper,
+    )
+    monkeypatch.setattr(
         "pkg.integration.host_integration_smoke.MythicWrapper",
         _FakeMythicWrapper,
     )
@@ -970,6 +1025,7 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         check_gobuster=True,
         check_ffuf=True,
         check_netcat=True,
+        check_netexec=True,
         check_sliver_command=True,
         check_mythic_task=True,
         check_vectorvue=True,
@@ -1002,6 +1058,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert result.ffuf_command_ok is True
     assert result.netcat_binary_ok is True
     assert result.netcat_command_ok is True
+    assert result.netexec_binary_ok is True
+    assert result.netexec_command_ok is True
     assert result.mythic_binary_ok is True
     assert result.mythic_task_ok is True
     assert result.rabbitmq_publish_ok is True
@@ -1034,6 +1092,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert "ffuf.command" in result.checks
     assert "netcat.version" in result.checks
     assert "netcat.command" in result.checks
+    assert "netexec.version" in result.checks
+    assert "netexec.command" in result.checks
     assert "sliver.version" in result.checks
     assert "sliver.command" in result.checks
     assert "mythic.version" in result.checks
@@ -1356,4 +1416,32 @@ def test_host_smoke_netcat_live_requires_target_and_port(
             tenant_id="tenant-a",
             check_netcat=True,
             check_netcat_live=True,
+        )
+
+
+def test_host_smoke_netexec_live_requires_target_and_credentials(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._require_binary", lambda _name: None
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._run_command",
+        lambda _cmd, _timeout: "ok",
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.NmapWrapper",
+        _FakeNmapWrapper,
+    )
+    monkeypatch.delenv("NETEXEC_LIVE_TARGET", raising=False)
+    monkeypatch.delenv("NETEXEC_LIVE_USERNAME", raising=False)
+    monkeypatch.delenv("NETEXEC_LIVE_PASSWORD", raising=False)
+    with pytest.raises(
+        HostIntegrationError,
+        match="NETEXEC_LIVE_TARGET, NETEXEC_LIVE_USERNAME, and NETEXEC_LIVE_PASSWORD are required",
+    ):
+        run_host_integration_smoke(
+            tenant_id="tenant-a",
+            check_netexec=True,
+            check_netexec_live=True,
         )

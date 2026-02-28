@@ -95,6 +95,12 @@ from pkg.wrappers.netcat import (
     NetcatResult,
     NetcatWrapper,
 )
+from pkg.wrappers.netexec import (
+    NetExecExecutionError,
+    NetExecRequest,
+    NetExecResult,
+    NetExecWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -170,6 +176,10 @@ __all__ = [
     "NetcatRequest",
     "NetcatResult",
     "NetcatWrapper",
+    "NetExecExecutionError",
+    "NetExecRequest",
+    "NetExecResult",
+    "NetExecWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",

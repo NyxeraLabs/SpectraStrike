@@ -84,15 +84,15 @@ Category completion:
 | [ ] ScoutSuite | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] CloudFox | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] RoadRecon | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
-| [ ] NetExec | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [x] NetExec | P0 | [x] | [x] | [x] | [x] | [x] |
 | [ ] Azure CLI Security Wrapper | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
 
 Category completion:
-- Implementation: 1/6 (16.7%)
+- Implementation: 2/6 (33.3%)
 - Documentation: 6/6 (100.0%)
-- Unit Tests: 1/6 (16.7%)
-- Smoke Tests: 1/6 (16.7%)
-- Telemetry Validation: 1/6 (16.7%)
+- Unit Tests: 2/6 (33.3%)
+- Smoke Tests: 2/6 (33.3%)
+- Telemetry Validation: 2/6 (33.3%)
 
 ## Documentation Tasks
 
@@ -111,6 +111,7 @@ Category completion:
 - [x] Prowler full wrapper docs set created
 - [x] Responder full wrapper docs set created
 - [x] Netcat full wrapper docs set created
+- [x] NetExec full wrapper docs set created
 - [ ] Mythic full wrapper docs set created
 - [ ] All remaining wrappers documentation scaffolds created
 - [x] Wrapper federation E2E audit updated (2026-02-28)
@@ -144,19 +145,19 @@ Already implemented in codebase:
 - Prowler
 - Responder
 - Netcat
+- NetExec
 - Mythic (implementation and unit tests complete; full E2E pending)
 
 Remaining P0 wrappers:
 - John the Ripper
 - BurpSuite
-- NetExec
 
 Overall completion (current matrix entries):
-- Implementation: 16/34 (47.1%)
+- Implementation: 17/34 (50.0%)
 - Documentation: 30/34 (88.2%)
-- Unit Tests: 16/34 (47.1%)
-- Smoke Tests: 15/34 (44.1%)
-- Telemetry Validation: 15/34 (44.1%)
+- Unit Tests: 17/34 (50.0%)
+- Smoke Tests: 16/34 (47.1%)
+- Telemetry Validation: 16/34 (47.1%)
 
 ## Latest E2E Federation Audit (2026-02-28)
 
@@ -176,6 +177,7 @@ Implemented wrappers audit status:
 - [x] Prowler: host smoke executed (`prowler_command_ok=True`) and telemetry emitted (`prowler_scan_completed`); live E2E currently gated by missing `PROWLER_LIVE_TARGET`.
 - [x] Responder: host smoke executed (`responder_command_ok=True`) and telemetry emitted (`responder_session_completed`); live E2E currently gated by missing `RESPONDER_LIVE_INTERFACE`.
 - [x] Netcat: host smoke executed (`netcat_command_ok=True`) and telemetry emitted (`netcat_session_completed`); live E2E currently gated by missing `NETCAT_LIVE_TARGET` and `NETCAT_LIVE_PORT`.
+- [x] NetExec: host smoke executed (`netexec_command_ok=True`) and telemetry emitted (`netexec_session_completed`); live E2E currently gated by missing `NETEXEC_LIVE_TARGET`, `NETEXEC_LIVE_USERNAME`, and `NETEXEC_LIVE_PASSWORD`.
 - [x] Sliver: host smoke command path executed (`sliver_binary_ok=True`, `sliver_command_ok=True`) when run outside sandbox restrictions.
 - [x] Mythic: wrapper implementation and unit tests are present; full host smoke and live E2E remain blocked in this environment (`mythic-cli` missing on host PATH).
 - [ ] Metasploit RPC live auth: blocked by unresolved default RPC endpoint (`metasploit.remote.operator`) until local RPC endpoint is configured.
