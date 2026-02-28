@@ -41,6 +41,12 @@ from pkg.wrappers.impacket_smbexec import (
     ImpacketSmbexecResult,
     ImpacketSmbexecWrapper,
 )
+from pkg.wrappers.impacket_secretsdump import (
+    ImpacketSecretsdumpError,
+    ImpacketSecretsdumpRequest,
+    ImpacketSecretsdumpResult,
+    ImpacketSecretsdumpWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -80,6 +86,10 @@ __all__ = [
     "ImpacketSmbexecRequest",
     "ImpacketSmbexecResult",
     "ImpacketSmbexecWrapper",
+    "ImpacketSecretsdumpError",
+    "ImpacketSecretsdumpRequest",
+    "ImpacketSecretsdumpResult",
+    "ImpacketSecretsdumpWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",
