@@ -248,14 +248,18 @@ local-federation-up:
 		"# Local-only SpectraStrike federation runtime config (gitignored)" \
 		"HOST_INTEGRATION_ACTOR=op-001" \
 		"SPECTRASTRIKE_TENANT_ID=10000000-0000-0000-0000-000000000001" \
+		"SPECTRASTRIKE_WRAPPER_SIGNING_KEY_PATH=/home/xoce/Workspace/VectorVue/deploy/certs/spectrastrike_ed25519.key" \
 		"VECTORVUE_FEDERATION_URL=https://127.0.0.1" \
+		"VECTORVUE_USERNAME=acme_viewer" \
+		"VECTORVUE_PASSWORD=AcmeView3r!" \
+		"VECTORVUE_TENANT_ID=10000000-0000-0000-0000-000000000001" \
 		"VECTORVUE_FEDERATION_SERVICE_IDENTITY=spectrastrike-producer" \
 		"VECTORVUE_FEDERATION_CLIENT_CERT_SHA256=a8525203fbc1ecf03b1ccf2d21b9f6faeeb8d84ba291a823d24c087cb4ca48df" \
 		"VECTORVUE_FEDERATION_MTLS_CERT_FILE=/home/xoce/Workspace/VectorVue/deploy/certs/client.crt" \
 		"VECTORVUE_FEDERATION_MTLS_KEY_FILE=/home/xoce/Workspace/VectorVue/deploy/certs/client.key" \
 		"VECTORVUE_VERIFY_TLS_CA_FILE=/home/xoce/Workspace/VectorVue/deploy/certs/ca.crt" \
 		"VECTORVUE_FEDERATION_SIGNING_KEY_PATH=/home/xoce/Workspace/VectorVue/deploy/certs/spectrastrike_ed25519.key" \
-		"VECTORVUE_FEEDBACK_VERIFY_KEYS_JSON={\"default\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\"}" \
+		"VECTORVUE_FEEDBACK_VERIFY_KEYS_JSON={\"default\":\"/home/xoce/Workspace/VectorVue/deploy/certs/vectorvue_feedback_ed25519.pub.pem\"}" \
 		> "$(LOCAL_FED_ENV)"; \
 	fi
 	@if [ ! -f "$(LOCAL_FED_OVERRIDE)" ]; then \

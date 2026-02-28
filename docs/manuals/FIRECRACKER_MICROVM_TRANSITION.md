@@ -9,12 +9,12 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 ## 1. Scope
 
-This runbook covers Sprint 34 firecracker runtime integration for SpectraStrike runner execution.
+This runbook defines Firecracker as the standard execution backend for tool execution paths.
 
 ## 2. Modes
 
-- `simulate` mode (default): no host Firecracker dependency required; used for dev/CI.
-- `native` mode: requires host Firecracker/jailer and optional KVM enforcement.
+- `simulate` mode (default dev/CI): no host Firecracker dependency required.
+- `native` mode (production-hardening): requires host Firecracker/jailer and optional KVM enforcement.
 
 ## 3. Runtime Contracts
 
@@ -43,8 +43,8 @@ Optional (enforced when configured):
 ## 5. Security Enforcement
 
 - Native launch mode fails closed if isolation checks fail.
-- Breakout indicators (`--privileged`, host-network/pid style flags) are explicitly blocked in firecracker backend execution path.
-- Existing OPA, execution fingerprint, and ledger controls remain mandatory and unchanged.
+- Breakout indicators (`--privileged`, host-network/pid style flags) are explicitly blocked.
+- Existing OPA, execution fingerprint, and ledger controls remain mandatory.
 
 ## 6. Validation Commands
 

@@ -38,13 +38,13 @@ func loadManifest(path string) (runner.ExecutionManifest, error) {
 func main() {
 	manifestPath := flag.String("manifest", "", "Path to ExecutionManifest JSON")
 	manifestJWS := flag.String("manifest-jws", "", "Compact JWS for manifest")
-	hmacSecret := flag.String("hmac-secret", "", "HMAC secret for HS256 verification")
+	verifyKeyPath := flag.String("ed25519-verify-key", "", "PEM-encoded Ed25519 verify key file")
 	armoryRegistry := flag.String("armory-registry", ".spectrastrike/armory/registry.json", "Path to armory registry JSON")
-	dryRun := flag.Bool("dry-run", true, "Do not execute docker command; emit synthetic output")
+	dryRun := flag.Bool("dry-run", true, "Do not execute command; emit synthetic output")
 	flag.Parse()
 
-	if *manifestPath == "" || *manifestJWS == "" {
-		fmt.Fprintln(os.Stderr, "manifest and manifest-jws are required")
+	if *manifestPath == "" || *manifestJWS == "" || *verifyKeyPath == "" {
+		fmt.Fprintln(os.Stderr, "manifest, manifest-jws, and ed25519-verify-key are required")
 		os.Exit(2)
 	}
 
@@ -53,20 +53,25 @@ func main() {
 		fmt.Fprintf(os.Stderr, "load manifest: %v\n", err)
 		os.Exit(2)
 	}
-	if _, err := runner.VerifyHS256JWS(*manifestJWS, *hmacSecret); err != nil {
-		fmt.Fprintf(os.Stderr, "verify jws: %v\n", err)
+	verifyKeyRaw, err := os.ReadFile(*verifyKeyPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "read verify key: %v\n", err)
 		os.Exit(3)
+	}
+	if _, err := runner.VerifyEdDSAJWS(*manifestJWS, string(verifyKeyRaw)); err != nil {
+		fmt.Fprintf(os.Stderr, "verify jws: %v\n", err)
+		os.Exit(4)
 	}
 
 	tools, err := runner.LoadArmoryRegistry(*armoryRegistry)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "load armory registry: %v\n", err)
-		os.Exit(4)
+		os.Exit(5)
 	}
 	tool, err := runner.ResolveAuthorizedToolDigest(tools, manifest.ToolSHA256)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "resolve digest: %v\n", err)
-		os.Exit(5)
+		os.Exit(6)
 	}
 
 	command := runner.BuildSandboxCommand(tool, manifest)
@@ -75,7 +80,7 @@ func main() {
 		result, err = runner.ExecuteCommand(command)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "execute command: %v\n", err)
-			os.Exit(6)
+			os.Exit(7)
 		}
 	}
 
@@ -83,7 +88,7 @@ func main() {
 	serialized, err := json.Marshal(event)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "encode event: %v\n", err)
-		os.Exit(7)
+		os.Exit(8)
 	}
 	fmt.Println(string(serialized))
 }

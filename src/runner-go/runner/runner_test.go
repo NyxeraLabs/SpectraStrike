@@ -15,10 +15,12 @@
 package runner
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
+	"crypto/ed25519"
+	"crypto/rand"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"testing"
 )
 
@@ -26,22 +28,30 @@ func b64(v []byte) string {
 	return base64.RawURLEncoding.EncodeToString(v)
 }
 
-func hs256Token(payload map[string]any, secret string) string {
-	header := map[string]any{"alg": "HS256", "typ": "JWT"}
+func eddsaToken(payload map[string]any, privateKey ed25519.PrivateKey) string {
+	header := map[string]any{"alg": "EdDSA", "typ": "JWT"}
 	hRaw, _ := json.Marshal(header)
 	pRaw, _ := json.Marshal(payload)
 	hSeg := b64(hRaw)
 	pSeg := b64(pRaw)
 	signing := hSeg + "." + pSeg
-	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write([]byte(signing))
-	sig := b64(mac.Sum(nil))
+	sigRaw := ed25519.Sign(privateKey, []byte(signing))
+	sig := b64(sigRaw)
 	return signing + "." + sig
 }
 
-func TestVerifyHS256JWSSuccess(t *testing.T) {
-	token := hs256Token(map[string]any{"task_id": "task-1"}, "secret")
-	payload, err := VerifyHS256JWS(token, "secret")
+func TestVerifyEdDSAJWSSuccess(t *testing.T) {
+	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("failed to generate keypair: %v", err)
+	}
+	pubRaw, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		t.Fatalf("failed to marshal pubkey: %v", err)
+	}
+	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubRaw})
+	token := eddsaToken(map[string]any{"task_id": "task-1"}, privateKey)
+	payload, err := VerifyEdDSAJWS(token, string(pubPEM))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -50,10 +60,19 @@ func TestVerifyHS256JWSSuccess(t *testing.T) {
 	}
 }
 
-func TestVerifyHS256JWSForgedFails(t *testing.T) {
-	token := hs256Token(map[string]any{"task_id": "task-1"}, "secret")
+func TestVerifyEdDSAJWSForgedFails(t *testing.T) {
+	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatalf("failed to generate keypair: %v", err)
+	}
+	pubRaw, err := x509.MarshalPKIXPublicKey(publicKey)
+	if err != nil {
+		t.Fatalf("failed to marshal pubkey: %v", err)
+	}
+	pubPEM := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: pubRaw})
+	token := eddsaToken(map[string]any{"task_id": "task-1"}, privateKey)
 	forged := token[:len(token)-1] + "A"
-	if _, err := VerifyHS256JWS(forged, "secret"); err == nil {
+	if _, err := VerifyEdDSAJWS(forged, string(pubPEM)); err == nil {
 		t.Fatalf("expected forged signature to fail")
 	}
 }
@@ -88,5 +107,20 @@ func TestMapToCloudEventIncludesStdoutStderr(t *testing.T) {
 	}
 	if evt.Data["status"] != "failed" {
 		t.Fatalf("unexpected status: %#v", evt.Data["status"])
+	}
+}
+
+func TestBuildSandboxCommandUsesFirecrackerSimulation(t *testing.T) {
+	tool := ArmoryTool{ToolSHA256: "sha256:abcdef0123456789abcdef", ImageRef: "ignored"}
+	manifest := ExecutionManifest{
+		TaskContext: TaskContext{TaskID: "task-1"},
+		TargetURN:   "urn:target:ip:10.0.0.5",
+	}
+	command := BuildSandboxCommand(tool, manifest)
+	if command[0] != "echo" {
+		t.Fatalf("expected firecracker simulation command, got: %#v", command)
+	}
+	if len(command) < 2 || command[1] == "" {
+		t.Fatalf("expected simulation payload in command")
 	}
 }

@@ -154,14 +154,22 @@ class NmapWrapper:
         logger.info("Executing nmap scan command: %s", " ".join(command))
 
         completed = self._runner(command)
+        raw_output = completed.stdout or ""
 
         if completed.returncode != 0:
             stderr = (completed.stderr or "").strip()
-            stdout = (completed.stdout or "").strip()
+            stdout = raw_output.strip()
             message = stderr or stdout or "nmap command failed"
-            raise NmapExecutionError(message)
-
-        raw_output = completed.stdout or ""
+            if not self._is_recoverable_sendok_warning(
+                message=message,
+                output=raw_output,
+                output_format=options.output_format,
+            ):
+                raise NmapExecutionError(message)
+            logger.warning(
+                "Proceeding after recoverable nmap warning with parseable output: %s",
+                message,
+            )
         if options.output_format == "xml":
             hosts = self._parse_xml(raw_output)
         else:
@@ -205,10 +213,27 @@ class NmapWrapper:
         )
         return telemetry.ingest_payload(payload)
 
+    @staticmethod
+    def _is_recoverable_sendok_warning(
+        *,
+        message: str,
+        output: str,
+        output_format: Literal["xml", "json"],
+    ) -> bool:
+        if "Socket creation in sendOK: Operation not permitted" not in message:
+            return False
+        if output_format == "xml":
+            return "<nmaprun" in output and "</nmaprun>" in output
+        if output_format == "json":
+            return '"host"' in output
+        return False
+
     def _parse_xml(self, xml_output: str) -> list[NmapScanHost]:
         parsed_hosts: list[NmapScanHost] = []
         host_blocks = re.findall(r"<host\b[^>]*>(.*?)</host>", xml_output, flags=re.S)
         if not host_blocks:
+            if "<nmaprun" in xml_output and "</nmaprun>" in xml_output:
+                return []
             raise NmapExecutionError(
                 "failed to parse nmap XML output: no <host> blocks"
             )

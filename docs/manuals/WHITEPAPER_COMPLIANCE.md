@@ -5,41 +5,42 @@ Licensed under BSL 1.1
 Change Date: 2033-02-22 -> Apache-2.0
 -->
 
-# Whitepaper Compliance Check (Sprint 16.8)
+# Whitepaper Compliance Check
 
 Scope:
 - Compared implementation against `docs/WHITEPAPER.md`.
-- Focused on architecture claims relevant to current delivered phases.
+- Focused on runner, signing, telemetry, and isolation claims.
 
-## Compliance Summary
+## Compliance Summary (Current)
 
-- `PARTIAL`: Core RabbitMQ backbone and VectorVue broker-bridge flow are implemented.
-- `PARTIAL`: Zero-Trust controls exist (AAA/OPA hooks, TLS/mTLS options), but not all whitepaper controls are fully enforced end-to-end.
-- `NOT YET`: Non-repudiation Merkle ledger and Firecracker runtime are roadmap-future and not complete.
+- `IMPLEMENTED`: Firecracker backend integration and default runner baseline in Python universal runner.
+- `IMPLEMENTED`: Go runner reference path aligned to Ed25519 (`EdDSA`) manifest verification.
+- `IMPLEMENTED`: Wrapper SDK telemetry standardization contract and required documentation coverage.
+- `PARTIAL`: Full production-native firecracker rollout across all operator environments (simulation remains dev/CI default mode).
+- `PARTIAL`: Full end-to-end manifest-signing authority alignment to Ed25519 in all legacy paths.
+- `NOT YET`: Complete C2 adapter trust extension for all planned adapters and production hardening layers.
 
 ## Requirement Matrix
 
-1. Cryptographic execution only (JWS signed manifests, anti-replay at runner): `PARTIAL`
-2. Decoupled authorization via OPA for execution decisions: `PARTIAL`
-3. Broker dispatch over mTLS, tenant routing controls: `PARTIAL`
-4. BYOT CloudEvents output contract: `PARTIAL`
-5. C2 gateway adapter model (Sliver/Mythic): `NOT YET`
-6. Formal non-repudiation Merkle tree + inclusion proofs: `NOT YET`
+1. Cryptographic execution only (signed manifests, anti-replay at runner): `PARTIAL`
+2. Decoupled authorization via OPA for execution decisions: `IMPLEMENTED`
+3. Broker dispatch over mTLS, tenant routing controls: `IMPLEMENTED`
+4. BYOT CloudEvents output contract: `IMPLEMENTED`
+5. C2 gateway adapter model (all planned adapters): `PARTIAL`
+6. Formal non-repudiation Merkle tree + inclusion proofs: `IMPLEMENTED`
 7. SPIFFE/SPIRE workload identity rotation: `NOT YET`
-8. Firecracker ephemeral microVM boundary: `NOT YET`
-9. VectorVue delivery via messaging backbone: `IMPLEMENTED in Sprint 16.8`
+8. Firecracker ephemeral microVM boundary: `IMPLEMENTED (standard backend, native rollout still partial)`
+9. VectorVue delivery via messaging backbone: `IMPLEMENTED`
 
-## Sprint 16.8 Delta
+## Recent Standardization Delta
 
-- Added RabbitMQ-to-VectorVue bridge (`src/pkg/integration/vectorvue/rabbitmq_bridge.py`).
-- Added live queue-drain CLI (`src/pkg/integration/vectorvue/sync_from_rabbitmq.py`).
-- Migrated host integration VectorVue check to broker-backed forwarding path.
-- Added unit tests for bridge success/failure handling.
+- Standardized wrapper SDK contract and documentation baseline.
+- Set Firecracker as default backend in universal runner profile.
+- Aligned Go runner verification path to Ed25519 (`EdDSA`) JWS.
+- Updated QA runbook with Go runner standard validation command.
 
-## Explicit Gaps Against Whitepaper Target State
+## Explicit Remaining Gaps
 
-- End-to-end mandatory JWS verification gate before every broker-dispatched command is not universal across all paths.
-- Merkle tree ledger and cryptographic inclusion proofs are not implemented (planned in Phase 7).
-- SPIFFE/SPIRE and hourly SVID identity rotation are not implemented.
-- Firecracker isolation boundary is not implemented (planned in Phase 9).
-- C2 gateway adapters (Sliver/Mythic) are roadmap-future.
+- Native Firecracker host rollout remains environment-dependent.
+- Legacy manifest-signing algorithm paths still require full convergence to one Ed25519-only policy.
+- SPIFFE/SPIRE identity rotation remains roadmap scope.
