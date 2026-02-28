@@ -9,7 +9,7 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 Nuclei is tracked in the SpectraStrike wrapper matrix under Web and API Offensive with priority P0.
 
-Current implementation state: Not Implemented.
+Current implementation state: Implemented.
 
 Standard wrapper requirements:
 - BaseWrapper-aligned execution contract

@@ -30,11 +30,14 @@ Category completion:
 - Smoke Tests: 1/6 (16.7%)
 - Telemetry Validation: 1/6 (16.7%)
 
-## 2) Web & API Offensive (6)
+## 2) Web & API Offensive (9)
 
 | Wrapper | Priority | Impl | Docs | Unit Tests | Smoke Tests | Telemetry Validation |
 |---|---|---|---|---|---|---|
-| [ ] Nuclei | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [x] Nuclei | P0 | [x] | [x] | [x] | [x] | [x] |
+| [ ] Gobuster | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
+| [ ] DirBuster | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
+| [ ] Dirsearch | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
 | [ ] ffuf | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] sqlmap | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] Katana | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
@@ -42,13 +45,13 @@ Category completion:
 | [ ] BurpSuite | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
 
 Category completion:
-- Implementation: 0/6 (0.0%)
-- Documentation: 6/6 (100.0%)
-- Unit Tests: 0/6 (0.0%)
-- Smoke Tests: 0/6 (0.0%)
-- Telemetry Validation: 0/6 (0.0%)
+- Implementation: 1/9 (11.1%)
+- Documentation: 7/9 (77.8%)
+- Unit Tests: 1/9 (11.1%)
+- Smoke Tests: 1/9 (11.1%)
+- Telemetry Validation: 1/9 (11.1%)
 
-## 3) Exploitation & Identity (8)
+## 3) Exploitation & Identity (12)
 
 | Wrapper | Priority | Impl | Docs | Unit Tests | Smoke Tests | Telemetry Validation |
 |---|---|---|---|---|---|---|
@@ -58,15 +61,19 @@ Category completion:
 | [x] Impacket secretsdump.py | P0 | [x] | [x] | [x] | [x] | [x] |
 | [x] Impacket ntlmrelayx.py | P0 | [x] | [x] | [x] | [x] | [x] |
 | [x] BloodHound Collector | P0 | [x] | [x] | [x] | [x] | [x] |
+| [ ] Responder | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
+| [ ] Netcat | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
+| [ ] Hashcat | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
+| [ ] John the Ripper | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
 | [x] Metasploit | P1 | [x] | [x] | [x] | [x] | [x] |
 | [x] Sliver | P1 | [x] | [x] | [x] | [x] | [x] |
 
 Category completion:
-- Implementation: 8/8 (100.0%)
-- Documentation: 8/8 (100.0%)
-- Unit Tests: 8/8 (100.0%)
-- Smoke Tests: 8/8 (100.0%)
-- Telemetry Validation: 8/8 (100.0%)
+- Implementation: 8/12 (66.7%)
+- Documentation: 8/12 (66.7%)
+- Unit Tests: 8/12 (66.7%)
+- Smoke Tests: 8/12 (66.7%)
+- Telemetry Validation: 8/12 (66.7%)
 
 ## 4) Cloud & Enterprise Attack Surface (6)
 
@@ -95,7 +102,8 @@ Category completion:
 - [x] Impacket secretsdump.py full wrapper docs set created
 - [x] Impacket ntlmrelayx.py full wrapper docs set created
 - [x] BloodHound Collector full wrapper docs set created
-- [x] All remaining wrappers documentation scaffolds created
+- [x] Nuclei full wrapper docs set created
+- [ ] All remaining wrappers documentation scaffolds created
 - [x] Wrapper federation E2E audit updated (2026-02-28)
 
 ## Standard Procedure (Future Tasks)
@@ -121,17 +129,24 @@ Already implemented in codebase:
 - Impacket secretsdump.py
 - Impacket ntlmrelayx.py
 - BloodHound Collector
+- Nuclei
 
 Remaining P0 wrappers:
-- Nuclei
+- Responder
+- Netcat
+- Hashcat
+- John the Ripper
+- Gobuster
+- DirBuster
+- Dirsearch
 - Prowler
 
 Overall completion (current matrix entries):
-- Implementation: 9/26 (34.6%)
-- Documentation: 26/26 (100.0%)
-- Unit Tests: 9/26 (34.6%)
-- Smoke Tests: 9/26 (34.6%)
-- Telemetry Validation: 9/26 (34.6%)
+- Implementation: 10/33 (30.3%)
+- Documentation: 27/33 (81.8%)
+- Unit Tests: 10/33 (30.3%)
+- Smoke Tests: 10/33 (30.3%)
+- Telemetry Validation: 10/33 (30.3%)
 
 ## Latest E2E Federation Audit (2026-02-28)
 
@@ -145,6 +160,7 @@ Implemented wrappers audit status:
 - [x] Impacket secretsdump.py: host smoke executed (`impacket_secretsdump_command_ok=True`) and telemetry emitted (`impacket_secretsdump_completed`); live E2E currently gated by missing `IMPACKET_SECRETSDUMP_PASSWORD` or `IMPACKET_SECRETSDUMP_HASHES`.
 - [x] Impacket ntlmrelayx.py: host smoke executed (`impacket_ntlmrelayx_command_ok=True`) and telemetry emitted (`impacket_ntlmrelayx_completed`); live E2E currently gated by missing `IMPACKET_NTLMRELAYX_PASSWORD` or `IMPACKET_NTLMRELAYX_HASHES`.
 - [x] BloodHound Collector: host smoke executed (`bloodhound_collector_command_ok=True`) and telemetry emitted (`bloodhound_collector_completed`); live E2E currently gated by missing `BLOODHOUND_COLLECTOR_PASSWORD`.
+- [x] Nuclei: host smoke executed (`nuclei_command_ok=True`) and telemetry emitted (`nuclei_scan_completed`); live E2E currently gated by missing `NUCLEI_LIVE_TARGET`.
 - [x] Sliver: host smoke command path executed (`sliver_binary_ok=True`, `sliver_command_ok=True`) when run outside sandbox restrictions.
 - [ ] Mythic: blocked in this environment (`mythic-cli` missing on host PATH).
 - [ ] Metasploit RPC live auth: blocked by unresolved default RPC endpoint (`metasploit.remote.operator`) until local RPC endpoint is configured.

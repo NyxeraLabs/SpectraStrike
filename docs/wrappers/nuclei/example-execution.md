@@ -21,3 +21,34 @@ Change Date: 2033-02-22 -> Apache-2.0
   }
 }
 ```
+
+## Host Integration Smoke Evidence (2026-02-28)
+
+Successful nuclei smoke execution:
+
+```bash
+PYTHONPATH=src:/usr/lib/python3.14/site-packages .venv/bin/python \
+  -m pkg.integration.host_integration_smoke \
+  --tenant-id 10000000-0000-0000-0000-000000000001 \
+  --timeout-seconds 30 \
+  --check-nuclei
+```
+
+```text
+HOST_SMOKE tenant_id=10000000-0000-0000-0000-000000000001 ... nuclei_binary_ok=True nuclei_command_ok=True ... checks=...nuclei.version,nuclei.command
+```
+
+Live nuclei E2E gate (documented blocker):
+
+```bash
+PYTHONPATH=src:/usr/lib/python3.14/site-packages .venv/bin/python \
+  -m pkg.integration.host_integration_smoke \
+  --tenant-id 10000000-0000-0000-0000-000000000001 \
+  --timeout-seconds 30 \
+  --check-nuclei \
+  --check-nuclei-live
+```
+
+```text
+HostIntegrationError: NUCLEI_LIVE_TARGET is required for live nuclei e2e
+```

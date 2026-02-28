@@ -59,6 +59,12 @@ from pkg.wrappers.bloodhound_collector import (
     BloodhoundCollectorResult,
     BloodhoundCollectorWrapper,
 )
+from pkg.wrappers.nuclei import (
+    NucleiExecutionError,
+    NucleiScanRequest,
+    NucleiScanResult,
+    NucleiWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -110,6 +116,10 @@ __all__ = [
     "BloodhoundCollectorRequest",
     "BloodhoundCollectorResult",
     "BloodhoundCollectorWrapper",
+    "NucleiExecutionError",
+    "NucleiScanRequest",
+    "NucleiScanResult",
+    "NucleiWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",
