@@ -1,93 +1,130 @@
-# SpectraStrike Wrapper Matrix (24 Total)
-## Checkbox Standard Format
+<!--
+Copyright (c) 2026 NyxeraLabs
+Author: Jose Maria Micoli
+Licensed under BSL 1.1
+Change Date: 2033-02-22 -> Apache-2.0
+-->
+
+# SpectraStrike Wrapper Matrix
 
 Priority Legend:
 - P0 = Foundational / Enterprise-Critical
 - P1 = High ROI / Core Coverage
 - P2 = Expansion / Extended Coverage
 
-====================================================
-1️⃣ Recon & Surface Discovery (6)
-====================================================
+## 1) Recon & Surface Discovery (6)
 
-- [x] (P0) Nmap — Core network discovery (✅ Already Implemented)
-- [ ] (P1) Amass — Deep subdomain & ASN enumeration
-- [ ] (P1) Subfinder — Passive subdomain discovery
-- [ ] (P1) dnsx — DNS validation & enrichment
-- [ ] (P2) Masscan — High-speed port scanning
-- [ ] (P2) theHarvester — OSINT email/domain enumeration
+| Wrapper | Priority | Impl | Docs | Unit Tests | Smoke Tests | Telemetry Validation |
+|---|---|---|---|---|---|---|
+| [x] Nmap | P0 | [x] | [x] | [x] | [x] | [x] |
+| [ ] Amass | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] Subfinder | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] dnsx | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] Masscan | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] theHarvester | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
 
+Category completion:
+- Implementation: 1/6 (16.7%)
+- Documentation: 6/6 (100.0%)
+- Unit Tests: 1/6 (16.7%)
+- Smoke Tests: 1/6 (16.7%)
+- Telemetry Validation: 1/6 (16.7%)
 
-====================================================
-2️⃣ Web & API Offensive (6)
-====================================================
+## 2) Web & API Offensive (6)
 
-- [ ] (P0) Nuclei — Template-based vulnerability scanning
-- [ ] (P1) ffuf — Web fuzzing automation
-- [ ] (P1) sqlmap — SQL injection exploitation
-- [ ] (P1) Katana — Web/API crawler
-- [ ] (P2) Nikto — Broad web server scanner
-- [ ] (P2) BurpSuite— Automated web/API scanning
+| Wrapper | Priority | Impl | Docs | Unit Tests | Smoke Tests | Telemetry Validation |
+|---|---|---|---|---|---|---|
+| [ ] Nuclei | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] ffuf | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] sqlmap | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] Katana | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] Nikto | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] BurpSuite | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
 
+Category completion:
+- Implementation: 0/6 (0.0%)
+- Documentation: 6/6 (100.0%)
+- Unit Tests: 0/6 (0.0%)
+- Smoke Tests: 0/6 (0.0%)
+- Telemetry Validation: 0/6 (0.0%)
 
-====================================================
-3️⃣ Exploitation & Identity (6)
-====================================================
+## 3) Exploitation & Identity (8)
 
-----------------------------------------
-Impacket Wrapper Family (P0)
-----------------------------------------
+| Wrapper | Priority | Impl | Docs | Unit Tests | Smoke Tests | Telemetry Validation |
+|---|---|---|---|---|---|---|
+| [x] Impacket psexec.py | P0 | [x] | [x] | [x] | [x] | [x] |
+| [ ] Impacket wmiexec.py | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] Impacket smbexec.py | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] Impacket secretsdump.py | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] Impacket ntlmrelayx.py | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] BloodHound Collector | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [x] Metasploit | P1 | [x] | [x] | [x] | [x] | [x] |
+| [x] Sliver | P1 | [x] | [x] | [x] | [x] | [x] |
 
-All modules must:
-- Emit canonical telemetry
-- Embed execution_fingerprint
-- Embed attestation_hash
-- Sign payload (Ed25519)
+Category completion:
+- Implementation: 3/8 (37.5%)
+- Documentation: 8/8 (100.0%)
+- Unit Tests: 3/8 (37.5%)
+- Smoke Tests: 3/8 (37.5%)
+- Telemetry Validation: 3/8 (37.5%)
 
-- [ ] (P0) Impacket psexec.py — SMB remote execution
-- [ ] (P0) Impacket wmiexec.py — WMI remote execution
-- [ ] (P0) Impacket smbexec.py — Service-based execution
-- [ ] (P0) Impacket secretsdump.py — Credential extraction
-- [ ] (P0) Impacket ntlmrelayx.py — NTLM relay automation
+## 4) Cloud & Enterprise Attack Surface (6)
 
-----------------------------------------
-Additional Identity / C2 Tools
-----------------------------------------
+| Wrapper | Priority | Impl | Docs | Unit Tests | Smoke Tests | Telemetry Validation |
+|---|---|---|---|---|---|---|
+| [ ] Prowler | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] ScoutSuite | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] CloudFox | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] RoadRecon | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] CrackMapExec | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] Azure CLI Security Wrapper | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
 
-- [ ] (P0) BloodHound Collector — AD attack path mapping
-- [x] (P1) Metasploit — Modular exploitation framework (✅ Already Implemented)
-- [x] (P1) Sliver — Modern C2 framework (✅ Already Implemented)
+Category completion:
+- Implementation: 0/6 (0.0%)
+- Documentation: 6/6 (100.0%)
+- Unit Tests: 0/6 (0.0%)
+- Smoke Tests: 0/6 (0.0%)
+- Telemetry Validation: 0/6 (0.0%)
 
+## Documentation Tasks
 
-====================================================
-4️⃣ Cloud & Enterprise Attack Surface (6)
-====================================================
+- [x] Nmap full wrapper docs set created
+- [x] Metasploit full wrapper docs set created
+- [x] Sliver full wrapper docs set created
+- [x] Impacket psexec.py full wrapper docs set created
+- [x] All remaining wrappers documentation scaffolds created
 
-- [ ] (P0) Prowler — AWS security auditing baseline
-- [ ] (P1) ScoutSuite — Multi-cloud posture assessment
-- [ ] (P1) CloudFox — Cloud privilege mapping
-- [ ] (P1) RoadRecon — Azure AD reconnaissance
-- [ ] (P2) CrackMapExec — Credential abuse automation
-- [ ] (P2) Azure CLI Security Wrapper — Native cloud assessment integration
+## Standard Procedure (Future Tasks)
 
+For every remaining wrapper, apply this exact sequence:
+1. Implement wrapper with standardized SDK contract.
+2. Run real E2E test (no dry-run) with controlled target.
+3. Add/validate unit tests.
+4. Add/validate smoke test.
+5. Validate telemetry schema.
+6. Create/refresh full docs set under `docs/wrappers/<wrapper>/`.
+7. Update this matrix checkboxes and category percentages.
 
-====================================================
-IMPLEMENTATION STATUS SNAPSHOT
-====================================================
+## Global Snapshot
 
-Already Implemented:
+Already implemented in codebase:
 - Nmap
 - Metasploit
 - Sliver
+- Impacket psexec.py
 
-Remaining High Priority (P0 not yet done):
-- Impacket Family
+Remaining P0 wrappers:
+- Impacket wmiexec.py
+- Impacket smbexec.py
+- Impacket secretsdump.py
+- Impacket ntlmrelayx.py
 - BloodHound Collector
 - Nuclei
 - Prowler
 
-Target:
-24 Total Wrappers
-4 Categories
-6 Per Category
-Enterprise-Ready Coverage
+Overall completion (current matrix entries):
+- Implementation: 4/26 (15.4%)
+- Documentation: 26/26 (100.0%)
+- Unit Tests: 4/26 (15.4%)
+- Smoke Tests: 4/26 (15.4%)
+- Telemetry Validation: 4/26 (15.4%)
