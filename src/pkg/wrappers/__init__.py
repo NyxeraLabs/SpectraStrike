@@ -89,6 +89,12 @@ from pkg.wrappers.ffuf import (
     FfufScanResult,
     FfufWrapper,
 )
+from pkg.wrappers.netcat import (
+    NetcatExecutionError,
+    NetcatRequest,
+    NetcatResult,
+    NetcatWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -160,6 +166,10 @@ __all__ = [
     "FfufScanRequest",
     "FfufScanResult",
     "FfufWrapper",
+    "NetcatExecutionError",
+    "NetcatRequest",
+    "NetcatResult",
+    "NetcatWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",

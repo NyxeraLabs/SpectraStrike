@@ -51,7 +51,7 @@ Category completion:
 - Smoke Tests: 3/9 (33.3%)
 - Telemetry Validation: 3/9 (33.3%)
 
-## 3) Exploitation & Identity (12)
+## 3) Exploitation & Identity (13)
 
 | Wrapper | Priority | Impl | Docs | Unit Tests | Smoke Tests | Telemetry Validation |
 |---|---|---|---|---|---|---|
@@ -62,18 +62,19 @@ Category completion:
 | [x] Impacket ntlmrelayx.py | P0 | [x] | [x] | [x] | [x] | [x] |
 | [x] BloodHound Collector | P0 | [x] | [x] | [x] | [x] | [x] |
 | [x] Responder | P0 | [x] | [x] | [x] | [x] | [x] |
-| [ ] Netcat | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
-| [ ] Hashcat | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
+| [x] Netcat | P0 | [x] | [x] | [x] | [x] | [x] |
+| [ ] Hashcat | P1 | [ ] | [ ] | [ ] | [ ] | [ ] |
 | [ ] John the Ripper | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
+| [x] Mythic | P1 | [ ] | [ ] | [x] | [ ] | [ ] |
 | [x] Metasploit | P1 | [x] | [x] | [x] | [x] | [x] |
 | [x] Sliver | P1 | [x] | [x] | [x] | [x] | [x] |
 
 Category completion:
-- Implementation: 9/12 (75.0%)
-- Documentation: 9/12 (75.0%)
-- Unit Tests: 9/12 (75.0%)
-- Smoke Tests: 9/12 (75.0%)
-- Telemetry Validation: 9/12 (75.0%)
+- Implementation: 11/13 (84.6%)
+- Documentation: 10/13 (76.9%)
+- Unit Tests: 11/13 (84.6%)
+- Smoke Tests: 10/13 (76.9%)
+- Telemetry Validation: 10/13 (76.9%)
 
 ## 4) Cloud & Enterprise Attack Surface (6)
 
@@ -83,7 +84,7 @@ Category completion:
 | [ ] ScoutSuite | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] CloudFox | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] RoadRecon | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
-| [ ] CrackMapExec | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] NetExec | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] Azure CLI Security Wrapper | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
 
 Category completion:
@@ -99,6 +100,8 @@ Category completion:
 - [x] Metasploit full wrapper docs set created
 - [x] Sliver full wrapper docs set created
 - [x] Impacket psexec.py full wrapper docs set created
+- [x] Impacket wmiexec.py full wrapper docs set created
+- [x] Impacket smbexec.py full wrapper docs set created
 - [x] Impacket secretsdump.py full wrapper docs set created
 - [x] Impacket ntlmrelayx.py full wrapper docs set created
 - [x] BloodHound Collector full wrapper docs set created
@@ -107,6 +110,8 @@ Category completion:
 - [x] ffuf full wrapper docs set created
 - [x] Prowler full wrapper docs set created
 - [x] Responder full wrapper docs set created
+- [x] Netcat full wrapper docs set created
+- [ ] Mythic full wrapper docs set created
 - [ ] All remaining wrappers documentation scaffolds created
 - [x] Wrapper federation E2E audit updated (2026-02-28)
 
@@ -138,19 +143,20 @@ Already implemented in codebase:
 - ffuf
 - Prowler
 - Responder
+- Netcat
+- Mythic (implementation and unit tests complete; full E2E pending)
 
 Remaining P0 wrappers:
-- Netcat
-- Hashcat
 - John the Ripper
 - BurpSuite
+- NetExec
 
 Overall completion (current matrix entries):
-- Implementation: 14/33 (42.4%)
-- Documentation: 29/33 (87.9%)
-- Unit Tests: 14/33 (42.4%)
-- Smoke Tests: 14/33 (42.4%)
-- Telemetry Validation: 14/33 (42.4%)
+- Implementation: 16/34 (47.1%)
+- Documentation: 30/34 (88.2%)
+- Unit Tests: 16/34 (47.1%)
+- Smoke Tests: 15/34 (44.1%)
+- Telemetry Validation: 15/34 (44.1%)
 
 ## Latest E2E Federation Audit (2026-02-28)
 
@@ -169,6 +175,7 @@ Implemented wrappers audit status:
 - [x] ffuf: host smoke executed (`ffuf_command_ok=True`) and telemetry emitted (`ffuf_scan_completed`); live E2E currently gated by missing `FFUF_LIVE_TARGET`.
 - [x] Prowler: host smoke executed (`prowler_command_ok=True`) and telemetry emitted (`prowler_scan_completed`); live E2E currently gated by missing `PROWLER_LIVE_TARGET`.
 - [x] Responder: host smoke executed (`responder_command_ok=True`) and telemetry emitted (`responder_session_completed`); live E2E currently gated by missing `RESPONDER_LIVE_INTERFACE`.
+- [x] Netcat: host smoke executed (`netcat_command_ok=True`) and telemetry emitted (`netcat_session_completed`); live E2E currently gated by missing `NETCAT_LIVE_TARGET` and `NETCAT_LIVE_PORT`.
 - [x] Sliver: host smoke command path executed (`sliver_binary_ok=True`, `sliver_command_ok=True`) when run outside sandbox restrictions.
-- [ ] Mythic: blocked in this environment (`mythic-cli` missing on host PATH).
+- [x] Mythic: wrapper implementation and unit tests are present; full host smoke and live E2E remain blocked in this environment (`mythic-cli` missing on host PATH).
 - [ ] Metasploit RPC live auth: blocked by unresolved default RPC endpoint (`metasploit.remote.operator`) until local RPC endpoint is configured.

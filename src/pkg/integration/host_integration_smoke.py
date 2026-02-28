@@ -62,6 +62,7 @@ from pkg.wrappers.prowler import ProwlerScanRequest, ProwlerWrapper
 from pkg.wrappers.responder import ResponderRequest, ResponderWrapper
 from pkg.wrappers.gobuster import GobusterScanRequest, GobusterWrapper
 from pkg.wrappers.ffuf import FfufScanRequest, FfufWrapper
+from pkg.wrappers.netcat import NetcatRequest, NetcatWrapper
 from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
 _LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
@@ -104,6 +105,8 @@ class HostIntegrationResult:
     gobuster_command_ok: bool | None = None
     ffuf_binary_ok: bool | None = None
     ffuf_command_ok: bool | None = None
+    netcat_binary_ok: bool | None = None
+    netcat_command_ok: bool | None = None
     sliver_binary_ok: bool | None = None
     sliver_command_ok: bool | None = None
     mythic_binary_ok: bool | None = None
@@ -220,6 +223,8 @@ def run_host_integration_smoke(
     check_gobuster_live: bool = False,
     check_ffuf: bool = False,
     check_ffuf_live: bool = False,
+    check_netcat: bool = False,
+    check_netcat_live: bool = False,
     check_mythic_task: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
@@ -255,6 +260,8 @@ def run_host_integration_smoke(
     gobuster_result: object | None = None
     ffuf_wrapper: FfufWrapper | None = None
     ffuf_result: object | None = None
+    netcat_wrapper: NetcatWrapper | None = None
+    netcat_result: object | None = None
     mythic_wrapper: MythicWrapper | None = None
     mythic_result: object | None = None
 
@@ -870,6 +877,56 @@ def run_host_integration_smoke(
         )
         result.checks.append("ffuf.command.live" if check_ffuf_live else "ffuf.command")
 
+    if check_netcat:
+        netcat_binary = os.getenv("NETCAT_BINARY", "nc")
+        _require_binary(netcat_binary)
+        try:
+            _run_command([netcat_binary, "-h"], timeout_seconds)
+        except Exception:
+            _run_command([netcat_binary, "--version"], timeout_seconds)
+        result.netcat_binary_ok = True
+        result.checks.append("netcat.version")
+        netcat_wrapper = NetcatWrapper(timeout_seconds=timeout_seconds)
+        netcat_target = (
+            os.getenv("NETCAT_LIVE_TARGET", "").strip()
+            if check_netcat_live
+            else os.getenv("NETCAT_TARGET", "127.0.0.1").strip()
+        )
+        netcat_port = (
+            os.getenv("NETCAT_LIVE_PORT", "").strip()
+            if check_netcat_live
+            else os.getenv("NETCAT_PORT", "80").strip()
+        )
+        if check_netcat_live and (not netcat_target or not netcat_port):
+            raise HostIntegrationError(
+                "NETCAT_LIVE_TARGET and NETCAT_LIVE_PORT are required for live netcat e2e"
+            )
+        netcat_command = os.getenv("NETCAT_COMMAND", f"-vz {netcat_target} {netcat_port}")
+        netcat_extra_args = [] if check_netcat_live else ["--dry-run"]
+        netcat_result = netcat_wrapper.execute(
+            NetcatRequest(
+                target=netcat_target,
+                command=netcat_command,
+                extra_args=netcat_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        netcat_event = netcat_wrapper.send_to_orchestrator(
+            netcat_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.netcat_command_ok = (
+            netcat_event.event_type == "netcat_session_completed"
+            and netcat_event.tenant_id == resolved_tenant
+        )
+        result.checks.append(
+            "netcat.command.live" if check_netcat_live else "netcat.command"
+        )
+
     if check_sliver_command:
         _require_binary(os.getenv("SLIVER_BINARY", "sliver-client"))
         sliver_binary = os.getenv("SLIVER_BINARY", "sliver-client")
@@ -1067,6 +1124,14 @@ def run_host_integration_smoke(
                 operator_id=integration_actor,
                 actor=integration_actor,
             )
+        if check_netcat and netcat_wrapper is not None and netcat_result is not None:
+            netcat_wrapper.send_to_orchestrator(
+                netcat_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
         if check_mythic_task and mythic_wrapper is not None and mythic_result is not None:
             mythic_wrapper.send_to_orchestrator(
                 mythic_result,
@@ -1240,6 +1305,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="execute one ffuf live command (requires FFUF_LIVE_TARGET)",
     )
     parser.add_argument(
+        "--check-netcat",
+        action="store_true",
+        help="execute one netcat dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-netcat-live",
+        action="store_true",
+        help="execute one netcat live command (requires NETCAT_LIVE_TARGET and NETCAT_LIVE_PORT)",
+    )
+    parser.add_argument(
         "--check-mythic-task",
         action="store_true",
         help="execute one Mythic dry-run task and emit SDK telemetry",
@@ -1285,6 +1360,8 @@ def main() -> int:
         check_gobuster_live=args.check_gobuster_live,
         check_ffuf=args.check_ffuf,
         check_ffuf_live=args.check_ffuf_live,
+        check_netcat=args.check_netcat,
+        check_netcat_live=args.check_netcat_live,
         check_mythic_task=args.check_mythic_task,
         check_vectorvue=args.check_vectorvue,
     )
@@ -1319,6 +1396,8 @@ def main() -> int:
         f" gobuster_command_ok={result.gobuster_command_ok}"
         f" ffuf_binary_ok={result.ffuf_binary_ok}"
         f" ffuf_command_ok={result.ffuf_command_ok}"
+        f" netcat_binary_ok={result.netcat_binary_ok}"
+        f" netcat_command_ok={result.netcat_command_ok}"
         f" sliver_binary_ok={result.sliver_binary_ok}"
         f" sliver_command_ok={result.sliver_command_ok}"
         f" mythic_binary_ok={result.mythic_binary_ok}"
