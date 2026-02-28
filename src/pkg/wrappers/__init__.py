@@ -137,6 +137,12 @@ from pkg.wrappers.subfinder import (
     SubfinderResult,
     SubfinderWrapper,
 )
+from pkg.wrappers.dnsx import (
+    DnsxExecutionError,
+    DnsxRequest,
+    DnsxResult,
+    DnsxWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -240,6 +246,10 @@ __all__ = [
     "SubfinderRequest",
     "SubfinderResult",
     "SubfinderWrapper",
+    "DnsxExecutionError",
+    "DnsxRequest",
+    "DnsxResult",
+    "DnsxWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",

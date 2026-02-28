@@ -19,16 +19,16 @@ Priority Legend:
 | [x] Nmap | P0 | [x] | [x] | [x] | [x] | [x] |
 | [x] Amass | P0 | [x] | [x] | [x] | [x] | [x] |
 | [x] Subfinder | P0 | [x] | [x] | [x] | [x] | [x] |
-| [ ] dnsx | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [x] dnsx | P0 | [x] | [x] | [x] | [x] | [x] |
 | [ ] Masscan | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] theHarvester | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
 
 Category completion:
-- Implementation: 3/6 (50.0%)
+- Implementation: 4/6 (66.7%)
 - Documentation: 6/6 (100.0%)
-- Unit Tests: 3/6 (50.0%)
-- Smoke Tests: 3/6 (50.0%)
-- Telemetry Validation: 3/6 (50.0%)
+- Unit Tests: 4/6 (66.7%)
+- Smoke Tests: 4/6 (66.7%)
+- Telemetry Validation: 4/6 (66.7%)
 
 ## 2) Web & API Offensive (9)
 
@@ -112,6 +112,7 @@ Category completion:
 - [x] Nuclei full wrapper docs set created
 - [x] Amass full wrapper docs set created
 - [x] Subfinder full wrapper docs set created
+- [x] dnsx full wrapper docs set created
 - [x] Gobuster full wrapper docs set created
 - [x] ffuf full wrapper docs set created
 - [x] BurpSuite full wrapper docs set created
@@ -163,17 +164,16 @@ Already implemented in codebase:
 - Mythic (implementation and unit tests complete; full E2E pending)
 
 Remaining P0 wrappers:
-- dnsx
 - SCP
 - SSH
 - Curl
 
 Overall completion (current matrix entries):
-- Implementation: 23/38 (60.5%)
+- Implementation: 24/38 (63.2%)
 - Documentation: 32/38 (84.2%)
-- Unit Tests: 23/38 (60.5%)
-- Smoke Tests: 22/38 (57.9%)
-- Telemetry Validation: 22/38 (57.9%)
+- Unit Tests: 24/38 (63.2%)
+- Smoke Tests: 23/38 (60.5%)
+- Telemetry Validation: 23/38 (60.5%)
 
 ## Latest E2E Federation Audit (2026-02-28)
 
@@ -189,6 +189,7 @@ Implemented wrappers audit status:
 - [x] BloodHound Collector: host smoke executed (`bloodhound_collector_command_ok=True`) and telemetry emitted (`bloodhound_collector_completed`); live E2E currently gated by missing `BLOODHOUND_COLLECTOR_PASSWORD`.
 - [x] Amass: host smoke executed (`amass_command_ok=True`) and telemetry emitted (`amass_enum_completed`) with recoverable probe warning path; live E2E currently gated by missing `AMASS_LIVE_TARGET`.
 - [x] Subfinder: host smoke executed (`subfinder_command_ok=True`) and telemetry emitted (`subfinder_scan_completed`); live e2e command path validated (`subfinder.command.live`) with `SUBFINDER_COMMAND='-h'` and `SUBFINDER_COMMAND='--help'`.
+- [x] dnsx: host smoke executed (`dnsx_command_ok=True`) and telemetry emitted (`dnsx_scan_completed`); live e2e command path validated (`dnsx.command.live`) with `DNSX_COMMAND='-h'` and `DNSX_COMMAND='--help'`.
 - [x] Nuclei: host smoke executed (`nuclei_command_ok=True`) and telemetry emitted (`nuclei_scan_completed`); live E2E currently gated by missing `NUCLEI_LIVE_TARGET`.
 - [x] Gobuster: host smoke executed (`gobuster_command_ok=True`) and telemetry emitted (`gobuster_scan_completed`); live E2E currently gated by missing `GOBUSTER_LIVE_TARGET`.
 - [x] ffuf: host smoke executed (`ffuf_command_ok=True`) and telemetry emitted (`ffuf_scan_completed`); live E2E currently gated by missing `FFUF_LIVE_TARGET`.

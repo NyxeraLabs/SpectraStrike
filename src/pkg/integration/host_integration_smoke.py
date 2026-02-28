@@ -70,6 +70,7 @@ from pkg.wrappers.burpsuite import BurpSuiteRequest, BurpSuiteWrapper
 from pkg.wrappers.amass import AmassRequest, AmassWrapper
 from pkg.wrappers.sqlmap import SqlmapRequest, SqlmapWrapper
 from pkg.wrappers.subfinder import SubfinderRequest, SubfinderWrapper
+from pkg.wrappers.dnsx import DnsxRequest, DnsxWrapper
 from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
 _LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
@@ -128,6 +129,8 @@ class HostIntegrationResult:
     sqlmap_command_ok: bool | None = None
     subfinder_binary_ok: bool | None = None
     subfinder_command_ok: bool | None = None
+    dnsx_binary_ok: bool | None = None
+    dnsx_command_ok: bool | None = None
     sliver_binary_ok: bool | None = None
     sliver_command_ok: bool | None = None
     mythic_binary_ok: bool | None = None
@@ -260,6 +263,8 @@ def run_host_integration_smoke(
     check_sqlmap_live: bool = False,
     check_subfinder: bool = False,
     check_subfinder_live: bool = False,
+    check_dnsx: bool = False,
+    check_dnsx_live: bool = False,
     check_mythic_task: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
@@ -311,6 +316,8 @@ def run_host_integration_smoke(
     sqlmap_result: object | None = None
     subfinder_wrapper: SubfinderWrapper | None = None
     subfinder_result: object | None = None
+    dnsx_wrapper: DnsxWrapper | None = None
+    dnsx_result: object | None = None
     mythic_wrapper: MythicWrapper | None = None
     mythic_result: object | None = None
 
@@ -1309,6 +1316,47 @@ def run_host_integration_smoke(
             "subfinder.command.live" if check_subfinder_live else "subfinder.command"
         )
 
+    if check_dnsx:
+        dnsx_binary = os.getenv("DNSX_BINARY", "dnsx")
+        _require_binary(dnsx_binary)
+        try:
+            _run_command([dnsx_binary, "-version"], timeout_seconds)
+        except Exception:
+            _run_command([dnsx_binary, "-h"], timeout_seconds)
+        result.dnsx_binary_ok = True
+        result.checks.append("dnsx.version")
+        dnsx_wrapper = DnsxWrapper(timeout_seconds=timeout_seconds)
+        dnsx_target = (
+            os.getenv("DNSX_LIVE_TARGET", "").strip()
+            if check_dnsx_live
+            else os.getenv("DNSX_TARGET", "example.com").strip()
+        )
+        if check_dnsx_live and not dnsx_target:
+            raise HostIntegrationError("DNSX_LIVE_TARGET is required for live dnsx e2e")
+        dnsx_command = os.getenv("DNSX_COMMAND", f"-silent -d {dnsx_target}")
+        dnsx_extra_args = [] if check_dnsx_live else ["--dry-run"]
+        dnsx_result = dnsx_wrapper.execute(
+            DnsxRequest(
+                target=dnsx_target,
+                command=dnsx_command,
+                extra_args=dnsx_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        dnsx_event = dnsx_wrapper.send_to_orchestrator(
+            dnsx_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.dnsx_command_ok = (
+            dnsx_event.event_type == "dnsx_scan_completed"
+            and dnsx_event.tenant_id == resolved_tenant
+        )
+        result.checks.append("dnsx.command.live" if check_dnsx_live else "dnsx.command")
+
     if check_sliver_command:
         _require_binary(os.getenv("SLIVER_BINARY", "sliver-client"))
         sliver_binary = os.getenv("SLIVER_BINARY", "sliver-client")
@@ -1578,6 +1626,14 @@ def run_host_integration_smoke(
                 operator_id=integration_actor,
                 actor=integration_actor,
             )
+        if check_dnsx and dnsx_wrapper is not None and dnsx_result is not None:
+            dnsx_wrapper.send_to_orchestrator(
+                dnsx_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
         if check_mythic_task and mythic_wrapper is not None and mythic_result is not None:
             mythic_wrapper.send_to_orchestrator(
                 mythic_result,
@@ -1831,6 +1887,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="execute one subfinder live command (requires SUBFINDER_LIVE_TARGET)",
     )
     parser.add_argument(
+        "--check-dnsx",
+        action="store_true",
+        help="execute one dnsx dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-dnsx-live",
+        action="store_true",
+        help="execute one dnsx live command (requires DNSX_LIVE_TARGET)",
+    )
+    parser.add_argument(
         "--check-mythic-task",
         action="store_true",
         help="execute one Mythic dry-run task and emit SDK telemetry",
@@ -1892,6 +1958,8 @@ def main() -> int:
         check_sqlmap_live=args.check_sqlmap_live,
         check_subfinder=args.check_subfinder,
         check_subfinder_live=args.check_subfinder_live,
+        check_dnsx=args.check_dnsx,
+        check_dnsx_live=args.check_dnsx_live,
         check_mythic_task=args.check_mythic_task,
         check_vectorvue=args.check_vectorvue,
     )
@@ -1942,6 +2010,8 @@ def main() -> int:
         f" sqlmap_command_ok={result.sqlmap_command_ok}"
         f" subfinder_binary_ok={result.subfinder_binary_ok}"
         f" subfinder_command_ok={result.subfinder_command_ok}"
+        f" dnsx_binary_ok={result.dnsx_binary_ok}"
+        f" dnsx_command_ok={result.dnsx_command_ok}"
         f" sliver_binary_ok={result.sliver_binary_ok}"
         f" sliver_command_ok={result.sliver_command_ok}"
         f" mythic_binary_ok={result.mythic_binary_ok}"
