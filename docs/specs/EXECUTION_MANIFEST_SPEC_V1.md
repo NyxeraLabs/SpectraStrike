@@ -1,3 +1,16 @@
+<!-- NYXERA_BRANDING_HEADER_START -->
+<p align="center">
+  <img src="https://docs.nyxera.cloud/assets/img/product-logo.png" alt="SpectraStrike" width="220" />
+</p>
+
+<p align="center">
+  <a href="https://docs.nyxera.cloud">Docs</a> |
+  <a href="https://spectrastrike.nyxera.cloud">SpectraStrike</a> |
+  <a href="https://nexus.nyxera.cloud">Nexus</a> |
+  <a href="https://nyxera.cloud">Nyxera Labs</a>
+</p>
+<!-- NYXERA_BRANDING_HEADER_END -->
+
 <!--
 Copyright (c) 2026 NyxeraLabs
 Author: José María Micoli
@@ -68,3 +81,23 @@ Manifest fields participate in:
 ```json
 {"issued_at":"2026-02-27T00:00:05+00:00","manifest_version":"1.0.0","nonce":"nonce-0001","parameters":{"ports":[443]},"target_urn":"urn:target:ip:10.0.0.5","task_context":{"action":"run","correlation_id":"bc8d85ff-31f2-4b57-9adf-3ce24227de97","operator_id":"op-001","requested_at":"2026-02-27T00:00:00+00:00","source":"api","task_id":"task-001","tenant_id":"tenant-a"},"tool_sha256":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
 ```
+
+<!-- NYXERA_BRANDING_FOOTER_START -->
+
+---
+
+<p align="center">
+  <img src="https://docs.nyxera.cloud/assets/img/nyxera-logo.png" alt="Nyxera Labs" width="110" />
+</p>
+
+<p align="center">
+  2026 SpectraStrike by Nyxera Labs. All rights reserved.
+</p>
+
+<p align="center">
+  <a href="https://docs.nyxera.cloud">Docs</a> |
+  <a href="https://spectrastrike.nyxera.cloud">SpectraStrike</a> |
+  <a href="https://nexus.nyxera.cloud">Nexus</a> |
+  <a href="https://nyxera.cloud">Nyxera Labs</a>
+</p>
+<!-- NYXERA_BRANDING_FOOTER_END -->
