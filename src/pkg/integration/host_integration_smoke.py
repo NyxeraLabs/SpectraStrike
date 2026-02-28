@@ -65,6 +65,7 @@ from pkg.wrappers.ffuf import FfufScanRequest, FfufWrapper
 from pkg.wrappers.netcat import NetcatRequest, NetcatWrapper
 from pkg.wrappers.netexec import NetExecRequest, NetExecWrapper
 from pkg.wrappers.john import JohnRequest, JohnWrapper
+from pkg.wrappers.wget import WgetRequest, WgetWrapper
 from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
 _LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
@@ -113,6 +114,8 @@ class HostIntegrationResult:
     netexec_command_ok: bool | None = None
     john_binary_ok: bool | None = None
     john_command_ok: bool | None = None
+    wget_binary_ok: bool | None = None
+    wget_command_ok: bool | None = None
     sliver_binary_ok: bool | None = None
     sliver_command_ok: bool | None = None
     mythic_binary_ok: bool | None = None
@@ -235,6 +238,8 @@ def run_host_integration_smoke(
     check_netexec_live: bool = False,
     check_john: bool = False,
     check_john_live: bool = False,
+    check_wget: bool = False,
+    check_wget_live: bool = False,
     check_mythic_task: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
@@ -276,6 +281,8 @@ def run_host_integration_smoke(
     netexec_result: object | None = None
     john_wrapper: JohnWrapper | None = None
     john_result: object | None = None
+    wget_wrapper: WgetWrapper | None = None
+    wget_result: object | None = None
     mythic_wrapper: MythicWrapper | None = None
     mythic_result: object | None = None
 
@@ -1045,6 +1052,50 @@ def run_host_integration_smoke(
         )
         result.checks.append("john.command.live" if check_john_live else "john.command")
 
+    if check_wget:
+        wget_binary = os.getenv("WGET_BINARY", "wget")
+        _require_binary(wget_binary)
+        try:
+            _run_command([wget_binary, "--version"], timeout_seconds)
+        except Exception:
+            _run_command([wget_binary, "--help"], timeout_seconds)
+        result.wget_binary_ok = True
+        result.checks.append("wget.version")
+        wget_wrapper = WgetWrapper(timeout_seconds=timeout_seconds)
+        wget_target = (
+            os.getenv("WGET_LIVE_TARGET", "").strip()
+            if check_wget_live
+            else os.getenv("WGET_TARGET", "http://127.0.0.1").strip()
+        )
+        if check_wget_live and not wget_target:
+            raise HostIntegrationError("WGET_LIVE_TARGET is required for live wget e2e")
+        wget_command = os.getenv(
+            "WGET_COMMAND",
+            f"{wget_target} -O /tmp/wget_smoke.out --timeout=3",
+        )
+        wget_extra_args = [] if check_wget_live else ["--dry-run"]
+        wget_result = wget_wrapper.execute(
+            WgetRequest(
+                target=wget_target,
+                command=wget_command,
+                extra_args=wget_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        wget_event = wget_wrapper.send_to_orchestrator(
+            wget_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.wget_command_ok = (
+            wget_event.event_type == "wget_session_completed"
+            and wget_event.tenant_id == resolved_tenant
+        )
+        result.checks.append("wget.command.live" if check_wget_live else "wget.command")
+
     if check_sliver_command:
         _require_binary(os.getenv("SLIVER_BINARY", "sliver-client"))
         sliver_binary = os.getenv("SLIVER_BINARY", "sliver-client")
@@ -1266,6 +1317,14 @@ def run_host_integration_smoke(
                 operator_id=integration_actor,
                 actor=integration_actor,
             )
+        if check_wget and wget_wrapper is not None and wget_result is not None:
+            wget_wrapper.send_to_orchestrator(
+                wget_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
         if check_mythic_task and mythic_wrapper is not None and mythic_result is not None:
             mythic_wrapper.send_to_orchestrator(
                 mythic_result,
@@ -1469,6 +1528,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="execute one john live command (requires JOHN_LIVE_HASH_FILE)",
     )
     parser.add_argument(
+        "--check-wget",
+        action="store_true",
+        help="execute one wget dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-wget-live",
+        action="store_true",
+        help="execute one wget live command (requires WGET_LIVE_TARGET)",
+    )
+    parser.add_argument(
         "--check-mythic-task",
         action="store_true",
         help="execute one Mythic dry-run task and emit SDK telemetry",
@@ -1520,6 +1589,8 @@ def main() -> int:
         check_netexec_live=args.check_netexec_live,
         check_john=args.check_john,
         check_john_live=args.check_john_live,
+        check_wget=args.check_wget,
+        check_wget_live=args.check_wget_live,
         check_mythic_task=args.check_mythic_task,
         check_vectorvue=args.check_vectorvue,
     )
@@ -1560,6 +1631,8 @@ def main() -> int:
         f" netexec_command_ok={result.netexec_command_ok}"
         f" john_binary_ok={result.john_binary_ok}"
         f" john_command_ok={result.john_command_ok}"
+        f" wget_binary_ok={result.wget_binary_ok}"
+        f" wget_command_ok={result.wget_command_ok}"
         f" sliver_binary_ok={result.sliver_binary_ok}"
         f" sliver_command_ok={result.sliver_command_ok}"
         f" mythic_binary_ok={result.mythic_binary_ok}"

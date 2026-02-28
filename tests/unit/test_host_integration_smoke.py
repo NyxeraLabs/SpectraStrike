@@ -834,6 +834,57 @@ class _FakeJohnWrapper:
         return _FakeEvent(event_type="john_session_completed", tenant_id=tenant_id)
 
 
+class _FakeWgetWrapper:
+    def __init__(self, timeout_seconds: float) -> None:
+        self._timeout_seconds = timeout_seconds
+
+    def execute(
+        self,
+        _request: object,
+        *,
+        tenant_id: str,
+        operator_id: str,
+    ) -> object:
+        assert tenant_id == "tenant-a"
+        assert operator_id == "host-integration-smoke"
+
+        class _R:
+            status = "success"
+            return_code = 0
+            target = "http://127.0.0.1"
+            command = "http://127.0.0.1 -O /tmp/wget_smoke.out --timeout=3"
+            tool_version = "1.21.4"
+            output = "ok"
+            execution_fingerprint = "a3" * 32
+            attestation_measurement_hash = "b4" * 32
+            payload_signature = "sig"
+            payload_signature_algorithm = "Ed25519"
+
+        return _R()
+
+    def send_to_orchestrator(
+        self,
+        _result: object,
+        *,
+        telemetry: object,
+        tenant_id: str,
+        operator_id: str,
+        actor: str,
+    ) -> _FakeEvent:
+        assert operator_id == "host-integration-smoke"
+        ingest = getattr(telemetry, "ingest", None)
+        if callable(ingest):
+            ingest(
+                event_type="wget_session_completed",
+                actor=actor,
+                target="orchestrator",
+                status="success",
+                tenant_id=tenant_id,
+                module="transfer",
+            )
+        return _FakeEvent(event_type="wget_session_completed", tenant_id=tenant_id)
+
+
 class _FakeMythicWrapper:
     def __init__(self, timeout_seconds: float) -> None:
         self._timeout_seconds = timeout_seconds
@@ -1053,6 +1104,10 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         _FakeJohnWrapper,
     )
     monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.WgetWrapper",
+        _FakeWgetWrapper,
+    )
+    monkeypatch.setattr(
         "pkg.integration.host_integration_smoke.MythicWrapper",
         _FakeMythicWrapper,
     )
@@ -1082,6 +1137,7 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         check_netcat=True,
         check_netexec=True,
         check_john=True,
+        check_wget=True,
         check_sliver_command=True,
         check_mythic_task=True,
         check_vectorvue=True,
@@ -1118,6 +1174,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert result.netexec_command_ok is True
     assert result.john_binary_ok is True
     assert result.john_command_ok is True
+    assert result.wget_binary_ok is True
+    assert result.wget_command_ok is True
     assert result.mythic_binary_ok is True
     assert result.mythic_task_ok is True
     assert result.rabbitmq_publish_ok is True
@@ -1154,6 +1212,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert "netexec.command" in result.checks
     assert "john.version" in result.checks
     assert "john.command" in result.checks
+    assert "wget.version" in result.checks
+    assert "wget.command" in result.checks
     assert "sliver.version" in result.checks
     assert "sliver.command" in result.checks
     assert "mythic.version" in result.checks
@@ -1530,4 +1590,30 @@ def test_host_smoke_john_live_requires_hash_file(
             tenant_id="tenant-a",
             check_john=True,
             check_john_live=True,
+        )
+
+
+def test_host_smoke_wget_live_requires_target(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._require_binary", lambda _name: None
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._run_command",
+        lambda _cmd, _timeout: "ok",
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.NmapWrapper",
+        _FakeNmapWrapper,
+    )
+    monkeypatch.delenv("WGET_LIVE_TARGET", raising=False)
+    with pytest.raises(
+        HostIntegrationError,
+        match="WGET_LIVE_TARGET is required",
+    ):
+        run_host_integration_smoke(
+            tenant_id="tenant-a",
+            check_wget=True,
+            check_wget_live=True,
         )

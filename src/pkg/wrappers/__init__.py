@@ -107,6 +107,12 @@ from pkg.wrappers.john import (
     JohnResult,
     JohnWrapper,
 )
+from pkg.wrappers.wget import (
+    WgetExecutionError,
+    WgetRequest,
+    WgetResult,
+    WgetWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -190,6 +196,10 @@ __all__ = [
     "JohnRequest",
     "JohnResult",
     "JohnWrapper",
+    "WgetExecutionError",
+    "WgetRequest",
+    "WgetResult",
+    "WgetWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",

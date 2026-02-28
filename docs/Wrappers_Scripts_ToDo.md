@@ -65,7 +65,7 @@ Category completion:
 | [x] Netcat | P0 | [x] | [x] | [x] | [x] | [x] |
 | [ ] Hashcat | P1 | [ ] | [ ] | [ ] | [ ] | [ ] |
 | [x] John the Ripper | P0 | [x] | [x] | [x] | [x] | [x] |
-| [ ] Wget | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
+| [x] Wget | P0 | [x] | [x] | [x] | [x] | [x] |
 | [ ] SCP | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
 | [ ] SSH | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
 | [ ] Curl | P0 | [ ] | [ ] | [ ] | [ ] | [ ] |
@@ -74,11 +74,11 @@ Category completion:
 | [x] Sliver | P1 | [x] | [x] | [x] | [x] | [x] |
 
 Category completion:
-- Implementation: 12/17 (70.6%)
-- Documentation: 11/17 (64.7%)
-- Unit Tests: 12/17 (70.6%)
-- Smoke Tests: 11/17 (64.7%)
-- Telemetry Validation: 11/17 (64.7%)
+- Implementation: 13/17 (76.5%)
+- Documentation: 12/17 (70.6%)
+- Unit Tests: 13/17 (76.5%)
+- Smoke Tests: 12/17 (70.6%)
+- Telemetry Validation: 12/17 (70.6%)
 
 ## 4) Cloud & Enterprise Attack Surface (6)
 
@@ -117,6 +117,7 @@ Category completion:
 - [x] Netcat full wrapper docs set created
 - [x] NetExec full wrapper docs set created
 - [x] John the Ripper full wrapper docs set created
+- [x] Wget full wrapper docs set created
 - [ ] Mythic full wrapper docs set created
 - [ ] All remaining wrappers documentation scaffolds created
 - [x] Wrapper federation E2E audit updated (2026-02-28)
@@ -152,21 +153,21 @@ Already implemented in codebase:
 - Netcat
 - NetExec
 - John the Ripper
+- Wget
 - Mythic (implementation and unit tests complete; full E2E pending)
 
 Remaining P0 wrappers:
 - BurpSuite
-- Wget
 - SCP
 - SSH
 - Curl
 
 Overall completion (current matrix entries):
-- Implementation: 18/38 (47.4%)
-- Documentation: 31/38 (81.6%)
-- Unit Tests: 18/38 (47.4%)
-- Smoke Tests: 17/38 (44.7%)
-- Telemetry Validation: 17/38 (44.7%)
+- Implementation: 19/38 (50.0%)
+- Documentation: 32/38 (84.2%)
+- Unit Tests: 19/38 (50.0%)
+- Smoke Tests: 18/38 (47.4%)
+- Telemetry Validation: 18/38 (47.4%)
 
 ## Latest E2E Federation Audit (2026-02-28)
 
@@ -188,6 +189,7 @@ Implemented wrappers audit status:
 - [x] Netcat: host smoke executed (`netcat_command_ok=True`) and telemetry emitted (`netcat_session_completed`); live E2E currently gated by missing `NETCAT_LIVE_TARGET` and `NETCAT_LIVE_PORT`.
 - [x] NetExec: host smoke executed (`netexec_command_ok=True`) and telemetry emitted (`netexec_session_completed`); live E2E currently gated by missing `NETEXEC_LIVE_TARGET`, `NETEXEC_LIVE_USERNAME`, and `NETEXEC_LIVE_PASSWORD`.
 - [x] John the Ripper: host smoke executed with `JOHN_BINARY=/opt/john/run/john` (`john_command_ok=True`) and telemetry emitted (`john_session_completed`); live e2e command path validated (`john.command.live`).
+- [x] Wget: host smoke executed (`wget_command_ok=True`) and telemetry emitted (`wget_session_completed`); live e2e command path validated (`wget.command.live`).
 - [x] Sliver: host smoke command path executed (`sliver_binary_ok=True`, `sliver_command_ok=True`) when run outside sandbox restrictions.
 - [x] Mythic: wrapper implementation and unit tests are present; full host smoke and live E2E remain blocked in this environment (`mythic-cli` missing on host PATH).
 - [ ] Metasploit RPC live auth: blocked by unresolved default RPC endpoint (`metasploit.remote.operator`) until local RPC endpoint is configured.
