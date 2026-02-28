@@ -56,17 +56,17 @@ Category completion:
 | [x] Impacket wmiexec.py | P0 | [x] | [x] | [x] | [x] | [x] |
 | [x] Impacket smbexec.py | P0 | [x] | [x] | [x] | [x] | [x] |
 | [x] Impacket secretsdump.py | P0 | [x] | [x] | [x] | [x] | [x] |
-| [ ] Impacket ntlmrelayx.py | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [x] Impacket ntlmrelayx.py | P0 | [x] | [x] | [x] | [x] | [x] |
 | [ ] BloodHound Collector | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [x] Metasploit | P1 | [x] | [x] | [x] | [x] | [x] |
 | [x] Sliver | P1 | [x] | [x] | [x] | [x] | [x] |
 
 Category completion:
-- Implementation: 6/8 (75.0%)
+- Implementation: 7/8 (87.5%)
 - Documentation: 8/8 (100.0%)
-- Unit Tests: 6/8 (75.0%)
-- Smoke Tests: 6/8 (75.0%)
-- Telemetry Validation: 6/8 (75.0%)
+- Unit Tests: 7/8 (87.5%)
+- Smoke Tests: 7/8 (87.5%)
+- Telemetry Validation: 7/8 (87.5%)
 
 ## 4) Cloud & Enterprise Attack Surface (6)
 
@@ -93,6 +93,7 @@ Category completion:
 - [x] Sliver full wrapper docs set created
 - [x] Impacket psexec.py full wrapper docs set created
 - [x] Impacket secretsdump.py full wrapper docs set created
+- [x] Impacket ntlmrelayx.py full wrapper docs set created
 - [x] All remaining wrappers documentation scaffolds created
 - [x] Wrapper federation E2E audit updated (2026-02-28)
 
@@ -117,19 +118,19 @@ Already implemented in codebase:
 - Impacket wmiexec.py
 - Impacket smbexec.py
 - Impacket secretsdump.py
+- Impacket ntlmrelayx.py
 
 Remaining P0 wrappers:
-- Impacket ntlmrelayx.py
 - BloodHound Collector
 - Nuclei
 - Prowler
 
 Overall completion (current matrix entries):
-- Implementation: 7/26 (26.9%)
+- Implementation: 8/26 (30.8%)
 - Documentation: 26/26 (100.0%)
-- Unit Tests: 7/26 (26.9%)
-- Smoke Tests: 7/26 (26.9%)
-- Telemetry Validation: 7/26 (26.9%)
+- Unit Tests: 8/26 (30.8%)
+- Smoke Tests: 8/26 (30.8%)
+- Telemetry Validation: 8/26 (30.8%)
 
 ## Latest E2E Federation Audit (2026-02-28)
 
@@ -141,6 +142,7 @@ Implemented wrappers audit status:
 - [x] Impacket wmiexec.py: host smoke executed (`impacket_wmiexec_command_ok=True`) and telemetry emitted (`impacket_wmiexec_completed`); live E2E currently gated by missing `IMPACKET_WMIEXEC_PASSWORD` or `IMPACKET_WMIEXEC_HASHES`.
 - [x] Impacket smbexec.py: host smoke executed (`impacket_smbexec_command_ok=True`) and telemetry emitted (`impacket_smbexec_completed`); live E2E currently gated by missing `IMPACKET_SMBEXEC_PASSWORD` or `IMPACKET_SMBEXEC_HASHES`.
 - [x] Impacket secretsdump.py: host smoke executed (`impacket_secretsdump_command_ok=True`) and telemetry emitted (`impacket_secretsdump_completed`); live E2E currently gated by missing `IMPACKET_SECRETSDUMP_PASSWORD` or `IMPACKET_SECRETSDUMP_HASHES`.
+- [x] Impacket ntlmrelayx.py: host smoke executed (`impacket_ntlmrelayx_command_ok=True`) and telemetry emitted (`impacket_ntlmrelayx_completed`); live E2E currently gated by missing `IMPACKET_NTLMRELAYX_PASSWORD` or `IMPACKET_NTLMRELAYX_HASHES`.
 - [x] Sliver: host smoke command path executed (`sliver_binary_ok=True`, `sliver_command_ok=True`) when run outside sandbox restrictions.
 - [ ] Mythic: blocked in this environment (`mythic-cli` missing on host PATH).
 - [ ] Metasploit RPC live auth: blocked by unresolved default RPC endpoint (`metasploit.remote.operator`) until local RPC endpoint is configured.

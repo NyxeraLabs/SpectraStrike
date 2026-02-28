@@ -48,6 +48,10 @@ from pkg.wrappers.impacket_secretsdump import (
     ImpacketSecretsdumpRequest,
     ImpacketSecretsdumpWrapper,
 )
+from pkg.wrappers.impacket_ntlmrelayx import (
+    ImpacketNtlmrelayxRequest,
+    ImpacketNtlmrelayxWrapper,
+)
 from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
 _LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
@@ -75,6 +79,8 @@ class HostIntegrationResult:
     impacket_smbexec_command_ok: bool | None = None
     impacket_secretsdump_binary_ok: bool | None = None
     impacket_secretsdump_command_ok: bool | None = None
+    impacket_ntlmrelayx_binary_ok: bool | None = None
+    impacket_ntlmrelayx_command_ok: bool | None = None
     sliver_binary_ok: bool | None = None
     sliver_command_ok: bool | None = None
     mythic_binary_ok: bool | None = None
@@ -177,6 +183,8 @@ def run_host_integration_smoke(
     check_impacket_smbexec_live: bool = False,
     check_impacket_secretsdump: bool = False,
     check_impacket_secretsdump_live: bool = False,
+    check_impacket_ntlmrelayx: bool = False,
+    check_impacket_ntlmrelayx_live: bool = False,
     check_mythic_task: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
@@ -198,6 +206,8 @@ def run_host_integration_smoke(
     impacket_smbexec_result: object | None = None
     impacket_secretsdump_wrapper: ImpacketSecretsdumpWrapper | None = None
     impacket_secretsdump_result: object | None = None
+    impacket_ntlmrelayx_wrapper: ImpacketNtlmrelayxWrapper | None = None
+    impacket_ntlmrelayx_result: object | None = None
     mythic_wrapper: MythicWrapper | None = None
     mythic_result: object | None = None
 
@@ -466,6 +476,63 @@ def run_host_integration_smoke(
             else "impacket.secretsdump.command"
         )
 
+    if check_impacket_ntlmrelayx:
+        impacket_binary = os.getenv("IMPACKET_NTLMRELAYX_BINARY", "ntlmrelayx.py")
+        _require_binary(impacket_binary)
+        try:
+            _run_command([impacket_binary, "--version"], timeout_seconds)
+        except Exception:
+            _run_command([impacket_binary, "-h"], timeout_seconds)
+        result.impacket_ntlmrelayx_binary_ok = True
+        result.checks.append("impacket.ntlmrelayx.version")
+        impacket_ntlmrelayx_wrapper = ImpacketNtlmrelayxWrapper(
+            timeout_seconds=timeout_seconds
+        )
+        impacket_target = nmap_target
+        impacket_username = os.getenv("IMPACKET_NTLMRELAYX_USERNAME", "smoke")
+        impacket_domain = os.getenv("IMPACKET_NTLMRELAYX_DOMAIN", "").strip() or None
+        impacket_password = os.getenv("IMPACKET_NTLMRELAYX_PASSWORD", "").strip() or None
+        impacket_hashes = os.getenv("IMPACKET_NTLMRELAYX_HASHES", "").strip() or None
+        impacket_command = os.getenv(
+            "IMPACKET_NTLMRELAYX_COMMAND", "-t smb://127.0.0.1 -smb2support"
+        )
+        impacket_extra_args = [] if check_impacket_ntlmrelayx_live else ["--dry-run"]
+        if check_impacket_ntlmrelayx_live and not (impacket_password or impacket_hashes):
+            raise HostIntegrationError(
+                "IMPACKET_NTLMRELAYX_PASSWORD or IMPACKET_NTLMRELAYX_HASHES is required for live ntlmrelayx e2e"
+            )
+        impacket_ntlmrelayx_result = impacket_ntlmrelayx_wrapper.execute(
+            ImpacketNtlmrelayxRequest(
+                target=impacket_target,
+                username=impacket_username,
+                domain=impacket_domain,
+                password=impacket_password,
+                hashes=impacket_hashes,
+                no_pass=not check_impacket_ntlmrelayx_live
+                and not (impacket_password or impacket_hashes),
+                command=impacket_command,
+                extra_args=impacket_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        impacket_event = impacket_ntlmrelayx_wrapper.send_to_orchestrator(
+            impacket_ntlmrelayx_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.impacket_ntlmrelayx_command_ok = (
+            impacket_event.event_type == "impacket_ntlmrelayx_completed"
+            and impacket_event.tenant_id == resolved_tenant
+        )
+        result.checks.append(
+            "impacket.ntlmrelayx.command.live"
+            if check_impacket_ntlmrelayx_live
+            else "impacket.ntlmrelayx.command"
+        )
+
     if check_sliver_command:
         _require_binary(os.getenv("SLIVER_BINARY", "sliver-client"))
         sliver_binary = os.getenv("SLIVER_BINARY", "sliver-client")
@@ -599,6 +666,18 @@ def run_host_integration_smoke(
                 operator_id=integration_actor,
                 actor=integration_actor,
             )
+        if (
+            check_impacket_ntlmrelayx
+            and impacket_ntlmrelayx_wrapper is not None
+            and impacket_ntlmrelayx_result is not None
+        ):
+            impacket_ntlmrelayx_wrapper.send_to_orchestrator(
+                impacket_ntlmrelayx_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
         if check_mythic_task and mythic_wrapper is not None and mythic_result is not None:
             mythic_wrapper.send_to_orchestrator(
                 mythic_result,
@@ -702,6 +781,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="execute one Impacket secretsdump live command (requires IMPACKET_SECRETSDUMP_* credentials)",
     )
     parser.add_argument(
+        "--check-impacket-ntlmrelayx",
+        action="store_true",
+        help="execute one Impacket ntlmrelayx dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-impacket-ntlmrelayx-live",
+        action="store_true",
+        help="execute one Impacket ntlmrelayx live command (requires IMPACKET_NTLMRELAYX_* credentials)",
+    )
+    parser.add_argument(
         "--check-mythic-task",
         action="store_true",
         help="execute one Mythic dry-run task and emit SDK telemetry",
@@ -733,6 +822,8 @@ def main() -> int:
         check_impacket_smbexec_live=args.check_impacket_smbexec_live,
         check_impacket_secretsdump=args.check_impacket_secretsdump,
         check_impacket_secretsdump_live=args.check_impacket_secretsdump_live,
+        check_impacket_ntlmrelayx=args.check_impacket_ntlmrelayx,
+        check_impacket_ntlmrelayx_live=args.check_impacket_ntlmrelayx_live,
         check_mythic_task=args.check_mythic_task,
         check_vectorvue=args.check_vectorvue,
     )
@@ -753,6 +844,8 @@ def main() -> int:
         f" impacket_smbexec_command_ok={result.impacket_smbexec_command_ok}"
         f" impacket_secretsdump_binary_ok={result.impacket_secretsdump_binary_ok}"
         f" impacket_secretsdump_command_ok={result.impacket_secretsdump_command_ok}"
+        f" impacket_ntlmrelayx_binary_ok={result.impacket_ntlmrelayx_binary_ok}"
+        f" impacket_ntlmrelayx_command_ok={result.impacket_ntlmrelayx_command_ok}"
         f" sliver_binary_ok={result.sliver_binary_ok}"
         f" sliver_command_ok={result.sliver_command_ok}"
         f" mythic_binary_ok={result.mythic_binary_ok}"

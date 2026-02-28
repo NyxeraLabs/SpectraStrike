@@ -47,6 +47,12 @@ from pkg.wrappers.impacket_secretsdump import (
     ImpacketSecretsdumpResult,
     ImpacketSecretsdumpWrapper,
 )
+from pkg.wrappers.impacket_ntlmrelayx import (
+    ImpacketNtlmrelayxError,
+    ImpacketNtlmrelayxRequest,
+    ImpacketNtlmrelayxResult,
+    ImpacketNtlmrelayxWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -90,6 +96,10 @@ __all__ = [
     "ImpacketSecretsdumpRequest",
     "ImpacketSecretsdumpResult",
     "ImpacketSecretsdumpWrapper",
+    "ImpacketNtlmrelayxError",
+    "ImpacketNtlmrelayxRequest",
+    "ImpacketNtlmrelayxResult",
+    "ImpacketNtlmrelayxWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",
