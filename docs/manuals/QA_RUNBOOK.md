@@ -155,6 +155,34 @@ Latest local federation evidence (2026-02-27):
 - Mythic-inclusive host smoke currently blocks with:
   - `HostIntegrationError: required binary not found on host: mythic-cli`
 
+### 4.6.1 Manual fire-up + UI E2E path (persistent local setup)
+
+This path is designed so local operators only need to start the stack and use UI workflows.
+Persistent config lives in gitignored `local_federation/.env.spectrastrike.local`.
+
+```bash
+cd SpectraStrike
+make local-federation-up
+```
+
+After stack is healthy:
+- SpectraStrike UI: `https://127.0.0.1`
+- VectorVue UI: `https://127.0.0.1` (VectorVue gateway path)
+
+Local persistent federation settings expected in `local_federation/.env.spectrastrike.local`:
+- `SPECTRASTRIKE_WRAPPER_SIGNING_KEY_PATH=/home/xoce/Workspace/VectorVue/deploy/certs/spectrastrike_ed25519.key`
+- `VECTORVUE_USERNAME=acme_viewer`
+- `VECTORVUE_PASSWORD=AcmeView3r!`
+- `VECTORVUE_TENANT_ID=10000000-0000-0000-0000-000000000001`
+- `VECTORVUE_FEEDBACK_VERIFY_KEYS_JSON={"default":"/home/xoce/Workspace/VectorVue/deploy/certs/vectorvue_feedback_ed25519.pub.pem"}`
+
+Tracked dummy template for docs/onboarding:
+- `docs/examples/.env.spectrastrike.local.dummy`
+
+Operational note:
+- Full host smoke with `--check-metasploit-rpc` needs valid `MSF_RPC_*` endpoint credentials.
+- Full host smoke with `--check-mythic-task` needs `mythic-cli` installed and configured.
+
 ### 4.7 Sprint 17 zero-trust QA
 
 Run explicit Sprint 17 denial and containment checks:

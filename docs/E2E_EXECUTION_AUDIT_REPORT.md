@@ -72,3 +72,85 @@ Audit log artifact:
 ## Final Conclusion
 
 Federation path is operating under asymmetric cryptographic controls with hard-fail verification, attestation propagation, and accepted end-to-end telemetry/finding flow. Remaining operational gap is Sliver wrapper CLI compatibility, which is isolated from the federation trust controls.
+
+## Wrapper Federation Audit Addendum (2026-02-28)
+
+### Commands Used
+
+```bash
+cd SpectraStrike
+PYTHONPATH=src .venv/bin/python -m pkg.integration.host_integration_smoke --tenant-id 10000000-0000-0000-0000-000000000001 --check-vectorvue
+SPECTRASTRIKE_WRAPPER_SIGNING_KEY_PATH=/home/xoce/Workspace/VectorVue/deploy/certs/spectrastrike_ed25519.key \
+  PYTHONPATH=src:/usr/lib/python3.14/site-packages \
+  .venv/bin/python -m pkg.integration.host_integration_smoke \
+  --tenant-id 10000000-0000-0000-0000-000000000001 \
+  --check-impacket-psexec
+```
+
+### Wrapper-by-Wrapper Results (Implemented Wrappers)
+
+| Wrapper | E2E Status | Evidence |
+|---|---|---|
+| Nmap | Pass (with runtime warning) | `nmap_binary_ok=True`, `nmap_scan_ok=True`, recoverable warning `Socket creation in sendOK: Operation not permitted (1)` handled |
+| Metasploit | Pass | `metasploit_binary_ok=True` |
+| Impacket psexec.py | Pass (signed contract path) | `impacket_psexec_binary_ok=True`, `impacket_psexec_command_ok=True` |
+| Sliver | Blocked (environment) | `sliver-client version` exits code `2` due log path permission at `/home/xoce/.sliver-client/sliver-client.log` |
+| Mythic | Blocked (dependency missing) | `mythic-cli` not found on host PATH |
+
+### Federation Notes
+
+- Baseline federation bridge check (`--check-vectorvue`) succeeded previously in this environment with:
+  - `vectorvue_event_status=accepted`
+  - `vectorvue_finding_status=accepted`
+  - `vectorvue_status_poll_status=accepted`
+- Extended multi-wrapper federation path remains environment-blocked by Sliver client host permission model and missing Mythic CLI.
+
+## Local Persistent Federation Pass (2026-02-28)
+
+### Persistent Local Config Applied
+
+Local gitignored file:
+
+- `local_federation/.env.spectrastrike.local`
+
+Set explicitly for persistent manual E2E:
+
+- `SPECTRASTRIKE_WRAPPER_SIGNING_KEY_PATH=/home/xoce/Workspace/VectorVue/deploy/certs/spectrastrike_ed25519.key`
+- `VECTORVUE_USERNAME=acme_viewer`
+- `VECTORVUE_PASSWORD=AcmeView3r!`
+- `VECTORVUE_TENANT_ID=10000000-0000-0000-0000-000000000001`
+- `VECTORVUE_FEEDBACK_VERIFY_KEYS_JSON={"default":"/home/xoce/Workspace/VectorVue/deploy/certs/vectorvue_feedback_ed25519.pub.pem"}`
+
+### Commands Executed
+
+```bash
+cd SpectraStrike
+make local-federation-up
+PYTHONPATH=src .venv/bin/python -m pkg.integration.host_integration_smoke --tenant-id 10000000-0000-0000-0000-000000000001 --check-vectorvue
+SPECTRASTRIKE_WRAPPER_SIGNING_KEY_PATH=/home/xoce/Workspace/VectorVue/deploy/certs/spectrastrike_ed25519.key \
+  PYTHONPATH=src:/usr/lib/python3.14/site-packages \
+  .venv/bin/python -m pkg.integration.host_integration_smoke \
+  --tenant-id 10000000-0000-0000-0000-000000000001 \
+  --check-impacket-psexec --check-sliver-command --check-vectorvue
+```
+
+### Results
+
+- Baseline federation smoke:
+  - `vectorvue_ok=True`
+  - `vectorvue_event_status=accepted`
+  - `vectorvue_finding_status=accepted`
+  - `vectorvue_status_poll_status=accepted`
+- Extended wrapper smoke:
+  - `nmap_binary_ok=True`
+  - `metasploit_binary_ok=True`
+  - `impacket_psexec_binary_ok=True`
+  - `impacket_psexec_command_ok=True`
+  - `sliver_binary_ok=True`
+  - `sliver_command_ok=True`
+  - VectorVue statuses still `accepted`, while summary flag reported `vectorvue_ok=False` (indicates at least one forwarded envelope failed while accepted statuses were still returned for others).
+
+### Remaining Hard Blockers For "All Functionalities" Claim
+
+- `--check-metasploit-rpc` fails by default because RPC host resolves to `metasploit.remote.operator` unless local RPC endpoint credentials/host are configured.
+- `--check-mythic-task` requires `mythic-cli` installed and configured on host.

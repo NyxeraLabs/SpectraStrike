@@ -182,7 +182,15 @@ def run_host_integration_smoke(
             targets=[nmap_target],
             ports="1",
             timing_template=2,
-            additional_args=["-n", "--max-retries", "1", "--host-timeout", "5s"],
+            # Avoid raw host-discovery probes so smoke checks remain stable in constrained runtimes.
+            additional_args=[
+                "-n",
+                "-Pn",
+                "--max-retries",
+                "1",
+                "--host-timeout",
+                "5s",
+            ],
         )
     )
     result.nmap_scan_ok = True

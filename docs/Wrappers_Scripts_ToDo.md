@@ -93,6 +93,7 @@ Category completion:
 - [x] Sliver full wrapper docs set created
 - [x] Impacket psexec.py full wrapper docs set created
 - [x] All remaining wrappers documentation scaffolds created
+- [x] Wrapper federation E2E audit updated (2026-02-28)
 
 ## Standard Procedure (Future Tasks)
 
@@ -128,3 +129,14 @@ Overall completion (current matrix entries):
 - Unit Tests: 4/26 (15.4%)
 - Smoke Tests: 4/26 (15.4%)
 - Telemetry Validation: 4/26 (15.4%)
+
+## Latest E2E Federation Audit (2026-02-28)
+
+Implemented wrappers audit status:
+
+- [x] Nmap: host smoke + federation bridge executed (recoverable sendOK warning path handled).
+- [x] Metasploit: binary/version + host smoke telemetry path executed.
+- [x] Impacket psexec.py: signed execution contract path executed (`impacket_psexec_command_ok=True`) with local key path.
+- [x] Sliver: host smoke command path executed (`sliver_binary_ok=True`, `sliver_command_ok=True`) when run outside sandbox restrictions.
+- [ ] Mythic: blocked in this environment (`mythic-cli` missing on host PATH).
+- [ ] Metasploit RPC live auth: blocked by unresolved default RPC endpoint (`metasploit.remote.operator`) until local RPC endpoint is configured.

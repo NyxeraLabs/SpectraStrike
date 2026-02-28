@@ -170,6 +170,53 @@ def test_run_scan_raises_on_command_failure() -> None:
         wrapper.run_scan(options)
 
 
+def test_run_scan_accepts_recoverable_sendok_warning_with_parseable_xml() -> None:
+    xml_output = """<?xml version="1.0"?>
+<nmaprun>
+  <host>
+    <status state="up"/>
+    <address addr="127.0.0.1"/>
+  </host>
+</nmaprun>
+"""
+
+    def fake_runner(*args, **kwargs):  # type: ignore[no-untyped-def]
+        _ = args, kwargs
+        return subprocess.CompletedProcess(
+            args=["nmap"],
+            returncode=1,
+            stdout=xml_output,
+            stderr="Socket creation in sendOK: Operation not permitted (1)",
+        )
+
+    wrapper = NmapWrapper(runner=fake_runner)
+    result = wrapper.run_scan(NmapScanOptions(targets=["127.0.0.1"]))
+
+    assert result.summary["total_hosts"] == 1
+    assert result.hosts[0].address == "127.0.0.1"
+
+
+def test_run_scan_allows_empty_xml_host_set() -> None:
+    xml_output = """<?xml version="1.0"?>
+<nmaprun>
+</nmaprun>
+"""
+
+    def fake_runner(*args, **kwargs):  # type: ignore[no-untyped-def]
+        _ = args, kwargs
+        return subprocess.CompletedProcess(
+            args=["nmap"],
+            returncode=0,
+            stdout=xml_output,
+            stderr="",
+        )
+
+    wrapper = NmapWrapper(runner=fake_runner)
+    result = wrapper.run_scan(NmapScanOptions(targets=["127.0.0.1"]))
+    assert result.summary["total_hosts"] == 0
+    assert result.hosts == []
+
+
 def test_send_to_orchestrator_emits_telemetry_event() -> None:
     xml_output = """<?xml version="1.0"?>
 <nmaprun>
