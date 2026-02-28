@@ -783,6 +783,57 @@ class _FakeNetExecWrapper:
         return _FakeEvent(event_type="netexec_session_completed", tenant_id=tenant_id)
 
 
+class _FakeJohnWrapper:
+    def __init__(self, timeout_seconds: float) -> None:
+        self._timeout_seconds = timeout_seconds
+
+    def execute(
+        self,
+        _request: object,
+        *,
+        tenant_id: str,
+        operator_id: str,
+    ) -> object:
+        assert tenant_id == "tenant-a"
+        assert operator_id == "host-integration-smoke"
+
+        class _R:
+            status = "success"
+            return_code = 0
+            target = "/tmp/hash.txt"
+            command = "--wordlist=/tmp/wl.txt /tmp/hash.txt --format=raw-md5"
+            tool_version = "1.9.0"
+            output = "ok"
+            execution_fingerprint = "e1" * 32
+            attestation_measurement_hash = "f2" * 32
+            payload_signature = "sig"
+            payload_signature_algorithm = "Ed25519"
+
+        return _R()
+
+    def send_to_orchestrator(
+        self,
+        _result: object,
+        *,
+        telemetry: object,
+        tenant_id: str,
+        operator_id: str,
+        actor: str,
+    ) -> _FakeEvent:
+        assert operator_id == "host-integration-smoke"
+        ingest = getattr(telemetry, "ingest", None)
+        if callable(ingest):
+            ingest(
+                event_type="john_session_completed",
+                actor=actor,
+                target="orchestrator",
+                status="success",
+                tenant_id=tenant_id,
+                module="cracker",
+            )
+        return _FakeEvent(event_type="john_session_completed", tenant_id=tenant_id)
+
+
 class _FakeMythicWrapper:
     def __init__(self, timeout_seconds: float) -> None:
         self._timeout_seconds = timeout_seconds
@@ -998,6 +1049,10 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         _FakeNetExecWrapper,
     )
     monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.JohnWrapper",
+        _FakeJohnWrapper,
+    )
+    monkeypatch.setattr(
         "pkg.integration.host_integration_smoke.MythicWrapper",
         _FakeMythicWrapper,
     )
@@ -1026,6 +1081,7 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         check_ffuf=True,
         check_netcat=True,
         check_netexec=True,
+        check_john=True,
         check_sliver_command=True,
         check_mythic_task=True,
         check_vectorvue=True,
@@ -1060,6 +1116,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert result.netcat_command_ok is True
     assert result.netexec_binary_ok is True
     assert result.netexec_command_ok is True
+    assert result.john_binary_ok is True
+    assert result.john_command_ok is True
     assert result.mythic_binary_ok is True
     assert result.mythic_task_ok is True
     assert result.rabbitmq_publish_ok is True
@@ -1094,6 +1152,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert "netcat.command" in result.checks
     assert "netexec.version" in result.checks
     assert "netexec.command" in result.checks
+    assert "john.version" in result.checks
+    assert "john.command" in result.checks
     assert "sliver.version" in result.checks
     assert "sliver.command" in result.checks
     assert "mythic.version" in result.checks
@@ -1444,4 +1504,30 @@ def test_host_smoke_netexec_live_requires_target_and_credentials(
             tenant_id="tenant-a",
             check_netexec=True,
             check_netexec_live=True,
+        )
+
+
+def test_host_smoke_john_live_requires_hash_file(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._require_binary", lambda _name: None
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._run_command",
+        lambda _cmd, _timeout: "ok",
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.NmapWrapper",
+        _FakeNmapWrapper,
+    )
+    monkeypatch.delenv("JOHN_LIVE_HASH_FILE", raising=False)
+    with pytest.raises(
+        HostIntegrationError,
+        match="JOHN_LIVE_HASH_FILE is required",
+    ):
+        run_host_integration_smoke(
+            tenant_id="tenant-a",
+            check_john=True,
+            check_john_live=True,
         )

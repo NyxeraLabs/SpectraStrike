@@ -101,6 +101,12 @@ from pkg.wrappers.netexec import (
     NetExecResult,
     NetExecWrapper,
 )
+from pkg.wrappers.john import (
+    JohnExecutionError,
+    JohnRequest,
+    JohnResult,
+    JohnWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -180,6 +186,10 @@ __all__ = [
     "NetExecRequest",
     "NetExecResult",
     "NetExecWrapper",
+    "JohnExecutionError",
+    "JohnRequest",
+    "JohnResult",
+    "JohnWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",
