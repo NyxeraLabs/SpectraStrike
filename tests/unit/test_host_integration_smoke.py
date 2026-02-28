@@ -212,6 +212,58 @@ class _FakeImpacketWmiexecWrapper:
         return _FakeEvent(event_type="impacket_wmiexec_completed", tenant_id=tenant_id)
 
 
+class _FakeImpacketSmbexecWrapper:
+    def __init__(self, timeout_seconds: float) -> None:
+        self._timeout_seconds = timeout_seconds
+
+    def execute(
+        self,
+        _request: object,
+        *,
+        tenant_id: str,
+        operator_id: str,
+    ) -> object:
+        assert tenant_id == "tenant-a"
+        assert operator_id == "host-integration-smoke"
+
+        class _R:
+            status = "success"
+            return_code = 0
+            target = "127.0.0.1"
+            username = "smoke"
+            command = "whoami"
+            tool_version = "0.13.0"
+            output = "ok"
+            execution_fingerprint = "e" * 64
+            attestation_measurement_hash = "f" * 64
+            payload_signature = "sig"
+            payload_signature_algorithm = "Ed25519"
+
+        return _R()
+
+    def send_to_orchestrator(
+        self,
+        _result: object,
+        *,
+        telemetry: object,
+        tenant_id: str,
+        operator_id: str,
+        actor: str,
+    ) -> _FakeEvent:
+        assert operator_id == "host-integration-smoke"
+        ingest = getattr(telemetry, "ingest", None)
+        if callable(ingest):
+            ingest(
+                event_type="impacket_smbexec_completed",
+                actor=actor,
+                target="orchestrator",
+                status="success",
+                tenant_id=tenant_id,
+                module="smbexec.py",
+            )
+        return _FakeEvent(event_type="impacket_smbexec_completed", tenant_id=tenant_id)
+
+
 class _FakeMythicWrapper:
     def __init__(self, timeout_seconds: float) -> None:
         self._timeout_seconds = timeout_seconds
@@ -383,6 +435,10 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         _FakeImpacketWmiexecWrapper,
     )
     monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.ImpacketSmbexecWrapper",
+        _FakeImpacketSmbexecWrapper,
+    )
+    monkeypatch.setattr(
         "pkg.integration.host_integration_smoke.MythicWrapper",
         _FakeMythicWrapper,
     )
@@ -400,6 +456,7 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         check_metasploit_rpc=True,
         check_impacket_psexec=True,
         check_impacket_wmiexec=True,
+        check_impacket_smbexec=True,
         check_sliver_command=True,
         check_mythic_task=True,
         check_vectorvue=True,
@@ -412,6 +469,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert result.impacket_psexec_command_ok is True
     assert result.impacket_wmiexec_binary_ok is True
     assert result.impacket_wmiexec_command_ok is True
+    assert result.impacket_smbexec_binary_ok is True
+    assert result.impacket_smbexec_command_ok is True
     assert result.mythic_binary_ok is True
     assert result.mythic_task_ok is True
     assert result.rabbitmq_publish_ok is True
@@ -424,6 +483,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert "impacket.psexec.command" in result.checks
     assert "impacket.wmiexec.version" in result.checks
     assert "impacket.wmiexec.command" in result.checks
+    assert "impacket.smbexec.version" in result.checks
+    assert "impacket.smbexec.command" in result.checks
     assert "sliver.version" in result.checks
     assert "sliver.command" in result.checks
     assert "mythic.version" in result.checks
@@ -489,4 +550,29 @@ def test_host_smoke_impacket_wmiexec_live_requires_credentials(
             tenant_id="tenant-a",
             check_impacket_wmiexec=True,
             check_impacket_wmiexec_live=True,
+        )
+
+
+def test_host_smoke_impacket_smbexec_live_requires_credentials(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._require_binary", lambda _name: None
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._run_command",
+        lambda _cmd, _timeout: "ok",
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.NmapWrapper",
+        _FakeNmapWrapper,
+    )
+    with pytest.raises(
+        HostIntegrationError,
+        match="IMPACKET_SMBEXEC_PASSWORD or IMPACKET_SMBEXEC_HASHES is required",
+    ):
+        run_host_integration_smoke(
+            tenant_id="tenant-a",
+            check_impacket_smbexec=True,
+            check_impacket_smbexec_live=True,
         )

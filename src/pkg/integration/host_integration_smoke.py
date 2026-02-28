@@ -40,6 +40,10 @@ from pkg.wrappers.impacket_wmiexec import (
     ImpacketWmiexecRequest,
     ImpacketWmiexecWrapper,
 )
+from pkg.wrappers.impacket_smbexec import (
+    ImpacketSmbexecRequest,
+    ImpacketSmbexecWrapper,
+)
 from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
 _LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
@@ -63,6 +67,8 @@ class HostIntegrationResult:
     impacket_psexec_command_ok: bool | None = None
     impacket_wmiexec_binary_ok: bool | None = None
     impacket_wmiexec_command_ok: bool | None = None
+    impacket_smbexec_binary_ok: bool | None = None
+    impacket_smbexec_command_ok: bool | None = None
     sliver_binary_ok: bool | None = None
     sliver_command_ok: bool | None = None
     mythic_binary_ok: bool | None = None
@@ -161,6 +167,8 @@ def run_host_integration_smoke(
     check_impacket_psexec_live: bool = False,
     check_impacket_wmiexec: bool = False,
     check_impacket_wmiexec_live: bool = False,
+    check_impacket_smbexec: bool = False,
+    check_impacket_smbexec_live: bool = False,
     check_mythic_task: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
@@ -178,6 +186,8 @@ def run_host_integration_smoke(
     impacket_psexec_result: object | None = None
     impacket_wmiexec_wrapper: ImpacketWmiexecWrapper | None = None
     impacket_wmiexec_result: object | None = None
+    impacket_smbexec_wrapper: ImpacketSmbexecWrapper | None = None
+    impacket_smbexec_result: object | None = None
     mythic_wrapper: MythicWrapper | None = None
     mythic_result: object | None = None
 
@@ -334,6 +344,59 @@ def run_host_integration_smoke(
             else "impacket.wmiexec.command"
         )
 
+    if check_impacket_smbexec:
+        impacket_binary = os.getenv("IMPACKET_SMBEXEC_BINARY", "smbexec.py")
+        _require_binary(impacket_binary)
+        try:
+            _run_command([impacket_binary, "--version"], timeout_seconds)
+        except Exception:
+            _run_command([impacket_binary, "-h"], timeout_seconds)
+        result.impacket_smbexec_binary_ok = True
+        result.checks.append("impacket.smbexec.version")
+        impacket_smbexec_wrapper = ImpacketSmbexecWrapper(timeout_seconds=timeout_seconds)
+        impacket_target = nmap_target
+        impacket_username = os.getenv("IMPACKET_SMBEXEC_USERNAME", "smoke")
+        impacket_domain = os.getenv("IMPACKET_SMBEXEC_DOMAIN", "").strip() or None
+        impacket_password = os.getenv("IMPACKET_SMBEXEC_PASSWORD", "").strip() or None
+        impacket_hashes = os.getenv("IMPACKET_SMBEXEC_HASHES", "").strip() or None
+        impacket_command = os.getenv("IMPACKET_SMBEXEC_COMMAND", "whoami")
+        impacket_extra_args = [] if check_impacket_smbexec_live else ["--dry-run"]
+        if check_impacket_smbexec_live and not (impacket_password or impacket_hashes):
+            raise HostIntegrationError(
+                "IMPACKET_SMBEXEC_PASSWORD or IMPACKET_SMBEXEC_HASHES is required for live smbexec e2e"
+            )
+        impacket_smbexec_result = impacket_smbexec_wrapper.execute(
+            ImpacketSmbexecRequest(
+                target=impacket_target,
+                username=impacket_username,
+                domain=impacket_domain,
+                password=impacket_password,
+                hashes=impacket_hashes,
+                no_pass=not check_impacket_smbexec_live
+                and not (impacket_password or impacket_hashes),
+                command=impacket_command,
+                extra_args=impacket_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        impacket_event = impacket_smbexec_wrapper.send_to_orchestrator(
+            impacket_smbexec_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.impacket_smbexec_command_ok = (
+            impacket_event.event_type == "impacket_smbexec_completed"
+            and impacket_event.tenant_id == resolved_tenant
+        )
+        result.checks.append(
+            "impacket.smbexec.command.live"
+            if check_impacket_smbexec_live
+            else "impacket.smbexec.command"
+        )
+
     if check_sliver_command:
         _require_binary(os.getenv("SLIVER_BINARY", "sliver-client"))
         sliver_binary = os.getenv("SLIVER_BINARY", "sliver-client")
@@ -443,6 +506,18 @@ def run_host_integration_smoke(
                 operator_id=integration_actor,
                 actor=integration_actor,
             )
+        if (
+            check_impacket_smbexec
+            and impacket_smbexec_wrapper is not None
+            and impacket_smbexec_result is not None
+        ):
+            impacket_smbexec_wrapper.send_to_orchestrator(
+                impacket_smbexec_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
         if check_mythic_task and mythic_wrapper is not None and mythic_result is not None:
             mythic_wrapper.send_to_orchestrator(
                 mythic_result,
@@ -526,6 +601,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="execute one Impacket wmiexec live command (requires IMPACKET_WMIEXEC_* credentials)",
     )
     parser.add_argument(
+        "--check-impacket-smbexec",
+        action="store_true",
+        help="execute one Impacket smbexec dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-impacket-smbexec-live",
+        action="store_true",
+        help="execute one Impacket smbexec live command (requires IMPACKET_SMBEXEC_* credentials)",
+    )
+    parser.add_argument(
         "--check-mythic-task",
         action="store_true",
         help="execute one Mythic dry-run task and emit SDK telemetry",
@@ -553,6 +638,8 @@ def main() -> int:
         check_impacket_psexec_live=args.check_impacket_psexec_live,
         check_impacket_wmiexec=args.check_impacket_wmiexec,
         check_impacket_wmiexec_live=args.check_impacket_wmiexec_live,
+        check_impacket_smbexec=args.check_impacket_smbexec,
+        check_impacket_smbexec_live=args.check_impacket_smbexec_live,
         check_mythic_task=args.check_mythic_task,
         check_vectorvue=args.check_vectorvue,
     )
@@ -569,6 +656,8 @@ def main() -> int:
         f" impacket_psexec_command_ok={result.impacket_psexec_command_ok}"
         f" impacket_wmiexec_binary_ok={result.impacket_wmiexec_binary_ok}"
         f" impacket_wmiexec_command_ok={result.impacket_wmiexec_command_ok}"
+        f" impacket_smbexec_binary_ok={result.impacket_smbexec_binary_ok}"
+        f" impacket_smbexec_command_ok={result.impacket_smbexec_command_ok}"
         f" sliver_binary_ok={result.sliver_binary_ok}"
         f" sliver_command_ok={result.sliver_command_ok}"
         f" mythic_binary_ok={result.mythic_binary_ok}"
