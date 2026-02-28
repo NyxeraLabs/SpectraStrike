@@ -143,6 +143,24 @@ from pkg.wrappers.dnsx import (
     DnsxResult,
     DnsxWrapper,
 )
+from pkg.wrappers.scp import (
+    ScpExecutionError,
+    ScpRequest,
+    ScpResult,
+    ScpWrapper,
+)
+from pkg.wrappers.ssh import (
+    SshExecutionError,
+    SshRequest,
+    SshResult,
+    SshWrapper,
+)
+from pkg.wrappers.curl import (
+    CurlExecutionError,
+    CurlRequest,
+    CurlResult,
+    CurlWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -250,6 +268,18 @@ __all__ = [
     "DnsxRequest",
     "DnsxResult",
     "DnsxWrapper",
+    "ScpExecutionError",
+    "ScpRequest",
+    "ScpResult",
+    "ScpWrapper",
+    "SshExecutionError",
+    "SshRequest",
+    "SshResult",
+    "SshWrapper",
+    "CurlExecutionError",
+    "CurlRequest",
+    "CurlResult",
+    "CurlWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",

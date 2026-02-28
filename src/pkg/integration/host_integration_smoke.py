@@ -71,6 +71,9 @@ from pkg.wrappers.amass import AmassRequest, AmassWrapper
 from pkg.wrappers.sqlmap import SqlmapRequest, SqlmapWrapper
 from pkg.wrappers.subfinder import SubfinderRequest, SubfinderWrapper
 from pkg.wrappers.dnsx import DnsxRequest, DnsxWrapper
+from pkg.wrappers.scp import ScpRequest, ScpWrapper
+from pkg.wrappers.ssh import SshRequest, SshWrapper
+from pkg.wrappers.curl import CurlRequest, CurlWrapper
 from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
 _LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
@@ -131,6 +134,12 @@ class HostIntegrationResult:
     subfinder_command_ok: bool | None = None
     dnsx_binary_ok: bool | None = None
     dnsx_command_ok: bool | None = None
+    scp_binary_ok: bool | None = None
+    scp_command_ok: bool | None = None
+    ssh_binary_ok: bool | None = None
+    ssh_command_ok: bool | None = None
+    curl_binary_ok: bool | None = None
+    curl_command_ok: bool | None = None
     sliver_binary_ok: bool | None = None
     sliver_command_ok: bool | None = None
     mythic_binary_ok: bool | None = None
@@ -265,6 +274,12 @@ def run_host_integration_smoke(
     check_subfinder_live: bool = False,
     check_dnsx: bool = False,
     check_dnsx_live: bool = False,
+    check_scp: bool = False,
+    check_scp_live: bool = False,
+    check_ssh: bool = False,
+    check_ssh_live: bool = False,
+    check_curl: bool = False,
+    check_curl_live: bool = False,
     check_mythic_task: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
@@ -318,6 +333,12 @@ def run_host_integration_smoke(
     subfinder_result: object | None = None
     dnsx_wrapper: DnsxWrapper | None = None
     dnsx_result: object | None = None
+    scp_wrapper: ScpWrapper | None = None
+    scp_result: object | None = None
+    ssh_wrapper: SshWrapper | None = None
+    ssh_result: object | None = None
+    curl_wrapper: CurlWrapper | None = None
+    curl_result: object | None = None
     mythic_wrapper: MythicWrapper | None = None
     mythic_result: object | None = None
 
@@ -1357,6 +1378,133 @@ def run_host_integration_smoke(
         )
         result.checks.append("dnsx.command.live" if check_dnsx_live else "dnsx.command")
 
+    if check_scp:
+        scp_binary = os.getenv("SCP_BINARY", "scp")
+        _require_binary(scp_binary)
+        probe_source = "/tmp/scp_probe_src.txt"
+        probe_dest = "/tmp/scp_probe_dst.txt"
+        with open(probe_source, "w", encoding="utf-8") as handle:
+            handle.write("spectra-scp-probe\n")
+        _run_command([scp_binary, probe_source, probe_dest], timeout_seconds)
+        result.scp_binary_ok = True
+        result.checks.append("scp.version")
+        scp_wrapper = ScpWrapper(timeout_seconds=timeout_seconds)
+        scp_target = (
+            os.getenv("SCP_LIVE_TARGET", "").strip()
+            if check_scp_live
+            else os.getenv("SCP_TARGET", "localhost").strip()
+        )
+        scp_live_source = os.getenv("SCP_LIVE_SOURCE", "").strip()
+        scp_live_dest = os.getenv("SCP_LIVE_DEST", "").strip()
+        if check_scp_live and (not scp_live_source or not scp_live_dest):
+            raise HostIntegrationError(
+                "SCP_LIVE_SOURCE and SCP_LIVE_DEST are required for live scp e2e"
+            )
+        scp_command = os.getenv(
+            "SCP_COMMAND",
+            f"{scp_live_source} {scp_live_dest}"
+            if check_scp_live
+            else "/tmp/scp_smoke_src.txt /tmp/scp_smoke_dst.txt",
+        )
+        scp_extra_args = [] if check_scp_live else ["--dry-run"]
+        scp_result = scp_wrapper.execute(
+            ScpRequest(
+                target=scp_target or "localhost",
+                command=scp_command,
+                extra_args=scp_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        scp_event = scp_wrapper.send_to_orchestrator(
+            scp_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.scp_command_ok = (
+            scp_event.event_type == "scp_session_completed"
+            and scp_event.tenant_id == resolved_tenant
+        )
+        result.checks.append("scp.command.live" if check_scp_live else "scp.command")
+
+    if check_ssh:
+        ssh_binary = os.getenv("SSH_BINARY", "ssh")
+        _require_binary(ssh_binary)
+        _run_command([ssh_binary, "-V"], timeout_seconds)
+        result.ssh_binary_ok = True
+        result.checks.append("ssh.version")
+        ssh_wrapper = SshWrapper(timeout_seconds=timeout_seconds)
+        ssh_target = (
+            os.getenv("SSH_LIVE_TARGET", "").strip()
+            if check_ssh_live
+            else os.getenv("SSH_TARGET", "localhost").strip()
+        )
+        if check_ssh_live and not ssh_target:
+            raise HostIntegrationError("SSH_LIVE_TARGET is required for live ssh e2e")
+        ssh_command = os.getenv("SSH_COMMAND", "-V" if check_ssh_live else "-G localhost")
+        ssh_extra_args = [] if check_ssh_live else ["--dry-run"]
+        ssh_result = ssh_wrapper.execute(
+            SshRequest(
+                target=ssh_target,
+                command=ssh_command,
+                extra_args=ssh_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        ssh_event = ssh_wrapper.send_to_orchestrator(
+            ssh_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.ssh_command_ok = (
+            ssh_event.event_type == "ssh_session_completed"
+            and ssh_event.tenant_id == resolved_tenant
+        )
+        result.checks.append("ssh.command.live" if check_ssh_live else "ssh.command")
+
+    if check_curl:
+        curl_binary = os.getenv("CURL_BINARY", "curl")
+        _require_binary(curl_binary)
+        _run_command([curl_binary, "--version"], timeout_seconds)
+        result.curl_binary_ok = True
+        result.checks.append("curl.version")
+        curl_wrapper = CurlWrapper(timeout_seconds=timeout_seconds)
+        curl_target = (
+            os.getenv("CURL_LIVE_TARGET", "").strip()
+            if check_curl_live
+            else os.getenv("CURL_TARGET", "http://127.0.0.1").strip()
+        )
+        if check_curl_live and not curl_target:
+            raise HostIntegrationError("CURL_LIVE_TARGET is required for live curl e2e")
+        curl_command = os.getenv("CURL_COMMAND", "--version")
+        curl_extra_args = [] if check_curl_live else ["--dry-run"]
+        curl_result = curl_wrapper.execute(
+            CurlRequest(
+                target=curl_target,
+                command=curl_command,
+                extra_args=curl_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        curl_event = curl_wrapper.send_to_orchestrator(
+            curl_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.curl_command_ok = (
+            curl_event.event_type == "curl_session_completed"
+            and curl_event.tenant_id == resolved_tenant
+        )
+        result.checks.append("curl.command.live" if check_curl_live else "curl.command")
+
     if check_sliver_command:
         _require_binary(os.getenv("SLIVER_BINARY", "sliver-client"))
         sliver_binary = os.getenv("SLIVER_BINARY", "sliver-client")
@@ -1634,6 +1782,30 @@ def run_host_integration_smoke(
                 operator_id=integration_actor,
                 actor=integration_actor,
             )
+        if check_scp and scp_wrapper is not None and scp_result is not None:
+            scp_wrapper.send_to_orchestrator(
+                scp_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
+        if check_ssh and ssh_wrapper is not None and ssh_result is not None:
+            ssh_wrapper.send_to_orchestrator(
+                ssh_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
+        if check_curl and curl_wrapper is not None and curl_result is not None:
+            curl_wrapper.send_to_orchestrator(
+                curl_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
         if check_mythic_task and mythic_wrapper is not None and mythic_result is not None:
             mythic_wrapper.send_to_orchestrator(
                 mythic_result,
@@ -1897,6 +2069,36 @@ def _build_parser() -> argparse.ArgumentParser:
         help="execute one dnsx live command (requires DNSX_LIVE_TARGET)",
     )
     parser.add_argument(
+        "--check-scp",
+        action="store_true",
+        help="execute one scp dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-scp-live",
+        action="store_true",
+        help="execute one scp live command (requires SCP_LIVE_SOURCE and SCP_LIVE_DEST)",
+    )
+    parser.add_argument(
+        "--check-ssh",
+        action="store_true",
+        help="execute one ssh dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-ssh-live",
+        action="store_true",
+        help="execute one ssh live command (requires SSH_LIVE_TARGET)",
+    )
+    parser.add_argument(
+        "--check-curl",
+        action="store_true",
+        help="execute one curl dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-curl-live",
+        action="store_true",
+        help="execute one curl live command (requires CURL_LIVE_TARGET)",
+    )
+    parser.add_argument(
         "--check-mythic-task",
         action="store_true",
         help="execute one Mythic dry-run task and emit SDK telemetry",
@@ -1960,6 +2162,12 @@ def main() -> int:
         check_subfinder_live=args.check_subfinder_live,
         check_dnsx=args.check_dnsx,
         check_dnsx_live=args.check_dnsx_live,
+        check_scp=args.check_scp,
+        check_scp_live=args.check_scp_live,
+        check_ssh=args.check_ssh,
+        check_ssh_live=args.check_ssh_live,
+        check_curl=args.check_curl,
+        check_curl_live=args.check_curl_live,
         check_mythic_task=args.check_mythic_task,
         check_vectorvue=args.check_vectorvue,
     )
@@ -2012,6 +2220,12 @@ def main() -> int:
         f" subfinder_command_ok={result.subfinder_command_ok}"
         f" dnsx_binary_ok={result.dnsx_binary_ok}"
         f" dnsx_command_ok={result.dnsx_command_ok}"
+        f" scp_binary_ok={result.scp_binary_ok}"
+        f" scp_command_ok={result.scp_command_ok}"
+        f" ssh_binary_ok={result.ssh_binary_ok}"
+        f" ssh_command_ok={result.ssh_command_ok}"
+        f" curl_binary_ok={result.curl_binary_ok}"
+        f" curl_command_ok={result.curl_command_ok}"
         f" sliver_binary_ok={result.sliver_binary_ok}"
         f" sliver_command_ok={result.sliver_command_ok}"
         f" mythic_binary_ok={result.mythic_binary_ok}"

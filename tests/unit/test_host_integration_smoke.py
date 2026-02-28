@@ -1140,6 +1140,159 @@ class _FakeDnsxWrapper:
         return _FakeEvent(event_type="dnsx_scan_completed", tenant_id=tenant_id)
 
 
+class _FakeScpWrapper:
+    def __init__(self, timeout_seconds: float) -> None:
+        self._timeout_seconds = timeout_seconds
+
+    def execute(
+        self,
+        _request: object,
+        *,
+        tenant_id: str,
+        operator_id: str,
+    ) -> object:
+        assert tenant_id == "tenant-a"
+        assert operator_id == "host-integration-smoke"
+
+        class _R:
+            status = "success"
+            return_code = 0
+            target = "localhost"
+            command = "/tmp/scp_smoke_src.txt /tmp/scp_smoke_dst.txt"
+            tool_version = "10.2"
+            output = "ok"
+            execution_fingerprint = "07" * 32
+            attestation_measurement_hash = "08" * 32
+            payload_signature = "sig"
+            payload_signature_algorithm = "Ed25519"
+
+        return _R()
+
+    def send_to_orchestrator(
+        self,
+        _result: object,
+        *,
+        telemetry: object,
+        tenant_id: str,
+        operator_id: str,
+        actor: str,
+    ) -> _FakeEvent:
+        assert operator_id == "host-integration-smoke"
+        ingest = getattr(telemetry, "ingest", None)
+        if callable(ingest):
+            ingest(
+                event_type="scp_session_completed",
+                actor=actor,
+                target="orchestrator",
+                status="success",
+                tenant_id=tenant_id,
+                module="transfer",
+            )
+        return _FakeEvent(event_type="scp_session_completed", tenant_id=tenant_id)
+
+
+class _FakeSshWrapper:
+    def __init__(self, timeout_seconds: float) -> None:
+        self._timeout_seconds = timeout_seconds
+
+    def execute(
+        self,
+        _request: object,
+        *,
+        tenant_id: str,
+        operator_id: str,
+    ) -> object:
+        assert tenant_id == "tenant-a"
+        assert operator_id == "host-integration-smoke"
+
+        class _R:
+            status = "success"
+            return_code = 0
+            target = "localhost"
+            command = "-V"
+            tool_version = "10.2"
+            output = "OpenSSH_10.2p1"
+            execution_fingerprint = "09" * 32
+            attestation_measurement_hash = "0a" * 32
+            payload_signature = "sig"
+            payload_signature_algorithm = "Ed25519"
+
+        return _R()
+
+    def send_to_orchestrator(
+        self,
+        _result: object,
+        *,
+        telemetry: object,
+        tenant_id: str,
+        operator_id: str,
+        actor: str,
+    ) -> _FakeEvent:
+        assert operator_id == "host-integration-smoke"
+        ingest = getattr(telemetry, "ingest", None)
+        if callable(ingest):
+            ingest(
+                event_type="ssh_session_completed",
+                actor=actor,
+                target="orchestrator",
+                status="success",
+                tenant_id=tenant_id,
+                module="access",
+            )
+        return _FakeEvent(event_type="ssh_session_completed", tenant_id=tenant_id)
+
+
+class _FakeCurlWrapper:
+    def __init__(self, timeout_seconds: float) -> None:
+        self._timeout_seconds = timeout_seconds
+
+    def execute(
+        self,
+        _request: object,
+        *,
+        tenant_id: str,
+        operator_id: str,
+    ) -> object:
+        assert tenant_id == "tenant-a"
+        assert operator_id == "host-integration-smoke"
+
+        class _R:
+            status = "success"
+            return_code = 0
+            target = "http://127.0.0.1"
+            command = "--version"
+            tool_version = "8.18.0"
+            output = "curl 8.18.0"
+            execution_fingerprint = "0b" * 32
+            attestation_measurement_hash = "0c" * 32
+            payload_signature = "sig"
+            payload_signature_algorithm = "Ed25519"
+
+        return _R()
+
+    def send_to_orchestrator(
+        self,
+        _result: object,
+        *,
+        telemetry: object,
+        tenant_id: str,
+        operator_id: str,
+        actor: str,
+    ) -> _FakeEvent:
+        assert operator_id == "host-integration-smoke"
+        ingest = getattr(telemetry, "ingest", None)
+        if callable(ingest):
+            ingest(
+                event_type="curl_session_completed",
+                actor=actor,
+                target="orchestrator",
+                status="success",
+                tenant_id=tenant_id,
+                module="transfer",
+            )
+        return _FakeEvent(event_type="curl_session_completed", tenant_id=tenant_id)
+
+
 class _FakeMythicWrapper:
     def __init__(self, timeout_seconds: float) -> None:
         self._timeout_seconds = timeout_seconds
@@ -1383,6 +1536,18 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         _FakeDnsxWrapper,
     )
     monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.ScpWrapper",
+        _FakeScpWrapper,
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.SshWrapper",
+        _FakeSshWrapper,
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.CurlWrapper",
+        _FakeCurlWrapper,
+    )
+    monkeypatch.setattr(
         "pkg.integration.host_integration_smoke.MythicWrapper",
         _FakeMythicWrapper,
     )
@@ -1418,6 +1583,9 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         check_sqlmap=True,
         check_subfinder=True,
         check_dnsx=True,
+        check_scp=True,
+        check_ssh=True,
+        check_curl=True,
         check_sliver_command=True,
         check_mythic_task=True,
         check_vectorvue=True,
@@ -1466,6 +1634,12 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert result.subfinder_command_ok is True
     assert result.dnsx_binary_ok is True
     assert result.dnsx_command_ok is True
+    assert result.scp_binary_ok is True
+    assert result.scp_command_ok is True
+    assert result.ssh_binary_ok is True
+    assert result.ssh_command_ok is True
+    assert result.curl_binary_ok is True
+    assert result.curl_command_ok is True
     assert result.mythic_binary_ok is True
     assert result.mythic_task_ok is True
     assert result.rabbitmq_publish_ok is True
@@ -1514,6 +1688,12 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert "subfinder.command" in result.checks
     assert "dnsx.version" in result.checks
     assert "dnsx.command" in result.checks
+    assert "scp.version" in result.checks
+    assert "scp.command" in result.checks
+    assert "ssh.version" in result.checks
+    assert "ssh.command" in result.checks
+    assert "curl.version" in result.checks
+    assert "curl.command" in result.checks
     assert "sliver.version" in result.checks
     assert "sliver.command" in result.checks
     assert "mythic.version" in result.checks
@@ -2046,4 +2226,83 @@ def test_host_smoke_dnsx_live_requires_target(
             tenant_id="tenant-a",
             check_dnsx=True,
             check_dnsx_live=True,
+        )
+
+
+def test_host_smoke_scp_live_requires_source_and_dest(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._require_binary", lambda _name: None
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._run_command",
+        lambda _cmd, _timeout: "ok",
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.NmapWrapper",
+        _FakeNmapWrapper,
+    )
+    monkeypatch.delenv("SCP_LIVE_SOURCE", raising=False)
+    monkeypatch.delenv("SCP_LIVE_DEST", raising=False)
+    with pytest.raises(
+        HostIntegrationError,
+        match="SCP_LIVE_SOURCE and SCP_LIVE_DEST are required",
+    ):
+        run_host_integration_smoke(
+            tenant_id="tenant-a",
+            check_scp=True,
+            check_scp_live=True,
+        )
+
+
+def test_host_smoke_ssh_live_requires_target(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._require_binary", lambda _name: None
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._run_command",
+        lambda _cmd, _timeout: "ok",
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.NmapWrapper",
+        _FakeNmapWrapper,
+    )
+    monkeypatch.delenv("SSH_LIVE_TARGET", raising=False)
+    with pytest.raises(
+        HostIntegrationError,
+        match="SSH_LIVE_TARGET is required",
+    ):
+        run_host_integration_smoke(
+            tenant_id="tenant-a",
+            check_ssh=True,
+            check_ssh_live=True,
+        )
+
+
+def test_host_smoke_curl_live_requires_target(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._require_binary", lambda _name: None
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._run_command",
+        lambda _cmd, _timeout: "ok",
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.NmapWrapper",
+        _FakeNmapWrapper,
+    )
+    monkeypatch.delenv("CURL_LIVE_TARGET", raising=False)
+    with pytest.raises(
+        HostIntegrationError,
+        match="CURL_LIVE_TARGET is required",
+    ):
+        run_host_integration_smoke(
+            tenant_id="tenant-a",
+            check_curl=True,
+            check_curl_live=True,
         )
