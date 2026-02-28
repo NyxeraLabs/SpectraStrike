@@ -1038,6 +1038,57 @@ class _FakeSqlmapWrapper:
         return _FakeEvent(event_type="sqlmap_scan_completed", tenant_id=tenant_id)
 
 
+class _FakeSubfinderWrapper:
+    def __init__(self, timeout_seconds: float) -> None:
+        self._timeout_seconds = timeout_seconds
+
+    def execute(
+        self,
+        _request: object,
+        *,
+        tenant_id: str,
+        operator_id: str,
+    ) -> object:
+        assert tenant_id == "tenant-a"
+        assert operator_id == "host-integration-smoke"
+
+        class _R:
+            status = "success"
+            return_code = 0
+            target = "example.com"
+            command = "-d example.com -silent"
+            tool_version = "2.7.6"
+            output = "api.example.com"
+            execution_fingerprint = "03" * 32
+            attestation_measurement_hash = "04" * 32
+            payload_signature = "sig"
+            payload_signature_algorithm = "Ed25519"
+
+        return _R()
+
+    def send_to_orchestrator(
+        self,
+        _result: object,
+        *,
+        telemetry: object,
+        tenant_id: str,
+        operator_id: str,
+        actor: str,
+    ) -> _FakeEvent:
+        assert operator_id == "host-integration-smoke"
+        ingest = getattr(telemetry, "ingest", None)
+        if callable(ingest):
+            ingest(
+                event_type="subfinder_scan_completed",
+                actor=actor,
+                target="orchestrator",
+                status="success",
+                tenant_id=tenant_id,
+                module="recon",
+            )
+        return _FakeEvent(event_type="subfinder_scan_completed", tenant_id=tenant_id)
+
+
 class _FakeMythicWrapper:
     def __init__(self, timeout_seconds: float) -> None:
         self._timeout_seconds = timeout_seconds
@@ -1273,6 +1324,10 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         _FakeSqlmapWrapper,
     )
     monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.SubfinderWrapper",
+        _FakeSubfinderWrapper,
+    )
+    monkeypatch.setattr(
         "pkg.integration.host_integration_smoke.MythicWrapper",
         _FakeMythicWrapper,
     )
@@ -1306,6 +1361,7 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
         check_burpsuite=True,
         check_amass=True,
         check_sqlmap=True,
+        check_subfinder=True,
         check_sliver_command=True,
         check_mythic_task=True,
         check_vectorvue=True,
@@ -1350,6 +1406,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert result.amass_command_ok is True
     assert result.sqlmap_binary_ok is True
     assert result.sqlmap_command_ok is True
+    assert result.subfinder_binary_ok is True
+    assert result.subfinder_command_ok is True
     assert result.mythic_binary_ok is True
     assert result.mythic_task_ok is True
     assert result.rabbitmq_publish_ok is True
@@ -1394,6 +1452,8 @@ def test_host_smoke_optional_msf_rpc_and_vectorvue(
     assert "amass.command" in result.checks
     assert "sqlmap.version" in result.checks
     assert "sqlmap.command" in result.checks
+    assert "subfinder.version" in result.checks
+    assert "subfinder.command" in result.checks
     assert "sliver.version" in result.checks
     assert "sliver.command" in result.checks
     assert "mythic.version" in result.checks
@@ -1874,4 +1934,30 @@ def test_host_smoke_sqlmap_live_requires_target(
             tenant_id="tenant-a",
             check_sqlmap=True,
             check_sqlmap_live=True,
+        )
+
+
+def test_host_smoke_subfinder_live_requires_target(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._require_binary", lambda _name: None
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke._run_command",
+        lambda _cmd, _timeout: "ok",
+    )
+    monkeypatch.setattr(
+        "pkg.integration.host_integration_smoke.NmapWrapper",
+        _FakeNmapWrapper,
+    )
+    monkeypatch.delenv("SUBFINDER_LIVE_TARGET", raising=False)
+    with pytest.raises(
+        HostIntegrationError,
+        match="SUBFINDER_LIVE_TARGET is required",
+    ):
+        run_host_integration_smoke(
+            tenant_id="tenant-a",
+            check_subfinder=True,
+            check_subfinder_live=True,
         )

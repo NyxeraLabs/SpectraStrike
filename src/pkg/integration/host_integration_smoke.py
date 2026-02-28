@@ -69,6 +69,7 @@ from pkg.wrappers.wget import WgetRequest, WgetWrapper
 from pkg.wrappers.burpsuite import BurpSuiteRequest, BurpSuiteWrapper
 from pkg.wrappers.amass import AmassRequest, AmassWrapper
 from pkg.wrappers.sqlmap import SqlmapRequest, SqlmapWrapper
+from pkg.wrappers.subfinder import SubfinderRequest, SubfinderWrapper
 from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
 _LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
@@ -125,6 +126,8 @@ class HostIntegrationResult:
     amass_command_ok: bool | None = None
     sqlmap_binary_ok: bool | None = None
     sqlmap_command_ok: bool | None = None
+    subfinder_binary_ok: bool | None = None
+    subfinder_command_ok: bool | None = None
     sliver_binary_ok: bool | None = None
     sliver_command_ok: bool | None = None
     mythic_binary_ok: bool | None = None
@@ -255,6 +258,8 @@ def run_host_integration_smoke(
     check_amass_live: bool = False,
     check_sqlmap: bool = False,
     check_sqlmap_live: bool = False,
+    check_subfinder: bool = False,
+    check_subfinder_live: bool = False,
     check_mythic_task: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
@@ -304,6 +309,8 @@ def run_host_integration_smoke(
     amass_result: object | None = None
     sqlmap_wrapper: SqlmapWrapper | None = None
     sqlmap_result: object | None = None
+    subfinder_wrapper: SubfinderWrapper | None = None
+    subfinder_result: object | None = None
     mythic_wrapper: MythicWrapper | None = None
     mythic_result: object | None = None
 
@@ -1257,6 +1264,51 @@ def run_host_integration_smoke(
             "sqlmap.command.live" if check_sqlmap_live else "sqlmap.command"
         )
 
+    if check_subfinder:
+        subfinder_binary = os.getenv("SUBFINDER_BINARY", "subfinder")
+        _require_binary(subfinder_binary)
+        try:
+            _run_command([subfinder_binary, "-version"], timeout_seconds)
+        except Exception:
+            _run_command([subfinder_binary, "-h"], timeout_seconds)
+        result.subfinder_binary_ok = True
+        result.checks.append("subfinder.version")
+        subfinder_wrapper = SubfinderWrapper(timeout_seconds=timeout_seconds)
+        subfinder_target = (
+            os.getenv("SUBFINDER_LIVE_TARGET", "").strip()
+            if check_subfinder_live
+            else os.getenv("SUBFINDER_TARGET", "example.com").strip()
+        )
+        if check_subfinder_live and not subfinder_target:
+            raise HostIntegrationError(
+                "SUBFINDER_LIVE_TARGET is required for live subfinder e2e"
+            )
+        subfinder_command = os.getenv("SUBFINDER_COMMAND", f"-d {subfinder_target} -silent")
+        subfinder_extra_args = [] if check_subfinder_live else ["--dry-run"]
+        subfinder_result = subfinder_wrapper.execute(
+            SubfinderRequest(
+                target=subfinder_target,
+                command=subfinder_command,
+                extra_args=subfinder_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        subfinder_event = subfinder_wrapper.send_to_orchestrator(
+            subfinder_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.subfinder_command_ok = (
+            subfinder_event.event_type == "subfinder_scan_completed"
+            and subfinder_event.tenant_id == resolved_tenant
+        )
+        result.checks.append(
+            "subfinder.command.live" if check_subfinder_live else "subfinder.command"
+        )
+
     if check_sliver_command:
         _require_binary(os.getenv("SLIVER_BINARY", "sliver-client"))
         sliver_binary = os.getenv("SLIVER_BINARY", "sliver-client")
@@ -1514,6 +1566,18 @@ def run_host_integration_smoke(
                 operator_id=integration_actor,
                 actor=integration_actor,
             )
+        if (
+            check_subfinder
+            and subfinder_wrapper is not None
+            and subfinder_result is not None
+        ):
+            subfinder_wrapper.send_to_orchestrator(
+                subfinder_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
         if check_mythic_task and mythic_wrapper is not None and mythic_result is not None:
             mythic_wrapper.send_to_orchestrator(
                 mythic_result,
@@ -1757,6 +1821,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="execute one sqlmap live command (requires SQLMAP_LIVE_TARGET)",
     )
     parser.add_argument(
+        "--check-subfinder",
+        action="store_true",
+        help="execute one subfinder dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-subfinder-live",
+        action="store_true",
+        help="execute one subfinder live command (requires SUBFINDER_LIVE_TARGET)",
+    )
+    parser.add_argument(
         "--check-mythic-task",
         action="store_true",
         help="execute one Mythic dry-run task and emit SDK telemetry",
@@ -1816,6 +1890,8 @@ def main() -> int:
         check_amass_live=args.check_amass_live,
         check_sqlmap=args.check_sqlmap,
         check_sqlmap_live=args.check_sqlmap_live,
+        check_subfinder=args.check_subfinder,
+        check_subfinder_live=args.check_subfinder_live,
         check_mythic_task=args.check_mythic_task,
         check_vectorvue=args.check_vectorvue,
     )
@@ -1864,6 +1940,8 @@ def main() -> int:
         f" amass_command_ok={result.amass_command_ok}"
         f" sqlmap_binary_ok={result.sqlmap_binary_ok}"
         f" sqlmap_command_ok={result.sqlmap_command_ok}"
+        f" subfinder_binary_ok={result.subfinder_binary_ok}"
+        f" subfinder_command_ok={result.subfinder_command_ok}"
         f" sliver_binary_ok={result.sliver_binary_ok}"
         f" sliver_command_ok={result.sliver_command_ok}"
         f" mythic_binary_ok={result.mythic_binary_ok}"

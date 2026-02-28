@@ -131,6 +131,12 @@ from pkg.wrappers.sqlmap import (
     SqlmapResult,
     SqlmapWrapper,
 )
+from pkg.wrappers.subfinder import (
+    SubfinderExecutionError,
+    SubfinderRequest,
+    SubfinderResult,
+    SubfinderWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -230,6 +236,10 @@ __all__ = [
     "SqlmapRequest",
     "SqlmapResult",
     "SqlmapWrapper",
+    "SubfinderExecutionError",
+    "SubfinderRequest",
+    "SubfinderResult",
+    "SubfinderWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",
