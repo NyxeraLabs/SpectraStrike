@@ -21,3 +21,34 @@ Change Date: 2033-02-22 -> Apache-2.0
   }
 }
 ```
+
+## Host Integration Smoke Evidence (2026-02-28)
+
+Successful BloodHound collector smoke execution:
+
+```bash
+PYTHONPATH=src:/usr/lib/python3.14/site-packages .venv/bin/python \
+  -m pkg.integration.host_integration_smoke \
+  --tenant-id 10000000-0000-0000-0000-000000000001 \
+  --timeout-seconds 30 \
+  --check-bloodhound-collector
+```
+
+```text
+HOST_SMOKE tenant_id=10000000-0000-0000-0000-000000000001 ... bloodhound_collector_binary_ok=True bloodhound_collector_command_ok=True ... checks=...bloodhound.collector.version,bloodhound.collector.command
+```
+
+Live BloodHound collector E2E gate (documented blocker):
+
+```bash
+PYTHONPATH=src:/usr/lib/python3.14/site-packages .venv/bin/python \
+  -m pkg.integration.host_integration_smoke \
+  --tenant-id 10000000-0000-0000-0000-000000000001 \
+  --timeout-seconds 30 \
+  --check-bloodhound-collector \
+  --check-bloodhound-collector-live
+```
+
+```text
+HostIntegrationError: BLOODHOUND_COLLECTOR_PASSWORD is required for live bloodhound collector e2e
+```

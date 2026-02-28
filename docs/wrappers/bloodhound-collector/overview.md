@@ -9,7 +9,7 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 BloodHound Collector is tracked in the SpectraStrike wrapper matrix under Exploitation and Identity with priority P0.
 
-Current implementation state: Not Implemented.
+Current implementation state: Implemented.
 
 Standard wrapper requirements:
 - BaseWrapper-aligned execution contract

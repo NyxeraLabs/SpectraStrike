@@ -53,6 +53,12 @@ from pkg.wrappers.impacket_ntlmrelayx import (
     ImpacketNtlmrelayxResult,
     ImpacketNtlmrelayxWrapper,
 )
+from pkg.wrappers.bloodhound_collector import (
+    BloodhoundCollectorError,
+    BloodhoundCollectorRequest,
+    BloodhoundCollectorResult,
+    BloodhoundCollectorWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -100,6 +106,10 @@ __all__ = [
     "ImpacketNtlmrelayxRequest",
     "ImpacketNtlmrelayxResult",
     "ImpacketNtlmrelayxWrapper",
+    "BloodhoundCollectorError",
+    "BloodhoundCollectorRequest",
+    "BloodhoundCollectorResult",
+    "BloodhoundCollectorWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",
