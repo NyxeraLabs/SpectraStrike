@@ -7,7 +7,7 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 # Amass Telemetry Schema
 
-Primary event type target: amass_scan_completed.
+Primary event type target: amass_enum_completed.
 
 Canonical telemetry fields:
 - event_type

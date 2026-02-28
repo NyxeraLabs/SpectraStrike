@@ -7,9 +7,9 @@ Change Date: 2033-02-22 -> Apache-2.0
 
 # Amass Wrapper Overview
 
-Amass is tracked in the SpectraStrike wrapper matrix under Recon and Surface Discovery with priority P1.
+Amass is tracked in the SpectraStrike wrapper matrix under Recon and Surface Discovery with priority P0.
 
-Current implementation state: Not Implemented.
+Current implementation state: Implemented.
 
 Standard wrapper requirements:
 - BaseWrapper-aligned execution contract

@@ -119,6 +119,12 @@ from pkg.wrappers.burpsuite import (
     BurpSuiteResult,
     BurpSuiteWrapper,
 )
+from pkg.wrappers.amass import (
+    AmassExecutionError,
+    AmassRequest,
+    AmassResult,
+    AmassWrapper,
+)
 from pkg.wrappers.mythic import (
     MythicExecutionError,
     MythicTaskRequest,
@@ -210,6 +216,10 @@ __all__ = [
     "BurpSuiteRequest",
     "BurpSuiteResult",
     "BurpSuiteWrapper",
+    "AmassExecutionError",
+    "AmassRequest",
+    "AmassResult",
+    "AmassWrapper",
     "MythicExecutionError",
     "MythicTaskRequest",
     "MythicTaskResult",

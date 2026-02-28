@@ -17,18 +17,18 @@ Priority Legend:
 | Wrapper | Priority | Impl | Docs | Unit Tests | Smoke Tests | Telemetry Validation |
 |---|---|---|---|---|---|---|
 | [x] Nmap | P0 | [x] | [x] | [x] | [x] | [x] |
-| [ ] Amass | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
-| [ ] Subfinder | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
-| [ ] dnsx | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [x] Amass | P0 | [x] | [x] | [x] | [x] | [x] |
+| [ ] Subfinder | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] dnsx | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] Masscan | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] theHarvester | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
 
 Category completion:
-- Implementation: 1/6 (16.7%)
+- Implementation: 2/6 (33.3%)
 - Documentation: 6/6 (100.0%)
-- Unit Tests: 1/6 (16.7%)
-- Smoke Tests: 1/6 (16.7%)
-- Telemetry Validation: 1/6 (16.7%)
+- Unit Tests: 2/6 (33.3%)
+- Smoke Tests: 2/6 (33.3%)
+- Telemetry Validation: 2/6 (33.3%)
 
 ## 2) Web & API Offensive (9)
 
@@ -39,7 +39,7 @@ Category completion:
 | [ ] DirBuster | P1 | [ ] | [ ] | [ ] | [ ] | [ ] |
 | [ ] Dirsearch | P1 | [ ] | [ ] | [ ] | [ ] | [ ] |
 | [x] ffuf | P0 | [x] | [x] | [x] | [x] | [x] |
-| [ ] sqlmap | P1 | [ ] | [x] | [ ] | [ ] | [ ] |
+| [ ] sqlmap | P0 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] Katana | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [ ] Nikto | P2 | [ ] | [x] | [ ] | [ ] | [ ] |
 | [x] BurpSuite | P0 | [x] | [x] | [x] | [x] | [x] |
@@ -110,6 +110,7 @@ Category completion:
 - [x] Impacket ntlmrelayx.py full wrapper docs set created
 - [x] BloodHound Collector full wrapper docs set created
 - [x] Nuclei full wrapper docs set created
+- [x] Amass full wrapper docs set created
 - [x] Gobuster full wrapper docs set created
 - [x] ffuf full wrapper docs set created
 - [x] BurpSuite full wrapper docs set created
@@ -147,6 +148,7 @@ Already implemented in codebase:
 - Impacket ntlmrelayx.py
 - BloodHound Collector
 - Nuclei
+- Amass
 - Gobuster
 - ffuf
 - BurpSuite
@@ -159,16 +161,19 @@ Already implemented in codebase:
 - Mythic (implementation and unit tests complete; full E2E pending)
 
 Remaining P0 wrappers:
+- Subfinder
+- dnsx
+- sqlmap
 - SCP
 - SSH
 - Curl
 
 Overall completion (current matrix entries):
-- Implementation: 20/38 (52.6%)
+- Implementation: 21/38 (55.3%)
 - Documentation: 32/38 (84.2%)
-- Unit Tests: 20/38 (52.6%)
-- Smoke Tests: 19/38 (50.0%)
-- Telemetry Validation: 19/38 (50.0%)
+- Unit Tests: 21/38 (55.3%)
+- Smoke Tests: 20/38 (52.6%)
+- Telemetry Validation: 20/38 (52.6%)
 
 ## Latest E2E Federation Audit (2026-02-28)
 
@@ -182,6 +187,7 @@ Implemented wrappers audit status:
 - [x] Impacket secretsdump.py: host smoke executed (`impacket_secretsdump_command_ok=True`) and telemetry emitted (`impacket_secretsdump_completed`); live E2E currently gated by missing `IMPACKET_SECRETSDUMP_PASSWORD` or `IMPACKET_SECRETSDUMP_HASHES`.
 - [x] Impacket ntlmrelayx.py: host smoke executed (`impacket_ntlmrelayx_command_ok=True`) and telemetry emitted (`impacket_ntlmrelayx_completed`); live E2E currently gated by missing `IMPACKET_NTLMRELAYX_PASSWORD` or `IMPACKET_NTLMRELAYX_HASHES`.
 - [x] BloodHound Collector: host smoke executed (`bloodhound_collector_command_ok=True`) and telemetry emitted (`bloodhound_collector_completed`); live E2E currently gated by missing `BLOODHOUND_COLLECTOR_PASSWORD`.
+- [x] Amass: host smoke executed (`amass_command_ok=True`) and telemetry emitted (`amass_enum_completed`) with recoverable probe warning path; live E2E currently gated by missing `AMASS_LIVE_TARGET`.
 - [x] Nuclei: host smoke executed (`nuclei_command_ok=True`) and telemetry emitted (`nuclei_scan_completed`); live E2E currently gated by missing `NUCLEI_LIVE_TARGET`.
 - [x] Gobuster: host smoke executed (`gobuster_command_ok=True`) and telemetry emitted (`gobuster_scan_completed`); live E2E currently gated by missing `GOBUSTER_LIVE_TARGET`.
 - [x] ffuf: host smoke executed (`ffuf_command_ok=True`) and telemetry emitted (`ffuf_scan_completed`); live E2E currently gated by missing `FFUF_LIVE_TARGET`.

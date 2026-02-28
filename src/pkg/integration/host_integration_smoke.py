@@ -67,6 +67,7 @@ from pkg.wrappers.netexec import NetExecRequest, NetExecWrapper
 from pkg.wrappers.john import JohnRequest, JohnWrapper
 from pkg.wrappers.wget import WgetRequest, WgetWrapper
 from pkg.wrappers.burpsuite import BurpSuiteRequest, BurpSuiteWrapper
+from pkg.wrappers.amass import AmassRequest, AmassWrapper
 from pkg.wrappers.sliver import SliverCommandRequest, SliverWrapper
 
 _LOCAL_FED_ENV_PATH = "local_federation/.env.spectrastrike.local"
@@ -119,6 +120,8 @@ class HostIntegrationResult:
     wget_command_ok: bool | None = None
     burpsuite_binary_ok: bool | None = None
     burpsuite_command_ok: bool | None = None
+    amass_binary_ok: bool | None = None
+    amass_command_ok: bool | None = None
     sliver_binary_ok: bool | None = None
     sliver_command_ok: bool | None = None
     mythic_binary_ok: bool | None = None
@@ -245,6 +248,8 @@ def run_host_integration_smoke(
     check_wget_live: bool = False,
     check_burpsuite: bool = False,
     check_burpsuite_live: bool = False,
+    check_amass: bool = False,
+    check_amass_live: bool = False,
     check_mythic_task: bool = False,
     check_vectorvue: bool = False,
 ) -> HostIntegrationResult:
@@ -290,6 +295,8 @@ def run_host_integration_smoke(
     wget_result: object | None = None
     burpsuite_wrapper: BurpSuiteWrapper | None = None
     burpsuite_result: object | None = None
+    amass_wrapper: AmassWrapper | None = None
+    amass_result: object | None = None
     mythic_wrapper: MythicWrapper | None = None
     mythic_result: object | None = None
 
@@ -1150,6 +1157,53 @@ def run_host_integration_smoke(
             else "burpsuite.command"
         )
 
+    if check_amass:
+        amass_binary = os.getenv("AMASS_BINARY", "amass")
+        _require_binary(amass_binary)
+        try:
+            _run_command([amass_binary, "version"], timeout_seconds)
+        except Exception:
+            try:
+                _run_command([amass_binary, "-h"], timeout_seconds)
+            except Exception:
+                logger.warning(
+                    "Proceeding after recoverable amass probe failure for binary=%s",
+                    amass_binary,
+                )
+        result.amass_binary_ok = True
+        result.checks.append("amass.version")
+        amass_wrapper = AmassWrapper(timeout_seconds=min(timeout_seconds, 5.0))
+        amass_target = (
+            os.getenv("AMASS_LIVE_TARGET", "").strip()
+            if check_amass_live
+            else os.getenv("AMASS_TARGET", "example.com").strip()
+        )
+        if check_amass_live and not amass_target:
+            raise HostIntegrationError("AMASS_LIVE_TARGET is required for live amass e2e")
+        amass_command = os.getenv("AMASS_COMMAND", f"enum -passive -d {amass_target}")
+        amass_extra_args = [] if check_amass_live else ["--dry-run"]
+        amass_result = amass_wrapper.execute(
+            AmassRequest(
+                target=amass_target,
+                command=amass_command,
+                extra_args=amass_extra_args,
+            ),
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+        )
+        amass_event = amass_wrapper.send_to_orchestrator(
+            amass_result,
+            telemetry=telemetry,
+            tenant_id=resolved_tenant,
+            operator_id=integration_actor,
+            actor=integration_actor,
+        )
+        result.amass_command_ok = (
+            amass_event.event_type == "amass_enum_completed"
+            and amass_event.tenant_id == resolved_tenant
+        )
+        result.checks.append("amass.command.live" if check_amass_live else "amass.command")
+
     if check_sliver_command:
         _require_binary(os.getenv("SLIVER_BINARY", "sliver-client"))
         sliver_binary = os.getenv("SLIVER_BINARY", "sliver-client")
@@ -1391,6 +1445,14 @@ def run_host_integration_smoke(
                 operator_id=integration_actor,
                 actor=integration_actor,
             )
+        if check_amass and amass_wrapper is not None and amass_result is not None:
+            amass_wrapper.send_to_orchestrator(
+                amass_result,
+                telemetry=telemetry_with_broker,
+                tenant_id=resolved_tenant,
+                operator_id=integration_actor,
+                actor=integration_actor,
+            )
         if check_mythic_task and mythic_wrapper is not None and mythic_result is not None:
             mythic_wrapper.send_to_orchestrator(
                 mythic_result,
@@ -1614,6 +1676,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="execute one burpsuite live command (requires BURPSUITE_LIVE_TARGET)",
     )
     parser.add_argument(
+        "--check-amass",
+        action="store_true",
+        help="execute one amass dry-run command and emit SDK telemetry",
+    )
+    parser.add_argument(
+        "--check-amass-live",
+        action="store_true",
+        help="execute one amass live command (requires AMASS_LIVE_TARGET)",
+    )
+    parser.add_argument(
         "--check-mythic-task",
         action="store_true",
         help="execute one Mythic dry-run task and emit SDK telemetry",
@@ -1669,6 +1741,8 @@ def main() -> int:
         check_wget_live=args.check_wget_live,
         check_burpsuite=args.check_burpsuite,
         check_burpsuite_live=args.check_burpsuite_live,
+        check_amass=args.check_amass,
+        check_amass_live=args.check_amass_live,
         check_mythic_task=args.check_mythic_task,
         check_vectorvue=args.check_vectorvue,
     )
@@ -1713,6 +1787,8 @@ def main() -> int:
         f" wget_command_ok={result.wget_command_ok}"
         f" burpsuite_binary_ok={result.burpsuite_binary_ok}"
         f" burpsuite_command_ok={result.burpsuite_command_ok}"
+        f" amass_binary_ok={result.amass_binary_ok}"
+        f" amass_command_ok={result.amass_command_ok}"
         f" sliver_binary_ok={result.sliver_binary_ok}"
         f" sliver_command_ok={result.sliver_command_ok}"
         f" mythic_binary_ok={result.mythic_binary_ok}"
