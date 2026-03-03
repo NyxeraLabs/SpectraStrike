@@ -450,13 +450,13 @@ Modern, enterprise-grade UX maturity.
 
 ### Commits
 
-* [ ] docs: full architecture documentation
-* [ ] docs: API reference manual
-* [ ] docs: playbook authoring guide
-* [ ] docs: ASM methodology guide
-* [ ] docs: detection validation methodology
-* [ ] docs: SOC scoring methodology
-* [ ] docs: internal operational runbook
+* [x] docs: full architecture documentation
+* [x] docs: API reference manual
+* [x] docs: playbook authoring guide
+* [x] docs: ASM methodology guide
+* [x] docs: detection validation methodology
+* [x] docs: SOC scoring methodology
+* [x] docs: internal operational runbook
 
 ---
 
