@@ -37,3 +37,9 @@ export function setPlaybook(tenantId: string, value: Omit<PersistedPlaybook, "up
   perTenantPlaybook.set(tenantId, payload);
   return payload;
 }
+
+export function clearPlaybooks(): number {
+  const count = perTenantPlaybook.size;
+  perTenantPlaybook.clear();
+  return count;
+}

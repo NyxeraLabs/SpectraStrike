@@ -87,6 +87,7 @@ Each execution carries an `attestation_measurement_hash` that represents measure
 - End-user guide: `docs/END_USER_GUIDE.md`
 - SDK developer guide: `docs/SDK_DEVELOPER_GUIDE.md`
 - Full federation integration: `docs/FULL_FEDERATION_INTEGRATION.md`
+- First-run guided demo (granular): `docs/FIRST_RUN_GUIDED_DEMO.md`
 - Roadmap: `docs/ROADMAP.md`
 
 ## Interactive Demo Flow (Tri-App)
