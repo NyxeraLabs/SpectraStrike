@@ -19,9 +19,29 @@ from .sdk import (
     build_internal_telemetry_event,
     build_legacy_telemetry_event,
 )
+from .sensor_core import (
+    RemoteSensorConfigService,
+    SensorCoreAgent,
+    SensorCoreError,
+    SensorHealthMonitor,
+    SensorHealthSnapshot,
+    SensorRuntimeConfig,
+    SensorTransportConfig,
+    SignedTelemetryBatch,
+    TelemetryRecord,
+)
 
 __all__ = [
     "build_internal_telemetry_event",
     "build_cloudevent_telemetry",
     "build_legacy_telemetry_event",
+    "SensorCoreError",
+    "SensorTransportConfig",
+    "SensorRuntimeConfig",
+    "TelemetryRecord",
+    "SignedTelemetryBatch",
+    "SensorHealthSnapshot",
+    "SensorHealthMonitor",
+    "RemoteSensorConfigService",
+    "SensorCoreAgent",
 ]

@@ -268,14 +268,14 @@
 
 ### Commits
 
-* [ ] feat: cross-platform lightweight agent
-* [ ] feat: secure TLS transport channel
-* [ ] feat: mutual authentication support
-* [ ] feat: signed telemetry verification
-* [ ] feat: telemetry batching support
-* [ ] feat: sensor health monitoring service
-* [ ] feat: remote sensor configuration support
-* [ ] test: ingestion reliability tests
+* [x] feat: cross-platform lightweight agent
+* [x] feat: secure TLS transport channel
+* [x] feat: mutual authentication support
+* [x] feat: signed telemetry verification
+* [x] feat: telemetry batching support
+* [x] feat: sensor health monitoring service
+* [x] feat: remote sensor configuration support
+* [x] test: ingestion reliability tests
 
 ---
 
