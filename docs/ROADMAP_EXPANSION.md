@@ -283,12 +283,12 @@
 
 ### Commits
 
-* [ ] feat: anomaly correlation engine
-* [ ] feat: behavioral baseline computation
-* [ ] feat: detection deviation scoring
-* [ ] feat: technique anomaly weighting
-* [ ] feat: ML confidence scoring adjustment
-* [ ] test: ML regression validation suite
+* [x] feat: anomaly correlation engine
+* [x] feat: behavioral baseline computation
+* [x] feat: detection deviation scoring
+* [x] feat: technique anomaly weighting
+* [x] feat: ML confidence scoring adjustment
+* [x] test: ML regression validation suite
 
 ---
 
