@@ -14,8 +14,8 @@ Offer as a commercial service
 Sell derived competing products
 */
 
-const DEFAULT_NEXUS_URL = "http://localhost:3001";
-const DEFAULT_VECTORVUE_URL = "http://localhost:3002";
+const DEFAULT_NEXUS_URL = "https://localhost:3001";
+const DEFAULT_VECTORVUE_URL = "https://localhost:3002";
 
 function clean(value: string | undefined): string {
   return String(value ?? "").trim();
@@ -33,12 +33,26 @@ function warnMissing(name: string, fallback: string): void {
   console.warn(`[cross-app-links] Missing env ${name}. Falling back to ${fallback}`);
 }
 
+function enforceHttps(name: string, value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return trimmed;
+  if (trimmed.startsWith("https://")) return trimmed;
+  if (trimmed.startsWith("http://")) {
+    const upgraded = `https://${trimmed.slice("http://".length)}`;
+    console.warn(`[cross-app-links] Insecure URL in ${name}. Upgrading to ${upgraded}`);
+    return upgraded;
+  }
+  const upgraded = `https://${trimmed.replace(/^\/+/, "")}`;
+  console.warn(`[cross-app-links] URL in ${name} missing scheme. Upgrading to ${upgraded}`);
+  return upgraded;
+}
+
 export function getNexusUrl(): string {
   const configured =
     resolveEnv("VITE_NEXUS_URL") ||
     resolveEnv("NEXT_PUBLIC_NEXUS_URL") ||
     resolveEnv("UI_NEXUS_BASE_URL");
-  if (configured) return configured;
+  if (configured) return enforceHttps("VITE_NEXUS_URL", configured);
   warnMissing("VITE_NEXUS_URL", DEFAULT_NEXUS_URL);
   return DEFAULT_NEXUS_URL;
 }
@@ -48,7 +62,7 @@ export function getVectorVueUrl(): string {
     resolveEnv("VITE_VECTORVUE_URL") ||
     resolveEnv("NEXT_PUBLIC_VECTORVUE_URL") ||
     resolveEnv("UI_VECTORVUE_BASE_URL");
-  if (configured) return configured;
+  if (configured) return enforceHttps("VITE_VECTORVUE_URL", configured);
   warnMissing("VITE_VECTORVUE_URL", DEFAULT_VECTORVUE_URL);
   return DEFAULT_VECTORVUE_URL;
 }

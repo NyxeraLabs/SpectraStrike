@@ -15,6 +15,9 @@ Sell derived competing products
 */
 
 import {
+  buildExecutionActivities,
+  buildFederationDiagnostics,
+  buildTelemetryActivities,
   buildNexusContext,
   buildVectorVueDeepLink,
   canAccessNexusArea,
@@ -42,5 +45,49 @@ describe("Nexus cross-module state synchronization", () => {
     expect(link).toContain("tenant_id=tenant-001");
     expect(canAccessNexusArea("auditor", "export")).toBe(true);
     expect(canAccessNexusArea("operator", "export")).toBe(false);
+  });
+
+  it("maps live execution and telemetry payloads into feed + diagnostics views", () => {
+    const executionFeed = buildExecutionActivities([
+      {
+        task_id: "task-1",
+        tool: "nmap",
+        target: "10.0.0.5",
+        status: "running",
+        retry_count: 1,
+        updated_at: "2026-03-03T14:01:00Z",
+      },
+    ]);
+    expect(executionFeed[0].title).toContain("Execution task nmap");
+    expect(executionFeed[0].type).toBe("execution");
+
+    const telemetryFeed = buildTelemetryActivities([
+      {
+        event_id: "evt-1",
+        event_type: "wrapper_completed",
+        status: "completed",
+        target: "10.0.0.5",
+        timestamp: "2026-03-03T14:02:00Z",
+        envelope_id: "env-1",
+        signature_state: "verified",
+        vectorvue_response: "accepted",
+      },
+    ]);
+    expect(telemetryFeed[0].source).toBe("vectorvue");
+    expect(telemetryFeed[0].type).toBe("assurance");
+
+    const diagnostics = buildFederationDiagnostics([
+      {
+        envelope_id: "env-1",
+        signature_state: "verified",
+        failure_reason: "",
+        retry_attempts: 0,
+        vectorvue_response: "accepted",
+        attestation_proof: "sha256:abc",
+        timestamp: "2026-03-03T14:02:00Z",
+      },
+    ]);
+    expect(diagnostics[0].envelopeId).toBe("env-1");
+    expect(diagnostics[0].vectorVueResponse).toBe("accepted");
   });
 });
