@@ -136,15 +136,15 @@
 
 ### Commits
 
-* [ ] feat: ResponseAction table
-* [ ] feat: escalation timeline tracking
-* [ ] feat: time-to-detect metric
-* [ ] feat: time-to-respond metric
-* [ ] feat: time-to-contain metric
-* [ ] feat: SOC effectiveness index calculation
-* [ ] feat: IR readiness composite score
-* [ ] feat: SLA violation detection logic
-* [ ] test: response timing validation tests
+* [x] feat: ResponseAction table
+* [x] feat: escalation timeline tracking
+* [x] feat: time-to-detect metric
+* [x] feat: time-to-respond metric
+* [x] feat: time-to-contain metric
+* [x] feat: SOC effectiveness index calculation
+* [x] feat: IR readiness composite score
+* [x] feat: SLA violation detection logic
+* [x] test: response timing validation tests
 
 ---
 
