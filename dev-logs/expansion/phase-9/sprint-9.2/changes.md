@@ -28,5 +28,9 @@
 - `docs/ROADMAP_EXPANSION.md`
   - Marked Sprint 59 checklist items as completed.
 
+- `docs/E2E_EXECUTION_AUDIT_REPORT.md`
+  - Added `Expanded Wrapper E2E Audit (2026-03-03)` with exact commands, wrapper-by-wrapper status matrix, negative-path verification, and concrete remediation items.
+
 ## Reason for each change
 - Fulfill all Sprint 59 documentation and internal readiness commitments with concrete, implementation-aligned references.
+- Keep operational E2E documentation aligned with current federation behavior before further rollout decisions.

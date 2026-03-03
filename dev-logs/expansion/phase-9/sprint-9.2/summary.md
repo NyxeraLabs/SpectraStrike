@@ -12,3 +12,8 @@ Produce the complete internal documentation and operational readiness package fo
 - Documentation drift risk exists if runtime contracts change without doc updates.
 - Operational runbook assumes hardening scripts and integration suite remain available.
 - API manual must stay aligned with OpenAPI route exposure and deprecations.
+
+## Addendum - 2026-03-03 E2E audit refresh
+- Re-ran local federation smoke with expanded wrapper coverage (dry-run mode) to validate current operational assumptions in docs.
+- Confirmed broad wrapper command-path readiness and identified environment blockers for full-path checks (`metasploit.rpc`, `mythic`).
+- Updated formal E2E audit document to include command evidence, wrapper matrix, and remediation list.

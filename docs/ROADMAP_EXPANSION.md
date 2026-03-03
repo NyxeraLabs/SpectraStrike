@@ -457,6 +457,7 @@ Modern, enterprise-grade UX maturity.
 * [x] docs: detection validation methodology
 * [x] docs: SOC scoring methodology
 * [x] docs: internal operational runbook
+* [x] docs: expanded E2E execution audit evidence refresh
 
 ---
 
