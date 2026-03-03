@@ -18,6 +18,7 @@ import base64
 import hashlib
 import hmac
 import json
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
@@ -136,19 +137,7 @@ def test_validates_zero_trust_enforcement_during_live_session() -> None:
         signer=HMACRootSigningAuthority(secret=b"s29-secret"),
     )
     bundle = _bundle()
-    forged = C2DispatchBundle(
-        adapter_name=bundle.adapter_name,
-        compact_jws=bundle.compact_jws[:-1] + "A",
-        execution_fingerprint=bundle.execution_fingerprint,
-        manifest_hash=bundle.manifest_hash,
-        tool_hash=bundle.tool_hash,
-        operator_id=bundle.operator_id,
-        tenant_id=bundle.tenant_id,
-        policy_decision_hash=bundle.policy_decision_hash,
-        timestamp=bundle.timestamp,
-        target=bundle.target,
-        payload=bundle.payload,
-    )
+    forged = replace(bundle, policy_decision_hash="policy-deny-002")
     with pytest.raises(C2AdapterHardeningError):
         execute_zero_trust_live_session(
             boundary=boundary,
