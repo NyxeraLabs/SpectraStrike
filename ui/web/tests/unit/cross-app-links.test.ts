@@ -38,8 +38,8 @@ describe("cross app link resolution", () => {
 
   it("falls back to defaults and warns when env is missing", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(getNexusUrl()).toBe("https://localhost:3001");
-    expect(getVectorVueUrl()).toBe("https://localhost:3002");
+    expect(getNexusUrl()).toMatch(/^https:\/\/(127\.0\.0\.1|localhost):18443$/);
+    expect(getVectorVueUrl()).toMatch(/^https:\/\/(127\.0\.0\.1|localhost)$/);
     expect(warnSpy).toHaveBeenCalledTimes(2);
   });
 

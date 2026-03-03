@@ -16,7 +16,7 @@ Sell derived competing products
 
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import {
   defaultAsmGraph,
@@ -55,24 +55,107 @@ type AsmWorkbenchProps = {
 export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
   const graph = useMemo(() => defaultAsmGraph(), []);
   const [nodes, setNodes] = useState<AsmNode[]>(initialNodes ?? graph.nodes);
+  const [edges, setEdges] = useState(graph.edges);
+  const [exposures, setExposures] = useState(graph.exposures);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [selectedAssetId, setSelectedAssetId] = useState<string>(graph.nodes[0]?.id ?? "");
+  const [campaignTimeline, setCampaignTimeline] = useState<string[]>([]);
+  const [asmStatus, setAsmStatus] = useState<string>("Loading live campaign graph surfaces...");
+  const [asmFullscreen, setAsmFullscreen] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      fetch("/ui/api/execution/queue?limit=50", { cache: "no-store" }).then((res) => res.json()),
+      fetch("/ui/api/telemetry/events?limit=50", { cache: "no-store" }).then((res) => res.json()),
+    ])
+      .then(([queueBody, telemetryBody]) => {
+        if (!active) return;
+        const queueItems = Array.isArray(queueBody.items) ? queueBody.items : [];
+        const telemetryItems = Array.isArray(telemetryBody.items) ? telemetryBody.items : [];
+        if (queueItems.length === 0 && telemetryItems.length === 0) {
+          setAsmStatus("Using local ASM graph dataset.");
+          return;
+        }
+
+        const liveNodes: AsmNode[] = queueItems.map((item: Record<string, unknown>, idx: number) => {
+          const status = String(item.status ?? "queued");
+          const riskScore = status === "failed" ? 0.92 : status === "retrying" ? 0.78 : status === "running" ? 0.66 : 0.53;
+          const label = String(item.tool ?? `task-${idx + 1}`);
+          return {
+            id: `live-${idx}-${label}`,
+            label,
+            nodeType: idx % 4 === 0 ? "external" : idx % 4 === 1 ? "service" : idx % 4 === 2 ? "internal" : "cloud_identity",
+            riskScore,
+          };
+        });
+
+        if (liveNodes.length > 1) {
+          setNodes(liveNodes);
+          setSelectedAssetId(liveNodes[0].id);
+          setEdges(
+            liveNodes.slice(1).map((node, idx) => ({
+              id: `live-edge-${idx}`,
+              sourceId: liveNodes[idx].id,
+              targetId: node.id,
+              relation: idx % 3 === 0 ? "pivot" : idx % 2 === 0 ? "vuln_path" : "exposes",
+            })),
+          );
+        }
+
+        if (telemetryItems.length > 0 && liveNodes.length > 0) {
+          setExposures(
+            telemetryItems.slice(0, 20).map((item: Record<string, unknown>, idx: number) => ({
+              assetId: liveNodes[idx % liveNodes.length].id,
+              exposureId: String(item.event_id ?? `evt-${idx}`),
+              severity: String(item.status ?? "info").toLowerCase() === "failed" ? 0.9 : 0.62,
+              technique: String(item.event_type ?? "T0000"),
+            })),
+          );
+        }
+
+        setCampaignTimeline(
+          [...queueItems, ...telemetryItems]
+            .slice(0, 12)
+            .map((item: Record<string, unknown>) => `${String(item.timestamp ?? item.updated_at ?? new Date().toISOString())} :: ${String(item.tool ?? item.event_type ?? item.source ?? "event")} :: ${String(item.status ?? "unknown")}`),
+        );
+        setAsmStatus("Live campaign graph surfaces loaded.");
+      })
+      .catch(() => {
+        if (!active) return;
+        setAsmStatus("Unable to load live campaign graph surfaces; using local dataset.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const overlays = useMemo(() => riskOverlayByAsset(nodes), [nodes]);
-  const relationCounts = useMemo(() => edgeCountsByRelation(graph.edges), [graph.edges]);
-  const playbookActions = useMemo(() => exposureGraphToPlaybookActions(graph.exposures), [graph.exposures]);
+  const relationCounts = useMemo(() => edgeCountsByRelation(edges), [edges]);
+  const playbookActions = useMemo(() => exposureGraphToPlaybookActions(exposures), [exposures]);
   const externalPivotPath = useMemo(
-    () => graph.edges.filter((edge) => edge.relation === "pivot" || edge.relation === "exposes"),
-    [graph.edges],
+    () => edges.filter((edge) => edge.relation === "pivot" || edge.relation === "exposes"),
+    [edges],
   );
 
-  const selectedExposures = graph.exposures.filter((row) => row.assetId === selectedAssetId);
+  const selectedExposures = exposures.filter((row) => row.assetId === selectedAssetId);
 
   return (
     <section className="grid gap-4 xl:grid-cols-[1.1fr_1fr]">
       <article className="spectra-panel p-5">
-        <h2 className="text-sm uppercase tracking-[0.2em] text-telemetry">Asset Graph Visualization Engine</h2>
-        <svg viewBox="0 0 760 280" className="mt-4 w-full rounded-lg border border-borderSubtle bg-slate-950/70 p-2">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm uppercase tracking-[0.2em] text-telemetry">Asset Graph Visualization Engine</h2>
+          <button
+            type="button"
+            className="spectra-button-secondary px-3 py-1.5 text-xs"
+            onClick={() => setAsmFullscreen((current) => !current)}
+          >
+            {asmFullscreen ? "Exit Full Screen" : "Full Screen"}
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-slate-400">{asmStatus}</p>
+        <div className={`relative mt-4 rounded-lg border border-borderSubtle bg-slate-950/70 p-2 ${asmFullscreen ? "fixed inset-4 z-50 h-[calc(100vh-2rem)]" : ""}`}>
+        <svg viewBox="0 0 760 280" className={`w-full rounded-lg bg-slate-950/70 p-2 ${asmFullscreen ? "h-[calc(100vh-6rem)]" : ""}`}>
           {nodes.slice(0, 7).map((node, idx) => {
             const x = 90 + (idx % 4) * 170;
             const y = 80 + Math.floor(idx / 4) * 130;
@@ -93,6 +176,16 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
             return <line key={edge.id} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#22c55e" strokeWidth="2" />;
           })}
         </svg>
+        {asmFullscreen ? (
+          <button
+            type="button"
+            className="spectra-button-secondary absolute right-4 top-4 z-10 px-3 py-1.5 text-xs"
+            onClick={() => setAsmFullscreen(false)}
+          >
+            Close
+          </button>
+        ) : null}
+        </div>
       </article>
 
       <article className="spectra-panel p-5" data-testid="asm-builder">
@@ -180,7 +273,7 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
       <article className="spectra-panel p-5">
         <h2 className="text-sm uppercase tracking-[0.2em] text-success">Cloud IAM &amp; Role Relationship Graph</h2>
         <ul className="mt-3 space-y-2 text-sm">
-          {graph.edges
+          {edges
             .filter((edge) => edge.relation === "iam_assume_role")
             .map((edge) => (
               <li key={edge.id} className="rounded border border-borderSubtle bg-slate-950/70 px-3 py-2">
@@ -214,6 +307,23 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
               {line}
             </li>
           ))}
+        </ol>
+      </article>
+
+      <article className="spectra-panel p-5">
+        <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">Campaign Timeline</h2>
+        <ol className="mt-3 space-y-2 text-sm" data-testid="campaign-timeline">
+          {campaignTimeline.length > 0 ? (
+            campaignTimeline.map((line) => (
+              <li key={line} className="rounded border border-borderSubtle bg-slate-950/70 px-3 py-2">
+                {line}
+              </li>
+            ))
+          ) : (
+            <li className="rounded border border-borderSubtle bg-slate-950/70 px-3 py-2 text-slate-300">
+              No live campaign events yet.
+            </li>
+          )}
         </ol>
       </article>
     </section>
