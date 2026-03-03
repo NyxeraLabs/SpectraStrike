@@ -26,6 +26,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/dashboard/workflow", label: "Workflow" },
   { href: "/dashboard/asm", label: "ASM" },
+  { href: "/dashboard/nexus", label: "Nexus" },
   { href: "/dashboard/telemetry", label: "Telemetry" },
   { href: "/dashboard/armory", label: "Armory" },
   { href: "/dashboard/fleet", label: "Fleet" },

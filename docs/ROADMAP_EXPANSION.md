@@ -391,14 +391,14 @@ Provide a unified navigation and cross-linking experience.
 
 ### Commits
 
-* [ ] feat(platform-ui): unified navigation shell (SpectraStrike ↔ VectorVue)
-* [ ] feat(platform-ui): cross-product deep-link routing
-* [ ] feat(platform-ui): shared authentication & RBAC layer
-* [ ] feat(platform-ui): unified activity feed (execution + detection events)
-* [ ] feat(platform-ui): cross-product search engine
-* [ ] feat(platform-ui): campaign → detection → assurance drill-down flow
-* [ ] feat(platform-ui): export unified validation report (execution + detection)
-* [ ] test(platform-ui): cross-module state synchronization tests
+* [x] feat(platform-ui): unified navigation shell (SpectraStrike ↔ VectorVue)
+* [x] feat(platform-ui): cross-product deep-link routing
+* [x] feat(platform-ui): shared authentication & RBAC layer
+* [x] feat(platform-ui): unified activity feed (execution + detection events)
+* [x] feat(platform-ui): cross-product search engine
+* [x] feat(platform-ui): campaign → detection → assurance drill-down flow
+* [x] feat(platform-ui): export unified validation report (execution + detection)
+* [x] test(platform-ui): cross-module state synchronization tests
 
 This is what commercially becomes “Nexus” — but technically it's integrated UX.
 
