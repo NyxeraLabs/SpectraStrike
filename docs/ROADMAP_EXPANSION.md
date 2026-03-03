@@ -174,14 +174,14 @@
 
 ### Commits
 
-* [ ] feat: ExposureFinding table
-* [ ] feat: port/service abstraction layer
-* [ ] feat: service fingerprinting module
-* [ ] feat: misconfiguration detection rules
-* [ ] feat: exposure severity scoring formula
-* [ ] feat: exposure aging tracking
-* [ ] feat: exposure trend tracking
-* [ ] test: exposure lifecycle validation tests
+* [x] feat: ExposureFinding table
+* [x] feat: port/service abstraction layer
+* [x] feat: service fingerprinting module
+* [x] feat: misconfiguration detection rules
+* [x] feat: exposure severity scoring formula
+* [x] feat: exposure aging tracking
+* [x] feat: exposure trend tracking
+* [x] test: exposure lifecycle validation tests
 
 ---
 
