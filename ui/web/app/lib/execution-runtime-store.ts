@@ -55,6 +55,12 @@ export function listRuntimeTasks(limit = 100): RuntimeTask[] {
   return tasks.slice(0, Math.max(1, Math.min(limit, 500)));
 }
 
+export function clearRuntimeTasks(): number {
+  const count = tasks.length;
+  tasks.splice(0, tasks.length);
+  return count;
+}
+
 export function summarizeRuntimeQueue() {
   const counts: Record<RuntimeExecutionState, number> = {
     queued: 0,
