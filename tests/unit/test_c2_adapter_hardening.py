@@ -95,7 +95,8 @@ def test_dispatch_binds_to_unified_execution_fingerprint() -> None:
 def test_enforces_jws_verification_at_adapter_boundary() -> None:
     boundary = HardenedC2AdapterBoundary(adapters={"sliver": lambda payload: {"ok": True}})
     forged = _bundle()
-    forged = replace(forged, compact_jws=forged.compact_jws[:-1] + "A")
+    parts = forged.compact_jws.split(".")
+    forged = replace(forged, compact_jws=f"{parts[0]}.{parts[1]}.invalid_signature")
     with pytest.raises(C2AdapterHardeningError, match="JWS verification failed"):
         boundary.dispatch(bundle=forged, hmac_secret="secret")
 
