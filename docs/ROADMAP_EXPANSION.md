@@ -84,16 +84,16 @@
 
 ### Commits
 
-* [ ] feat: Tactic table
-* [ ] feat: Technique table
-* [ ] feat: SubTechnique table
-* [ ] feat: Technique → Tactic relationship mapping
-* [ ] feat: Technique → Platform mapping
-* [ ] feat: Technique → DataSource mapping
-* [ ] feat: Technique → Mitigation mapping
-* [ ] feat: Technique → Detection guidance mapping
-* [ ] feat: ATT&CK import automation pipeline
-* [ ] test: ATT&CK sync validation tests
+* [x] feat: Tactic table
+* [x] feat: Technique table
+* [x] feat: SubTechnique table
+* [x] feat: Technique → Tactic relationship mapping
+* [x] feat: Technique → Platform mapping
+* [x] feat: Technique → DataSource mapping
+* [x] feat: Technique → Mitigation mapping
+* [x] feat: Technique → Detection guidance mapping
+* [x] feat: ATT&CK import automation pipeline
+* [x] test: ATT&CK sync validation tests
 
 ---
 
