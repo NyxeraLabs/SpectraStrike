@@ -17,6 +17,7 @@ Sell derived competing products
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, vi } from "vitest";
+import React from "react";
 
 const pushMock = vi.fn();
 const refreshMock = vi.fn();
@@ -53,4 +54,3 @@ describe("TopNav", () => {
     });
   });
 });
-

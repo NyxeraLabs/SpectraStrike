@@ -16,15 +16,14 @@ Sell derived competing products
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-type TelemetrySource = "nmap" | "metasploit" | "manual";
 type TelemetryStatus = "success" | "info" | "warning" | "critical";
 
 type TelemetryItem = {
   id?: string;
   event_id?: string;
-  source: TelemetrySource;
+  source: string;
   status: TelemetryStatus;
   eventType?: string;
   event_type?: string;
@@ -34,7 +33,7 @@ type TelemetryItem = {
   details?: string;
 };
 
-const sourceBadgeClass: Record<TelemetrySource, string> = {
+const sourceBadgeClass: Record<string, string> = {
   nmap: "text-telemetryGlow border-telemetryDeep/70",
   metasploit: "text-accentGlow border-accentPrimary/50",
   manual: "text-info border-info/50",
@@ -86,6 +85,42 @@ export function TelemetryFeedView() {
   const [cursor, setCursor] = useState<string>("");
   const [items, setItems] = useState<TelemetryItem[]>(fallbackItems);
   const [message, setMessage] = useState<string>("Using local fallback dataset.");
+  const [knownSources, setKnownSources] = useState<string[]>(["nmap", "metasploit", "manual"]);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      fetch("/ui/api/execution/wrappers", { cache: "no-store" }).then((res) => res.json()).catch(() => ({ items: [] })),
+      fetch("/ui/api/telemetry/events?limit=200", { cache: "no-store" }).then((res) => res.json()).catch(() => ({ items: [] })),
+    ]).then(([wrappers, telemetry]) => {
+      if (!active) return;
+      const wrapperKeys = Array.isArray(wrappers.items) ? wrappers.items.map((item: { key?: string }) => String(item.key ?? "").trim()).filter(Boolean) : [];
+      const telemetrySources = Array.isArray(telemetry.items)
+        ? telemetry.items.map((item: { source?: string }) => String(item.source ?? "").trim()).filter(Boolean)
+        : [];
+      const merged = Array.from(new Set([...knownSources, ...wrapperKeys, ...telemetrySources]));
+      setKnownSources(merged);
+      if (Array.isArray(telemetry.items) && telemetry.items.length > 0) {
+        setItems(
+          telemetry.items.map((item: Record<string, unknown>) => ({
+            source: String(item.source ?? "manual"),
+            status: normalizeStatus(String(item.status ?? "info")),
+            actor: String(item.actor ?? "unknown"),
+            target: String(item.target ?? "unknown"),
+            timestamp: String(item.timestamp ?? new Date().toISOString()),
+            event_type: String(item.event_type ?? "unknown_event"),
+            event_id: String(item.event_id ?? ""),
+            details: item.raw_output ? String(item.raw_output) : undefined,
+          })),
+        );
+        setMessage(`Loaded ${telemetry.items.length} telemetry events.`);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const messageTone = useMemo(() => {
     if (message.toLowerCase().includes("loaded")) {
@@ -96,6 +131,14 @@ export function TelemetryFeedView() {
     }
     return "text-slate-400";
   }, [message]);
+
+  function normalizeStatus(raw: string): TelemetryStatus {
+    const statusRaw = raw.trim().toLowerCase();
+    if (statusRaw === "completed" || statusRaw === "success" || statusRaw === "succeeded") return "success";
+    if (statusRaw === "failed" || statusRaw === "critical") return "critical";
+    if (statusRaw === "retrying" || statusRaw === "blocked" || statusRaw === "warning") return "warning";
+    return "info";
+  }
 
   async function applyFilters() {
     const params = new URLSearchParams();
@@ -119,7 +162,18 @@ export function TelemetryFeedView() {
       }
 
       const body = await response.json();
-      const nextItems = Array.isArray(body.items) ? body.items : [];
+      const nextItems = Array.isArray(body.items)
+        ? body.items.map((item: Record<string, unknown>) => ({
+            source: String(item.source ?? "manual"),
+            status: normalizeStatus(String(item.status ?? "info")),
+            actor: String(item.actor ?? "unknown"),
+            target: String(item.target ?? "unknown"),
+            timestamp: String(item.timestamp ?? new Date().toISOString()),
+            event_type: String(item.event_type ?? "unknown_event"),
+            event_id: String(item.event_id ?? ""),
+            details: item.raw_output ? String(item.raw_output) : undefined,
+          }))
+        : [];
       setItems(nextItems);
       setMessage(`Loaded ${nextItems.length} telemetry events.`);
     } catch (error) {
@@ -154,9 +208,9 @@ export function TelemetryFeedView() {
               className="mt-2 w-full rounded-panel border border-borderSubtle bg-bgPrimary px-3 py-2 text-sm text-white"
             >
               <option value="all">All</option>
-              <option value="nmap">Nmap</option>
-              <option value="metasploit">Metasploit</option>
-              <option value="manual">Manual</option>
+              {knownSources.map((item) => (
+                <option key={item} value={item}>{item}</option>
+              ))}
             </select>
           </label>
           <label className="text-xs uppercase tracking-wide text-slate-400">
@@ -207,7 +261,7 @@ export function TelemetryFeedView() {
         <h2 className="text-sm uppercase tracking-[0.2em] text-telemetry">Live Stream</h2>
         <div className="mt-4 space-y-3">
           {items.map((item, index) => {
-            const sourceKey = item.source;
+            const sourceKey = item.source.toLowerCase();
             const statusKey = item.status;
             const key = item.event_id ?? item.id ?? `fallback-${index}`;
             const eventType = item.event_type ?? item.eventType ?? "unknown_event";
@@ -215,7 +269,7 @@ export function TelemetryFeedView() {
             return (
               <div key={key} className="rounded-panel border border-borderSubtle bg-bgPrimary/60 p-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={`rounded-panel border px-2 py-1 text-xs uppercase tracking-wide ${sourceBadgeClass[sourceKey]}`}>
+                  <span className={`rounded-panel border px-2 py-1 text-xs uppercase tracking-wide ${sourceBadgeClass[sourceKey] ?? "text-slate-200 border-borderSubtle"}`}>
                     {sourceKey}
                   </span>
                   <span className={`text-xs font-semibold uppercase tracking-wide ${statusClass[statusKey]}`}>

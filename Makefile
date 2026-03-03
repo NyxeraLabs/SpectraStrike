@@ -12,7 +12,7 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-.PHONY: help build ui-build runner-go-build runner-go-test secrets-init legal-accept-init pki-ensure tls-ensure up up-all full-up full-up-tools full-down open-ui open-tui ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db security-check license-check manifest-schema-regression tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down host-integration-smoke host-integration-smoke-full vectorvue-rabbitmq-sync local-federation-up
+.PHONY: help build ui-build ui-web-rebuild runner-go-build runner-go-test secrets-init legal-accept-init pki-ensure tls-ensure up up-all full-up full-up-tools full-down open-ui open-tui ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db demo-seed demo-reset security-check license-check manifest-schema-regression tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down host-integration-smoke host-integration-smoke-full vectorvue-rabbitmq-sync local-federation-up
 
 COMPOSE_DEV = docker compose -f docker-compose.dev.yml
 COMPOSE_PROD = docker compose -f docker-compose.prod.yml
@@ -25,6 +25,7 @@ help:
 	@echo "Available targets:"
 	@echo "  build             Build app image"
 	@echo "  ui-build          Build web UI image"
+	@echo "  ui-web-rebuild    Rebuild and restart web UI without cache"
 	@echo "  runner-go-build   Build Go Universal Runner binary"
 	@echo "  runner-go-test    Run Go Universal Runner unit tests"
 	@echo "  secrets-init      Create missing local secret files with placeholders"
@@ -73,6 +74,8 @@ help:
 	@echo "  backup-redis      Backup redis into ./backup"
 	@echo "  backup-all        Backup postgres and redis"
 	@echo "  reset-db          Drop and recreate spectrastrike database in dev postgres container"
+	@echo "  demo-seed         Seed SpectraStrike+VectorVue local demo data for ACME+Globex tenants"
+	@echo "  demo-reset        Reset both local demo datasets to clean state"
 	@echo "  security-check    Validate compose configs and local tests"
 	@echo "  license-check     Validate required BSL license headers"
 	@echo "  manifest-schema-regression Validate deterministic manifest schema/hash regression guard"
@@ -104,6 +107,10 @@ secrets-init:
 
 ui-build:
 	$(COMPOSE_DEV) build ui-web
+
+ui-web-rebuild:
+	$(COMPOSE_DEV) build --no-cache ui-web
+	$(COMPOSE_DEV) up -d --force-recreate ui-web
 
 runner-go-build:
 	cd src/runner-go && GOCACHE=/tmp/go-cache go build ./...
@@ -274,6 +281,25 @@ local-federation-up:
 	fi
 	@$(MAKE) -C ../VectorVue local-federation-up
 	docker compose --env-file $(LOCAL_FED_ENV) -f docker-compose.dev.yml -f $(LOCAL_FED_OVERRIDE) up -d --build
+	@echo ""
+	@echo "Local federation is up."
+	@echo "SpectraStrike UI URLs:"
+	@echo "  - https://127.0.0.1:18443"
+	@echo "VectorVue UI URLs:"
+	@echo "  - https://127.0.0.1"
+	@echo ""
+	@echo "Next steps (English):"
+	@echo "  1) Guided tour mode (pre-seeded): run 'make demo-seed' in SpectraStrike."
+	@echo "  2) Open SpectraStrike workflow: https://127.0.0.1:18443/ui/dashboard/workflow"
+	@echo "  3) Click 'Next Demo Step' to run Assisted First-Run demo."
+	@echo "  4) Jump to Nexus and VectorVue from in-app demo links."
+	@echo "  5) To start from zero, run 'make demo-reset' in SpectraStrike."
+	@echo "  6) Open TUI consoles:"
+	@echo "     - SpectraStrike: make open-tui"
+	@echo "     - VectorVue:     make -C ../VectorVue run-tui"
+	@echo "  7) Full guide docs:"
+	@echo "     - SpectraStrike/docs/FIRST_RUN_GUIDED_DEMO.md"
+	@echo "     - VectorVue/docs/FIRST_RUN_GUIDED_DEMO.md"
 
 full-regression: qa security-gate
 
@@ -294,6 +320,26 @@ reset-db:
 	psql -U "$$PGUSER" -d postgres -c "DROP DATABASE IF EXISTS spectrastrike;"; \
 	psql -U "$$PGUSER" -d postgres -c "CREATE DATABASE spectrastrike;"; \
 	'
+
+demo-seed:
+	@if [ "$${SKIP_VECTORVUE_SEED:-0}" != "1" ]; then \
+		echo "Seeding VectorVue tenant datasets (ACME + Globex)..."; \
+		$(MAKE) -C ../VectorVue seed-clients; \
+	fi
+	@echo "Seeding SpectraStrike runtime demo datasets..."
+	@.venv/bin/python scripts/seed_demo_runtime.py
+	@echo "Demo seed complete."
+
+demo-reset:
+	@echo "Resetting SpectraStrike database..."
+	@$(MAKE) reset-db
+	@echo "Resetting SpectraStrike runtime demo stores..."
+	@.venv/bin/python scripts/reset_demo_runtime.py || true
+	@if [ "$${SKIP_VECTORVUE_RESET:-0}" != "1" ]; then \
+		echo "Resetting VectorVue PostgreSQL schema..."; \
+		$(MAKE) -C ../VectorVue pg-reset; \
+	fi
+	@echo "Demo reset complete."
 
 security-check:
 	docker compose -f docker-compose.dev.yml config >/dev/null

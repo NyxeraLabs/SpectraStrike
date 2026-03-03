@@ -1,0 +1,19 @@
+spectrastrike_source,source_field,vectorvue_contract_target,vectorvue_storage_target,notes
+BrokerEnvelope.actor,actor,TelemetryIngestRequest.operator_id,audit_log.username / activity_log.actor,Operator attribution
+BrokerEnvelope.attributes,campaign_id,TelemetryIngestRequest.campaign_id,campaigns.project_id (indirect),Campaign scope key
+BrokerEnvelope.attributes,tenant_id,TelemetryIngestRequest.tenant_id,tenant guard path (gateway/operator map),UUID required by gateway
+BrokerEnvelope.attributes,nonce,TelemetryIngestRequest.nonce,replay guard key store,Replay protection
+BrokerEnvelope.attributes,execution_fingerprint,TelemetryIngestRequest.execution_hash,command_execution_ledger.integrity_hash / relation context,Execution identity hash
+BrokerEnvelope.timestamp,timestamp,TelemetryIngestRequest.timestamp,event temporal metadata,Unix epoch seconds
+_canonical_payload_for_gateway(),payload.event_id,payload.event_id,event/finding metadata.event_id,Correlation key
+_canonical_payload_for_gateway(),payload.event_type,payload.event_type,detection_events.detection_type / action families,Uppercased event type
+_canonical_payload_for_gateway(),payload.severity,payload.severity,detection_events.confidence + alert severity derivations,Normalized lower-case severity
+_canonical_payload_for_gateway(),payload.observed_at,payload.observed_at,detection_events.detected_at / timeline timestamps,ISO-8601 timestamp
+_canonical_payload_for_gateway(),payload.mitre_techniques[],payload.mitre_techniques[],actions.mitre_technique / findings.mitre_id / ttp_execution_metrics.technique_id,ATT&CK technique mapping
+_canonical_payload_for_gateway(),payload.mitre_tactics[],payload.mitre_tactics[],findings.tactic_id / metrics tactic dimensions,ATT&CK tactic mapping
+_canonical_payload_for_gateway(),payload.attributes.asset_ref,payload.attributes.asset_ref,assets.name/address (resolution step),Asset identity from target
+_canonical_payload_for_gateway(),payload.attributes.attestation_measurement_hash,payload.attributes.attestation_measurement_hash,execution attestation evidence chain,Required by execution graph path
+_canonical_payload_for_gateway(),payload.attributes.schema_version,payload.attributes.schema_version,gateway schema policy check,Must match VV_TG_ALLOWED_SCHEMA_VERSION
+_canonical_payload_for_gateway(),payload.attributes.soc2_controls,payload.attributes.soc2_controls,compliance_mappings.requirement_id (derived),Comma-separated control IDs
+_canonical_payload_for_gateway(),payload.attributes.iso27001_annex_a_controls,payload.attributes.iso27001_annex_a_controls,compliance_mappings.requirement_id (derived),Comma-separated control IDs
+_canonical_payload_for_gateway(),payload.attributes.nist_800_53_controls,payload.attributes.nist_800_53_controls,compliance_mappings.requirement_id (derived),Comma-separated control IDs

@@ -511,7 +511,8 @@ class VectorVueClient:
                 last_error = exc
                 if attempt >= attempts:
                     raise VectorVueTransportError(
-                        f"request failed after {attempts} attempts: {exc}"
+                        f"request failed after {attempts} attempts: {exc}",
+                        attempts_used=attempts,
                     ) from exc
                 time.sleep(backoff * (2 ** (attempt - 1)))
                 continue
@@ -521,7 +522,8 @@ class VectorVueClient:
 
             if 300 <= response.status_code < 400:
                 raise VectorVueTransportError(
-                    f"unexpected redirect response {response.status_code} for {path}"
+                    f"unexpected redirect response {response.status_code} for {path}",
+                    attempts_used=attempt,
                 )
 
             if response.status_code in _RETRYABLE_STATUSES and attempt < attempts:
@@ -535,14 +537,27 @@ class VectorVueClient:
                     message=message,
                     status_code=response.status_code,
                     error_code=error_code,
+                    request_id=envelope.request_id,
+                    retry_count=max(0, attempt - 1),
+                    signature_verification_state=self._signature_verification_state(
+                        envelope
+                    ),
                 )
 
+            envelope.retry_count = max(0, attempt - 1)
             return envelope
 
         if last_error:
-            raise VectorVueTransportError(str(last_error)) from last_error
+            raise VectorVueTransportError(str(last_error), attempts_used=attempts) from last_error
 
         raise VectorVueTransportError("request failed without specific error")
+
+    def _signature_verification_state(self, envelope: ResponseEnvelope) -> str:
+        if envelope.verified:
+            return "verified"
+        if envelope.signature:
+            return "present_unverified"
+        return "not_provided"
 
     def _enforce_tls_pin(self, response: Response) -> None:
         pinned = self._config.tls_pinned_cert_sha256

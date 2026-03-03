@@ -168,6 +168,103 @@ SPECTRASTRIKE_WRAPPER_SIGNING_KEY_PATH=/home/xoce/Workspace/VectorVue/deploy/cer
 - `--check-metasploit-rpc` fails by default because RPC host resolves to `metasploit.remote.operator` unless local RPC endpoint credentials/host are configured.
 - `--check-mythic-task` requires `mythic-cli` installed and configured on host.
 
+## Expanded Wrapper E2E Audit (2026-03-03)
+
+### Commands Executed
+
+```bash
+cd /home/xoce/Workspace/SpectraStrike
+make local-federation-up
+
+/usr/bin/zsh -lc 'cd /home/xoce/Workspace/SpectraStrike && \
+SPECTRASTRIKE_WRAPPER_SIGNING_KEY_PATH=/home/xoce/Workspace/VectorVue/deploy/certs/spectrastrike_ed25519.key \
+PYTHONPATH=src:/usr/lib/python3.14/site-packages \
+.venv/bin/python -m pkg.integration.host_integration_smoke \
+--tenant-id 10000000-0000-0000-0000-000000000001 \
+--check-impacket-psexec --check-impacket-wmiexec --check-impacket-smbexec \
+--check-impacket-secretsdump --check-impacket-ntlmrelayx \
+--check-bloodhound-collector --check-nuclei --check-prowler --check-responder \
+--check-gobuster --check-ffuf --check-netcat --check-netexec --check-wget \
+--check-burpsuite --check-amass --check-sqlmap --check-subfinder --check-dnsx \
+--check-scp --check-ssh --check-curl --check-sliver-command --check-vectorvue'
+```
+
+Negative-path verification:
+
+```bash
+/usr/bin/zsh -lc 'cd /home/xoce/Workspace/SpectraStrike && \
+SPECTRASTRIKE_WRAPPER_SIGNING_KEY_PATH=/home/xoce/Workspace/VectorVue/deploy/certs/spectrastrike_ed25519.key \
+PYTHONPATH=src:/usr/lib/python3.14/site-packages \
+.venv/bin/python -m pkg.integration.host_integration_smoke \
+--tenant-id 10000000-0000-0000-0000-000000000001 \
+--check-metasploit-rpc --check-impacket-psexec --check-sliver-command --check-mythic-task --check-vectorvue'
+```
+
+### Results Snapshot
+
+- Expanded dry-run wrappers: all selected wrappers passed binary and command checks.
+- RabbitMQ publication: `rabbitmq_publish_ok=True`.
+- VectorVue bridge statuses: `event=accepted`, `finding=accepted`, `status_poll=accepted`.
+- Aggregate VectorVue flag in this run: `vectorvue_ok=False` (indicates at least one bridge failure while accepted statuses were still recorded for sampled envelopes).
+- Metasploit RPC negative-path: failed with DNS resolution error for `metasploit.remote.operator`.
+- Mythic task remained not exercised in positive path (`mythic-cli` unavailable in host baseline).
+
+### Wrapper Audit Matrix (2026-03-03 Expanded Run)
+
+| Wrapper | Status |
+|---|---|
+| nmap | Pass |
+| metasploit binary probe | Pass |
+| impacket psexec | Pass |
+| impacket wmiexec | Pass |
+| impacket smbexec | Pass |
+| impacket secretsdump | Pass |
+| impacket ntlmrelayx | Pass |
+| bloodhound collector | Pass |
+| nuclei | Pass |
+| prowler | Pass (recoverable probe warning handled) |
+| responder | Pass |
+| gobuster | Pass |
+| ffuf | Pass |
+| netcat | Pass |
+| netexec | Pass |
+| wget | Pass |
+| burpsuite | Pass |
+| amass | Pass |
+| sqlmap | Pass |
+| subfinder | Pass |
+| dnsx | Pass |
+| scp | Pass |
+| ssh | Pass |
+| curl | Pass |
+| sliver command | Pass |
+| vectorvue rabbitmq bridge | Partial (accepted statuses + aggregate false) |
+| metasploit rpc | Fail (DNS endpoint unresolved) |
+| mythic task | Blocked (missing `mythic-cli`) |
+
+### Audit Verdict
+
+- Federation runtime and wrapper execution path are operational for a broad wrapper set on dry-run mode.
+- Full "all wrappers + RPC + Mythic" E2E is not yet green due to external environment dependencies (Metasploit RPC DNS/endpoint and Mythic CLI installation/config).
+- VectorVue acceptance path is active, but `vectorvue_ok=False` in expanded run requires bridge failure-count inspection before declaring complete green status.
+
+## Diagnostic Clarity Upgrade (2026-03-03)
+
+`HOST_SMOKE` output now prints deterministic VectorVue bridge diagnostics whenever failures exist:
+
+- `vectorvue_failed_envelope_ids`
+- `vectorvue_failure_reason_categories`
+- `vectorvue_failure_signature_states`
+- `vectorvue_failure_retry_counts`
+
+This removes ambiguity for `vectorvue_ok=False` outcomes and enables direct audit triage per failed envelope.
+
+### Required Remediation Before Final Green
+
+1. Configure reachable `MSF_RPC_*` endpoint values for local federation runs.
+2. Install and configure `mythic-cli` for the executing host context.
+3. Add explicit bridge diagnostics in smoke output (`bridge_result.failed` and failed envelope ids) to explain `vectorvue_ok=False` cases with accepted status samples.
+
 <!-- NYXERA_BRANDING_FOOTER_START -->
 
 ---

@@ -18,7 +18,13 @@ Sell derived competing products
 
 import { describe, expect, it } from "vitest";
 
-import { authenticateUser, issueSessionToken, isSessionTokenValid, registerUser } from "../../app/lib/auth-store";
+import {
+  authenticateUser,
+  issueSessionToken,
+  isSessionTokenValid,
+  registerUser,
+  validateAuthenticatedRequest,
+} from "../../app/lib/auth-store";
 
 describe("auth-store", () => {
   it("registers and authenticates a user", async () => {
@@ -42,5 +48,27 @@ describe("auth-store", () => {
     expect(issued.accessToken.length).toBeGreaterThan(20);
     expect(isSessionTokenValid(issued.accessToken)).toBe(true);
   });
-});
 
+  it("enforces required role for privileged endpoints", async () => {
+    const username = `rbac_user_${Date.now()}`;
+    const password = "Strong!Password123";
+    const user = await registerUser({
+      username,
+      fullName: "RBAC User",
+      email: `${username}@example.test`,
+      password,
+      acceptedPoliciesAt: new Date().toISOString(),
+    });
+    const issued = issueSessionToken(user.id);
+    const request = new Request("http://localhost/api/actions/runner/kill-all", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${issued.accessToken}`,
+      },
+    });
+
+    const denied = await validateAuthenticatedRequest(request, { requiredAnyRole: ["admin"] });
+    expect(denied.ok).toBe(false);
+    expect(denied.error).toBe("forbidden");
+  });
+});

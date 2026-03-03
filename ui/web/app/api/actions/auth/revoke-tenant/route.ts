@@ -21,6 +21,7 @@ import {
   validateOrigin,
 } from "../../../../lib/request-guards";
 import { validateAuthenticatedRequest } from "../../../../lib/auth-store";
+import { authFailureStatus, logApiAudit } from "../../../../lib/observability";
 
 type RevokeTenantPayload = {
   tenant_id?: string;
@@ -36,9 +37,16 @@ export async function POST(request: Request) {
   if (!isJsonContentType(request)) {
     return Response.json({ error: "unsupported_media_type" }, { status: 415 });
   }
-  const authDecision = await validateAuthenticatedRequest(request);
+  const authDecision = await validateAuthenticatedRequest(request, { requiredAnyRole: ["admin"] });
   if (!authDecision.ok) {
-    const status = authDecision.error === "LEGAL_ACCEPTANCE_REQUIRED" ? 403 : 401;
+    const status = authFailureStatus(authDecision.error);
+    logApiAudit({
+      route: "/api/actions/auth/revoke-tenant",
+      action: "auth_revoke_tenant",
+      status,
+      actor: authDecision.principal?.userId,
+      detail: authDecision.error,
+    });
     return Response.json(
       {
         error: authDecision.error ?? "unauthorized",
@@ -52,6 +60,13 @@ export async function POST(request: Request) {
   if (!payload.tenant_id || payload.tenant_id.length > 128) {
     return Response.json({ error: "invalid tenant_id" }, { status: 400 });
   }
+  logApiAudit({
+    route: "/api/actions/auth/revoke-tenant",
+    action: "auth_revoke_tenant",
+    status: 200,
+    actor: authDecision.principal?.userId,
+    detail: payload.tenant_id,
+  });
   return Response.json(
     {
       status: "completed",

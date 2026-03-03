@@ -24,6 +24,12 @@ from datetime import UTC, datetime
 from typing import Any
 
 from pkg.integration.vectorvue.client import VectorVueClient
+from pkg.integration.vectorvue.exceptions import (
+    VectorVueAPIError,
+    VectorVueSerializationError,
+    VectorVueTransportError,
+)
+from pkg.integration.vectorvue.models import ResponseEnvelope
 from pkg.logging.framework import emit_integrity_audit_event
 from pkg.orchestrator.anti_repudiation import ExecutionIntentLedger
 from pkg.orchestrator.execution_fingerprint import (
@@ -55,6 +61,18 @@ class BridgeDrainResult:
     event_statuses: list[str] = field(default_factory=list)
     finding_statuses: list[str] = field(default_factory=list)
     status_poll_statuses: list[str] = field(default_factory=list)
+    failed_envelope_ids: list[str] = field(default_factory=list)
+    failure_reason_categories: list[str] = field(default_factory=list)
+    failure_signature_verification_states: list[str] = field(default_factory=list)
+    failure_retry_counts: list[int] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class BridgeFailureDetail:
+    envelope_id: str
+    reason_category: str
+    signature_verification_state: str
+    retry_count: int
 
 
 class InMemoryVectorVueBridge:
@@ -100,8 +118,15 @@ class InMemoryVectorVueBridge:
             result.forwarded_findings += 1
             result.finding_statuses.append(response.status)
             result.status_poll_statuses.append(response.status)
-        except Exception:
+        except Exception as exc:
             result.failed += 1
+            detail = _failure_detail_for_exception(envelope=envelope, exc=exc)
+            result.failed_envelope_ids.append(detail.envelope_id)
+            result.failure_reason_categories.append(detail.reason_category)
+            result.failure_signature_verification_states.append(
+                detail.signature_verification_state
+            )
+            result.failure_retry_counts.append(detail.retry_count)
 
     def _validate_replay_nonce(self, payload: dict[str, Any]) -> None:
         nonce = str(payload["nonce"])
@@ -185,8 +210,15 @@ class PikaVectorVueBridge:
                     result.status_poll_statuses.append(response.status)
 
                     channel.basic_ack(delivery_tag=method_frame.delivery_tag)
-                except Exception:
+                except Exception as exc:
                     result.failed += 1
+                    detail = _failure_detail_for_exception(envelope=envelope, exc=exc)
+                    result.failed_envelope_ids.append(detail.envelope_id)
+                    result.failure_reason_categories.append(detail.reason_category)
+                    result.failure_signature_verification_states.append(
+                        detail.signature_verification_state
+                    )
+                    result.failure_retry_counts.append(detail.retry_count)
                     channel.basic_nack(delivery_tag=method_frame.delivery_tag, requeue=False)
         finally:
             connection.close()
@@ -559,3 +591,76 @@ def _enrich_fingerprint_attributes(envelope: BrokerEnvelope) -> dict[str, Any]:
     if not str(enriched.get("nonce", "")).strip():
         enriched["nonce"] = envelope.event_id
     return enriched
+
+
+def _failure_detail_for_exception(
+    *,
+    envelope: BrokerEnvelope,
+    exc: Exception,
+) -> BridgeFailureDetail:
+    message = str(exc).lower()
+    if "fingerprint" in message:
+        return BridgeFailureDetail(
+            envelope_id=envelope.event_id,
+            reason_category="fingerprint_validation",
+            signature_verification_state="unknown",
+            retry_count=0,
+        )
+    if "replay" in message and "nonce" in message:
+        return BridgeFailureDetail(
+            envelope_id=envelope.event_id,
+            reason_category="replay_nonce",
+            signature_verification_state="unknown",
+            retry_count=0,
+        )
+    if isinstance(exc, VectorVueTransportError):
+        attempts_used = exc.attempts_used or 1
+        return BridgeFailureDetail(
+            envelope_id=envelope.event_id,
+            reason_category="transport_error",
+            signature_verification_state="not_provided",
+            retry_count=max(0, attempts_used - 1),
+        )
+    if isinstance(exc, VectorVueAPIError):
+        return BridgeFailureDetail(
+            envelope_id=envelope.event_id,
+            reason_category="api_error",
+            signature_verification_state=exc.signature_verification_state,
+            retry_count=max(0, exc.retry_count),
+        )
+    if isinstance(exc, VectorVueSerializationError):
+        return BridgeFailureDetail(
+            envelope_id=envelope.event_id,
+            reason_category="serialization_error",
+            signature_verification_state="unknown",
+            retry_count=0,
+        )
+    if isinstance(exc, RuntimeError):
+        return BridgeFailureDetail(
+            envelope_id=envelope.event_id,
+            reason_category="runtime_error",
+            signature_verification_state="unknown",
+            retry_count=0,
+        )
+    response = getattr(exc, "response_envelope", None)
+    if isinstance(response, ResponseEnvelope):
+        return BridgeFailureDetail(
+            envelope_id=envelope.event_id,
+            reason_category="unknown_error",
+            signature_verification_state=_signature_verification_state(response),
+            retry_count=max(0, response.retry_count),
+        )
+    return BridgeFailureDetail(
+        envelope_id=envelope.event_id,
+        reason_category="unknown_error",
+        signature_verification_state="unknown",
+        retry_count=0,
+    )
+
+
+def _signature_verification_state(envelope: ResponseEnvelope) -> str:
+    if envelope.verified:
+        return "verified"
+    if envelope.signature:
+        return "present_unverified"
+    return "not_provided"

@@ -21,6 +21,7 @@ import {
   validateOrigin,
 } from "../../../lib/request-guards";
 import { validateAuthenticatedRequest } from "../../../lib/auth-store";
+import { upsertRuntimeTask } from "../../../lib/execution-runtime-store";
 import { proxyToOrchestrator } from "../../../lib/orchestrator-proxy";
 
 type TaskActionPayload = {
@@ -89,15 +90,26 @@ export async function POST(request: Request) {
 
   if (upstream) {
     const body = await upstream.json();
+    if (upstream.ok && body?.task_id) {
+      upsertRuntimeTask({
+        task_id: String(body.task_id),
+        tool: normalizedPayload.tool,
+        target: normalizedPayload.target,
+        status: "queued",
+        retry_count: Number(body.retry_count ?? 0),
+      });
+    }
     return Response.json(body, { status: upstream.status });
   }
 
-  return Response.json(
-    {
-      task_id: `mock-${Date.now()}`,
-      status: "queued",
-      mode: "ui-local-fallback",
-    },
-    { status: 202 }
-  );
+  const taskId = `local-${Date.now()}`;
+  upsertRuntimeTask({
+    task_id: taskId,
+    tool: normalizedPayload.tool,
+    target: normalizedPayload.target,
+    status: "queued",
+    retry_count: 0,
+  });
+
+  return Response.json({ task_id: taskId, status: "queued", mode: "ui-local-fallback" }, { status: 202 });
 }

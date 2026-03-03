@@ -149,6 +149,12 @@ class HostIntegrationResult:
     vectorvue_event_status: str | None = None
     vectorvue_finding_status: str | None = None
     vectorvue_status_poll_status: str | None = None
+    vectorvue_failed_envelope_ids: list[str] = field(default_factory=list)
+    vectorvue_failure_reason_categories: list[str] = field(default_factory=list)
+    vectorvue_failure_signature_verification_states: list[str] = field(
+        default_factory=list
+    )
+    vectorvue_failure_retry_counts: list[int] = field(default_factory=list)
     checks: list[str] = field(default_factory=list)
 
 
@@ -176,6 +182,12 @@ def _run_command(command: list[str], timeout_seconds: float) -> str:
 def _require_binary(name: str) -> None:
     if shutil.which(name) is None:
         raise HostIntegrationError(f"required binary not found on host: {name}")
+
+
+def _format_csv(values: list[str | int]) -> str:
+    if not values:
+        return "none"
+    return ",".join(str(value) for value in values)
 
 
 def _load_local_federation_env() -> None:
@@ -1835,6 +1847,14 @@ def run_host_integration_smoke(
             if bridge_result.status_poll_statuses
             else None
         )
+        result.vectorvue_failed_envelope_ids = list(bridge_result.failed_envelope_ids)
+        result.vectorvue_failure_reason_categories = list(
+            bridge_result.failure_reason_categories
+        )
+        result.vectorvue_failure_signature_verification_states = list(
+            bridge_result.failure_signature_verification_states
+        )
+        result.vectorvue_failure_retry_counts = list(bridge_result.failure_retry_counts)
         result.vectorvue_ok = (
             bool(result.rabbitmq_publish_ok)
             and bridge_result.failed == 0
@@ -2235,6 +2255,10 @@ def main() -> int:
         f" vectorvue_event_status={result.vectorvue_event_status}"
         f" vectorvue_finding_status={result.vectorvue_finding_status}"
         f" vectorvue_status_poll_status={result.vectorvue_status_poll_status}"
+        f" vectorvue_failed_envelope_ids={_format_csv(result.vectorvue_failed_envelope_ids)}"
+        f" vectorvue_failure_reason_categories={_format_csv(result.vectorvue_failure_reason_categories)}"
+        f" vectorvue_failure_signature_states={_format_csv(result.vectorvue_failure_signature_verification_states)}"
+        f" vectorvue_failure_retry_counts={_format_csv(result.vectorvue_failure_retry_counts)}"
         f" checks={','.join(result.checks)}"
     )
     return 0

@@ -1339,6 +1339,10 @@ class _FakeBridgeResult:
     event_statuses: list[str]
     finding_statuses: list[str]
     status_poll_statuses: list[str]
+    failed_envelope_ids: list[str]
+    failure_reason_categories: list[str]
+    failure_signature_verification_states: list[str]
+    failure_retry_counts: list[int]
 
 
 class _FakeVectorVueClient:
@@ -1371,6 +1375,10 @@ class _FakeBridgeOK:
             event_statuses=["accepted"],
             finding_statuses=["accepted"],
             status_poll_statuses=["accepted"],
+            failed_envelope_ids=[],
+            failure_reason_categories=[],
+            failure_signature_verification_states=[],
+            failure_retry_counts=[],
         )
 
 
@@ -1392,10 +1400,14 @@ class _FakeBridgeFailure:
             consumed=1,
             forwarded_events=1,
             forwarded_findings=1,
-            failed=0,
+            failed=1,
             event_statuses=["accepted"],
             finding_statuses=["rejected"],
             status_poll_statuses=["accepted"],
+            failed_envelope_ids=["evt-failed-1"],
+            failure_reason_categories=["api_error"],
+            failure_signature_verification_states=["not_provided"],
+            failure_retry_counts=[1],
         )
 
 
@@ -1735,6 +1747,10 @@ def test_host_smoke_vectorvue_failure_marks_not_ok(
     assert result.vectorvue_event_status == "accepted"
     assert result.vectorvue_finding_status == "rejected"
     assert result.vectorvue_status_poll_status == "accepted"
+    assert result.vectorvue_failed_envelope_ids == ["evt-failed-1"]
+    assert result.vectorvue_failure_reason_categories == ["api_error"]
+    assert result.vectorvue_failure_signature_verification_states == ["not_provided"]
+    assert result.vectorvue_failure_retry_counts == [1]
 
 
 def test_host_smoke_impacket_wmiexec_live_requires_credentials(

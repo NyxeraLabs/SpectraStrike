@@ -35,6 +35,7 @@ class ResponseEnvelope:
     signature_algorithm: str | None = None
     schema_version: str | None = None
     verified: bool = False
+    retry_count: int = 0
     http_status: int = 0
     headers: dict[str, str] = field(default_factory=dict)
 

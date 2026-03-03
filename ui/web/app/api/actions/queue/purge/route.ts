@@ -21,6 +21,7 @@ import {
   validateOrigin,
 } from "../../../../lib/request-guards";
 import { validateAuthenticatedRequest } from "../../../../lib/auth-store";
+import { authFailureStatus, logApiAudit } from "../../../../lib/observability";
 
 type QueuePurgePayload = {
   queue?: string;
@@ -36,9 +37,16 @@ export async function POST(request: Request) {
   if (!isJsonContentType(request)) {
     return Response.json({ error: "unsupported_media_type" }, { status: 415 });
   }
-  const authDecision = await validateAuthenticatedRequest(request);
+  const authDecision = await validateAuthenticatedRequest(request, { requiredAnyRole: ["admin"] });
   if (!authDecision.ok) {
-    const status = authDecision.error === "LEGAL_ACCEPTANCE_REQUIRED" ? 403 : 401;
+    const status = authFailureStatus(authDecision.error);
+    logApiAudit({
+      route: "/api/actions/queue/purge",
+      action: "queue_purge",
+      status,
+      actor: authDecision.principal?.userId,
+      detail: authDecision.error,
+    });
     return Response.json(
       {
         error: authDecision.error ?? "unauthorized",
@@ -49,6 +57,13 @@ export async function POST(request: Request) {
   }
 
   const payload = (await request.json()) as QueuePurgePayload;
+  logApiAudit({
+    route: "/api/actions/queue/purge",
+    action: "queue_purge",
+    status: 200,
+    actor: authDecision.principal?.userId,
+    detail: payload.queue ?? "telemetry.events",
+  });
   return Response.json(
     {
       status: "completed",
