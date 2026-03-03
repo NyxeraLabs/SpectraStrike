@@ -29,3 +29,7 @@
 ## Addendum - 2026-03-03 CI/license stabilization
 - No telemetry contract or ingestion changes.
 - CI fixes were limited to license headers and validation coverage.
+
+## Addendum - 2026-03-03 federation UX + portal typing fix
+- No telemetry contract or ingestion changes.
+- Changes were limited to Makefile UX output and portal TypeScript declaration resolution.

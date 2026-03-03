@@ -23,3 +23,7 @@ Execute hardening-focused improvements covering RBAC, observability, DB/index pe
 - Addressed cross-repo CI failures triggered by license-header enforcement checks.
 - Applied required BSL header markers in flagged SpectraStrike and VectorVue files.
 - Revalidated both header-gate scripts and targeted unit suites after updates.
+
+## Addendum - 2026-03-03 federation UX + portal typing fix
+- Improved federation startup UX by printing final UI URLs directly at the end of local federation bootstrap targets.
+- Added explicit `.mjs` declaration compatibility for portal analytics/nexus imports to unblock Next.js type-check in CI.

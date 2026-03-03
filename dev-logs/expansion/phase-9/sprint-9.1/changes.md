@@ -90,7 +90,21 @@
 - `SpectraStrike/docs/ROADMAP_EXPANSION.md`
   - Marked `chore: cross-repo license header CI stabilization` as done under Sprint 58.
 
+- `SpectraStrike/Makefile`
+  - Added explicit UI URL output at the end of `local-federation-up` for operator visibility.
+
+- `VectorVue/Makefile`
+  - Added explicit UI URL output at the end of `local-federation-up`, including SpectraStrike URLs when both stacks run.
+
+- `VectorVue/portal/lib/intelligence-metrics.mjs.d.ts`
+- `VectorVue/portal/lib/nexus-context.mjs.d.ts`
+  - Added `.mjs` declaration bridge files so Next.js/TypeScript can resolve extension-based imports from TSX pages during CI builds.
+
+- `SpectraStrike/docs/ROADMAP_EXPANSION.md`
+  - Marked `chore: federation startup URL output + portal mjs typing compatibility` as done under Sprint 58.
+
 ## Reason for each change
 - Implement all Sprint 58 hardening commitments with practical runtime safeguards, measurable validation tooling, and backward-compatible DB improvements.
 - Convert ambiguous VectorVue bridge outcomes into machine-parseable audit evidence for E2E verification.
 - Remove current CI workflow blockers on both repos by meeting license-header gate requirements.
+- Improve operator feedback during local federation startup and address portal build typing failure for `.mjs` imports.

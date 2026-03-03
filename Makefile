@@ -274,6 +274,14 @@ local-federation-up:
 	fi
 	@$(MAKE) -C ../VectorVue local-federation-up
 	docker compose --env-file $(LOCAL_FED_ENV) -f docker-compose.dev.yml -f $(LOCAL_FED_OVERRIDE) up -d --build
+	@echo ""
+	@echo "Local federation is up."
+	@echo "SpectraStrike UI URLs:"
+	@echo "  - http://127.0.0.1:18080"
+	@echo "  - https://127.0.0.1:18443"
+	@echo "VectorVue UI URLs:"
+	@echo "  - http://127.0.0.1"
+	@echo "  - https://127.0.0.1"
 
 full-regression: qa security-gate
 

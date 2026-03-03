@@ -22,3 +22,4 @@
 ## Addendum - 2026-03-03
 - No additional DB schema changes were introduced by the VectorVue bridge diagnostic hardening task.
 - No DB schema changes were introduced by CI/license stabilization updates.
+- No DB schema changes were introduced by federation UX or portal typing compatibility updates.

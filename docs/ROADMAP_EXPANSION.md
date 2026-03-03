@@ -444,6 +444,7 @@ Modern, enterprise-grade UX maturity.
 * [x] chore: logging & observability refinement
 * [x] feat: VectorVue bridge failure diagnostics for E2E audit clarity
 * [x] chore: cross-repo license header CI stabilization
+* [x] chore: federation startup URL output + portal mjs typing compatibility
 * [x] test: full integration test suite
 
 ---
