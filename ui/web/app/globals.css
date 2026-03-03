@@ -20,6 +20,24 @@
   --text-muted: #94a3b8;
 }
 
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg-primary: #f2f5fb;
+  --surface: #ffffff;
+  --surface-elevated: #e7ebf6;
+  --border-subtle: #c8d1e8;
+  --accent-primary: #3556d6;
+  --accent-hover: #2849ca;
+  --accent-focus: #7590f8;
+  --telemetry: #0a7db3;
+  --success: #138a4b;
+  --warning: #bc7a00;
+  --critical: #d72c2f;
+  --info: #215fd3;
+  --text-primary: #1d2a44;
+  --text-muted: #4e5f84;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -32,6 +50,11 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--accent-focus);
+  outline-offset: 2px;
 }
 
 .spectra-panel {
@@ -65,4 +88,15 @@ body {
 .spectra-mono {
   font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     "Courier New", monospace;
+}
+
+.responsive-shell {
+  width: 100%;
+  padding-inline: clamp(0.5rem, 2vw, 1.5rem);
+}
+
+@media (max-width: 768px) {
+  .responsive-shell {
+    padding-inline: 0.5rem;
+  }
 }

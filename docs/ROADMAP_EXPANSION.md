@@ -416,16 +416,16 @@ Modern, enterprise-grade UX maturity.
 
 ### Commits
 
-* [ ] feat(global-ui): design system tokens (colors, spacing, typography)
-* [ ] feat(global-ui): responsive layout framework
-* [ ] feat(global-ui): global notification & feedback system
-* [ ] feat(global-ui): role-based UI rendering (Red Team / Blue Team / Exec / Auditor)
-* [ ] feat(global-ui): real-time system health indicators
-* [ ] feat(global-ui): keyboard shortcuts & power-user mode
-* [ ] feat(global-ui): theme system (dark/light enterprise)
-* [ ] feat(global-ui): persistent workspace state recovery
-* [ ] test(global-ui): accessibility validation (WCAG)
-* [ ] test(global-ui): rendering performance benchmark
+* [x] feat(global-ui): design system tokens (colors, spacing, typography)
+* [x] feat(global-ui): responsive layout framework
+* [x] feat(global-ui): global notification & feedback system
+* [x] feat(global-ui): role-based UI rendering (Red Team / Blue Team / Exec / Auditor)
+* [x] feat(global-ui): real-time system health indicators
+* [x] feat(global-ui): keyboard shortcuts & power-user mode
+* [x] feat(global-ui): theme system (dark/light enterprise)
+* [x] feat(global-ui): persistent workspace state recovery
+* [x] test(global-ui): accessibility validation (WCAG)
+* [x] test(global-ui): rendering performance benchmark
 
 ---
 
