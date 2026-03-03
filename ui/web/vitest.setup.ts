@@ -33,3 +33,13 @@ vi.mock("next/link", () => ({
     createElement("a", { ...rest, href }, children)
   ),
 }));
+
+class ResizeObserverMock {
+  observe() {}
+
+  unobserve() {}
+
+  disconnect() {}
+}
+
+vi.stubGlobal("ResizeObserver", ResizeObserverMock);

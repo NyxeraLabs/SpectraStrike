@@ -15,8 +15,11 @@ Sell derived competing products
 */
 
 import {
+  dequeueNode,
+  enqueueNode,
   defaultWorkflowGraph,
   executionOverlayByNode,
+  reorderQueue,
   reorderNodes,
   simulateConcurrentExecutionStates,
 } from "../../app/lib/workflow-graph";
@@ -34,5 +37,15 @@ describe("Workflow graph execution state validation", () => {
     expect(Object.keys(overlay).length).toBe(reordered.length);
     expect(overlay[reordered[0].id]).toBeDefined();
   });
-});
 
+  it("supports queue add/remove/reorder operations", () => {
+    const queue = enqueueNode([], "n1");
+    expect(queue).toEqual(["n1"]);
+    const withSecond = enqueueNode(queue, "n2");
+    expect(withSecond).toEqual(["n1", "n2"]);
+    const reordered = reorderQueue(withSecond, "n2", "n1");
+    expect(reordered).toEqual(["n2", "n1"]);
+    const removed = dequeueNode(reordered, "n2");
+    expect(removed).toEqual(["n1"]);
+  });
+});
