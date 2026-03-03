@@ -14,8 +14,8 @@ Offer as a commercial service
 Sell derived competing products
 */
 
-const DEFAULT_NEXUS_URL = "https://localhost:3001";
-const DEFAULT_VECTORVUE_URL = "https://localhost:3002";
+const DEFAULT_NEXUS_URL = "https://127.0.0.1:18443";
+const DEFAULT_VECTORVUE_URL = "https://127.0.0.1";
 
 function clean(value: string | undefined): string {
   return String(value ?? "").trim();
@@ -31,6 +31,14 @@ function resolveEnv(name: string): string {
 function warnMissing(name: string, fallback: string): void {
   // Keep warning explicit so operators can spot misconfigured cross-plane routing quickly.
   console.warn(`[cross-app-links] Missing env ${name}. Falling back to ${fallback}`);
+}
+
+function browserFallback(fallback: string, port: string | null): string {
+  if (typeof window === "undefined") return fallback;
+  const host = window.location.hostname;
+  if (!host) return fallback;
+  const suffix = port ? `:${port}` : "";
+  return `https://${host}${suffix}`;
 }
 
 function enforceHttps(name: string, value: string): string {
@@ -53,8 +61,9 @@ export function getNexusUrl(): string {
     resolveEnv("NEXT_PUBLIC_NEXUS_URL") ||
     resolveEnv("UI_NEXUS_BASE_URL");
   if (configured) return enforceHttps("VITE_NEXUS_URL", configured);
-  warnMissing("VITE_NEXUS_URL", DEFAULT_NEXUS_URL);
-  return DEFAULT_NEXUS_URL;
+  const fallback = browserFallback(DEFAULT_NEXUS_URL, "18443");
+  warnMissing("VITE_NEXUS_URL", fallback);
+  return fallback;
 }
 
 export function getVectorVueUrl(): string {
@@ -63,6 +72,7 @@ export function getVectorVueUrl(): string {
     resolveEnv("NEXT_PUBLIC_VECTORVUE_URL") ||
     resolveEnv("UI_VECTORVUE_BASE_URL");
   if (configured) return enforceHttps("VITE_VECTORVUE_URL", configured);
-  warnMissing("VITE_VECTORVUE_URL", DEFAULT_VECTORVUE_URL);
-  return DEFAULT_VECTORVUE_URL;
+  const fallback = browserFallback(DEFAULT_VECTORVUE_URL, null);
+  warnMissing("VITE_VECTORVUE_URL", fallback);
+  return fallback;
 }

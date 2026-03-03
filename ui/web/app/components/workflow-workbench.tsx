@@ -95,6 +95,7 @@ export function WorkflowWorkbench() {
 
   const [edgeSource, setEdgeSource] = useState<string>("");
   const [edgeTarget, setEdgeTarget] = useState<string>("");
+  const [canvasFullscreen, setCanvasFullscreen] = useState(false);
 
   const nodesRef = useRef<FlowNode[]>(nodes);
   useEffect(() => {
@@ -306,8 +307,17 @@ export function WorkflowWorkbench() {
       ) : null}
 
       <article className="spectra-panel p-5">
-        <h2 className="text-sm uppercase tracking-[0.2em] text-telemetry">Node-Link Execution Canvas</h2>
-        <div className="mt-4 h-[300px] w-full overflow-hidden rounded-lg border border-borderSubtle bg-slate-950/70 p-2">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm uppercase tracking-[0.2em] text-telemetry">Node-Link Execution Canvas</h2>
+          <button
+            type="button"
+            className="spectra-button-secondary px-3 py-1.5 text-xs"
+            onClick={() => setCanvasFullscreen((current) => !current)}
+          >
+            {canvasFullscreen ? "Exit Full Screen" : "Full Screen"}
+          </button>
+        </div>
+        <div className={`relative mt-4 w-full overflow-hidden rounded-lg border border-borderSubtle bg-slate-950/70 p-2 ${canvasFullscreen ? "fixed inset-4 z-50 h-[calc(100vh-2rem)]" : "h-[500px]"}`}>
           <ReactFlow
             nodes={renderedNodes as Node[]}
             edges={renderedEdges as Edge[]}
@@ -320,6 +330,15 @@ export function WorkflowWorkbench() {
             <Controls />
             <Background />
           </ReactFlow>
+          {canvasFullscreen ? (
+            <button
+              type="button"
+              className="spectra-button-secondary absolute right-4 top-4 z-10 px-3 py-1.5 text-xs"
+              onClick={() => setCanvasFullscreen(false)}
+            >
+              Close
+            </button>
+          ) : null}
         </div>
       </article>
 
