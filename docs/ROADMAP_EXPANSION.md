@@ -101,16 +101,16 @@
 
 ### Commits
 
-* [ ] feat: TechniqueCoverage model
-* [ ] feat: detection presence flag
-* [ ] feat: detection latency calculation logic
-* [ ] feat: alert quality weight scoring
-* [ ] feat: false negative tracking
-* [ ] feat: response observed flag
-* [ ] feat: containment observed flag
-* [ ] feat: technique confidence scoring formula
-* [ ] feat: technique maturity index
-* [ ] test: scoring regression tests
+* [x] feat: TechniqueCoverage model
+* [x] feat: detection presence flag
+* [x] feat: detection latency calculation logic
+* [x] feat: alert quality weight scoring
+* [x] feat: false negative tracking
+* [x] feat: response observed flag
+* [x] feat: containment observed flag
+* [x] feat: technique confidence scoring formula
+* [x] feat: technique maturity index
+* [x] test: scoring regression tests
 
 ---
 
