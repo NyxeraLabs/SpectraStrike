@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from pkg.integration.vectorvue.exceptions import VectorVueTransportError
 from pkg.integration.vectorvue.models import ResponseEnvelope
 from pkg.integration.vectorvue.rabbitmq_bridge import InMemoryVectorVueBridge
 from pkg.orchestrator.messaging import (
@@ -128,6 +129,10 @@ def test_inmemory_bridge_drains_and_forwards_event_and_finding() -> None:
     assert result.event_statuses == ["accepted"]
     assert result.finding_statuses == ["accepted"]
     assert result.status_poll_statuses == ["accepted"]
+    assert result.failed_envelope_ids == []
+    assert result.failure_reason_categories == []
+    assert result.failure_signature_verification_states == []
+    assert result.failure_retry_counts == []
     assert client.last_federated_idempotency_key is not None
     assert len(client.last_federated_idempotency_key) == 64
     assert client.last_federated_payload is not None
@@ -226,6 +231,37 @@ def test_inmemory_bridge_records_failure_on_api_error() -> None:
     assert result.forwarded_events == 0
     assert result.forwarded_findings == 0
     assert result.failed == 1
+    assert result.failed_envelope_ids == ["evt-1"]
+    assert result.failure_reason_categories == ["runtime_error"]
+    assert result.failure_signature_verification_states == ["unknown"]
+    assert result.failure_retry_counts == [0]
+
+
+def test_inmemory_bridge_records_transport_retry_diagnostics() -> None:
+    broker = InMemoryRabbitBroker()
+    _publish_sample_envelope(broker)
+
+    class _TransportBrokenClient(_FakeVectorVueClient):
+        def send_federated_telemetry(
+            self,
+            _payload: dict[str, object],
+            idempotency_key: str | None = None,
+        ) -> ResponseEnvelope:
+            raise VectorVueTransportError("request failed", attempts_used=3)
+
+    bridge = InMemoryVectorVueBridge(
+        broker=broker,
+        client=_TransportBrokenClient(),
+        emit_findings_for_all=True,
+    )
+
+    result = bridge.drain(limit=10)
+
+    assert result.failed == 1
+    assert result.failed_envelope_ids == ["evt-1"]
+    assert result.failure_reason_categories == ["transport_error"]
+    assert result.failure_signature_verification_states == ["not_provided"]
+    assert result.failure_retry_counts == [2]
 
 
 def test_inmemory_bridge_rejects_fingerprint_mismatch() -> None:
@@ -260,6 +296,10 @@ def test_inmemory_bridge_rejects_fingerprint_mismatch() -> None:
     )
     result = bridge.drain(limit=10)
     assert result.failed == 1
+    assert result.failed_envelope_ids == ["evt-1"]
+    assert result.failure_reason_categories == ["fingerprint_validation"]
+    assert result.failure_signature_verification_states == ["unknown"]
+    assert result.failure_retry_counts == [0]
 
 
 def test_inmemory_bridge_rejects_replayed_nonce() -> None:
@@ -293,3 +333,7 @@ def test_inmemory_bridge_rejects_replayed_nonce() -> None:
     assert result.consumed == 2
     assert result.forwarded_events == 1
     assert result.failed == 1
+    assert result.failed_envelope_ids == ["evt-1-replay"]
+    assert result.failure_reason_categories == ["replay_nonce"]
+    assert result.failure_signature_verification_states == ["unknown"]
+    assert result.failure_retry_counts == [0]

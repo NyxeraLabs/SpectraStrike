@@ -13,3 +13,8 @@ Execute hardening-focused improvements covering RBAC, observability, DB/index pe
 - RBAC restrictions can block legacy operator flows if roles are not provisioned; bootstrap default now includes admin for safety.
 - Added indexes are guarded but still require migration rollout discipline per environment.
 - Load/stress scripts require running API environment and valid tenant credentials to produce meaningful data.
+
+## Addendum - 2026-03-03 VectorVue E2E clarity hardening
+- Hardened host integration smoke observability to eliminate ambiguous `vectorvue_ok=False` outcomes.
+- Bridge diagnostics now emit failed envelope IDs, failure categories, signature verification states, and retry counts per failed envelope.
+- This adds deterministic audit evidence without changing federation payload contracts.

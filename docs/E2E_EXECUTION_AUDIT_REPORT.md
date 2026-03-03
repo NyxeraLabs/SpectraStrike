@@ -248,6 +248,17 @@ PYTHONPATH=src:/usr/lib/python3.14/site-packages \
 - Full "all wrappers + RPC + Mythic" E2E is not yet green due to external environment dependencies (Metasploit RPC DNS/endpoint and Mythic CLI installation/config).
 - VectorVue acceptance path is active, but `vectorvue_ok=False` in expanded run requires bridge failure-count inspection before declaring complete green status.
 
+## Diagnostic Clarity Upgrade (2026-03-03)
+
+`HOST_SMOKE` output now prints deterministic VectorVue bridge diagnostics whenever failures exist:
+
+- `vectorvue_failed_envelope_ids`
+- `vectorvue_failure_reason_categories`
+- `vectorvue_failure_signature_states`
+- `vectorvue_failure_retry_counts`
+
+This removes ambiguity for `vectorvue_ok=False` outcomes and enables direct audit triage per failed envelope.
+
 ### Required Remediation Before Final Green
 
 1. Configure reachable `MSF_RPC_*` endpoint values for local federation runs.

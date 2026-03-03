@@ -40,5 +40,31 @@
 - `SpectraStrike/docs/ROADMAP_EXPANSION.md`
   - Marked Sprint 58 checklist as complete.
 
+- `SpectraStrike/src/pkg/integration/vectorvue/exceptions.py`
+  - Extended VectorVue transport/API exceptions with retry and request/signature context fields for downstream diagnostics.
+
+- `SpectraStrike/src/pkg/integration/vectorvue/models.py`
+  - Added `retry_count` to `ResponseEnvelope` for surfaced request retry observability.
+
+- `SpectraStrike/src/pkg/integration/vectorvue/client.py`
+  - Populated per-request retry count on envelopes and propagated retry/signature-state context into API/transport exceptions.
+
+- `SpectraStrike/src/pkg/integration/vectorvue/rabbitmq_bridge.py`
+  - Extended bridge drain result with failure diagnostics lists (envelope IDs, reason categories, signature states, retry counts).
+  - Added failure categorization logic (`transport_error`, `api_error`, `fingerprint_validation`, `replay_nonce`, etc.).
+
+- `SpectraStrike/src/pkg/integration/host_integration_smoke.py`
+  - Added VectorVue failure diagnostic fields to smoke result and printed them in `HOST_SMOKE` output.
+
+- `SpectraStrike/tests/unit/integration/test_vectorvue_rabbitmq_bridge.py`
+  - Added assertions for failure diagnostics and transport retry classification.
+
+- `SpectraStrike/tests/unit/test_host_integration_smoke.py`
+  - Added assertions that smoke result carries and exposes failed envelope diagnostics.
+
+- `SpectraStrike/docs/ROADMAP_EXPANSION.md`
+  - Marked `feat: VectorVue bridge failure diagnostics for E2E audit clarity` as done under Sprint 58.
+
 ## Reason for each change
 - Implement all Sprint 58 hardening commitments with practical runtime safeguards, measurable validation tooling, and backward-compatible DB improvements.
+- Convert ambiguous VectorVue bridge outcomes into machine-parseable audit evidence for E2E verification.

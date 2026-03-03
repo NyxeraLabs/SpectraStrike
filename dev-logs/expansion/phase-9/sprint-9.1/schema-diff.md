@@ -18,3 +18,6 @@
 - Migration is backward-compatible and guarded through `information_schema` checks.
 - Apply with existing SQL migration runner (`scripts/apply_pg_sql.py`) against PostgreSQL environments.
 - No destructive schema changes; indexes only.
+
+## Addendum - 2026-03-03
+- No additional DB schema changes were introduced by the VectorVue bridge diagnostic hardening task.
