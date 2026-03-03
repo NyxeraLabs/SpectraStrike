@@ -97,6 +97,19 @@ export function WorkflowWorkbench() {
   const [edgeTarget, setEdgeTarget] = useState<string>("");
   const [canvasFullscreen, setCanvasFullscreen] = useState(false);
 
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const previous = document.body.style.overflow;
+    if (canvasFullscreen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = previous || "";
+    }
+    return () => {
+      document.body.style.overflow = previous || "";
+    };
+  }, [canvasFullscreen]);
+
   const nodesRef = useRef<FlowNode[]>(nodes);
   useEffect(() => {
     nodesRef.current = nodes;
@@ -317,7 +330,7 @@ export function WorkflowWorkbench() {
             {canvasFullscreen ? "Exit Full Screen" : "Full Screen"}
           </button>
         </div>
-        <div className={`relative mt-4 w-full overflow-hidden rounded-lg border border-borderSubtle bg-slate-950/70 p-2 ${canvasFullscreen ? "fixed inset-4 z-50 h-[calc(100vh-2rem)]" : "h-[500px]"}`}>
+        <div className={`relative mt-4 w-full overflow-hidden rounded-lg border border-borderSubtle bg-slate-950/70 p-2 ${canvasFullscreen ? "fixed inset-0 z-[110] h-screen w-screen rounded-none border-none p-4" : "h-[500px]"}`}>
           <ReactFlow
             nodes={renderedNodes as Node[]}
             edges={renderedEdges as Edge[]}
