@@ -50,16 +50,16 @@
 
 ### Commits
 
-* [ ] feat: Campaign table
-* [ ] feat: Campaign configuration model
-* [ ] feat: Campaign scheduling support
-* [ ] feat: Campaign status tracking
-* [ ] feat: CampaignStep table
-* [ ] feat: TechniqueExecution table
-* [ ] feat: execution start/stop timestamps
-* [ ] feat: execution failure reason tracking
-* [ ] feat: cross-asset execution correlation
-* [ ] test: campaign lifecycle tests
+* [x] feat: Campaign table
+* [x] feat: Campaign configuration model
+* [x] feat: Campaign scheduling support
+* [x] feat: Campaign status tracking
+* [x] feat: CampaignStep table
+* [x] feat: TechniqueExecution table
+* [x] feat: execution start/stop timestamps
+* [x] feat: execution failure reason tracking
+* [x] feat: cross-asset execution correlation
+* [x] test: campaign lifecycle tests
 
 ---
 
