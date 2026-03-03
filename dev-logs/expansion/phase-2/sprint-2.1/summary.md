@@ -13,3 +13,8 @@
   - Mitigation: explicit typed relational contracts and sync summary enable straightforward persistence adapter in a later sprint.
 - Default tactic inference is heuristic for techniques without metadata.
   - Mitigation: metadata file can override/expand mappings during import.
+
+## Alignment verification update
+- Performed direct alignment check against `VectorVue/mitre_reference.txt`.
+- Confirmed imported ID set equals reference ID set exactly (`216` techniques + `475` sub-techniques = `691` entries).
+- Added regression test to enforce this alignment continuously.

@@ -31,3 +31,7 @@
 
 ## Reason for each change
 - Deliver Sprint 40 ATT&CK relational backbone and import/sync validation requirements end-to-end.
+
+### `VectorVue/tests/unit/test_phase2_sprint21_attack_backbone.py` (alignment hardening)
+- Added `test_real_reference_file_alignment_is_complete` to validate import covers every ATT&CK ID in `VectorVue/mitre_reference.txt`.
+- Added helper to extract expected IDs from canonical reference file.
