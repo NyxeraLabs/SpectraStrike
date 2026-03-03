@@ -189,12 +189,12 @@
 
 ### Commits
 
-* [ ] feat: exposure-to-technique mapping engine
-* [ ] feat: initial access probability scoring
-* [ ] feat: automated attack path builder
-* [ ] feat: AttackSurfaceRisk composite index
-* [ ] feat: ASM-driven campaign suggestion engine
-* [ ] test: adversary path auto-generation tests
+* [x] feat: exposure-to-technique mapping engine
+* [x] feat: initial access probability scoring
+* [x] feat: automated attack path builder
+* [x] feat: AttackSurfaceRisk composite index
+* [x] feat: ASM-driven campaign suggestion engine
+* [x] test: adversary path auto-generation tests
 
 ---
 
