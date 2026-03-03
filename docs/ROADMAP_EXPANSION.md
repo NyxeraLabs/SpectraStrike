@@ -220,14 +220,14 @@
 
 ### Commits
 
-* [ ] feat: AttackPath table
-* [ ] feat: TechniqueLink edge table
-* [ ] feat: graph traversal engine
-* [ ] feat: privilege escalation path modeling
-* [ ] feat: lateral movement path modeling
-* [ ] feat: identity compromise chain modeling
-* [ ] feat: full campaign graph reconstruction logic
-* [ ] test: graph reconstruction validation
+* [x] feat: AttackPath table
+* [x] feat: TechniqueLink edge table
+* [x] feat: graph traversal engine
+* [x] feat: privilege escalation path modeling
+* [x] feat: lateral movement path modeling
+* [x] feat: identity compromise chain modeling
+* [x] feat: full campaign graph reconstruction logic
+* [x] test: graph reconstruction validation
 
 ---
 

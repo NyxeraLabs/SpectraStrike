@@ -657,6 +657,42 @@ class CampaignEngine:
                 key=lambda row: row.occurred_at,
             )
 
+    def list_campaign_identities(self, *, campaign_id: str) -> list[IdentityRecord]:
+        """List identities tracked for one campaign."""
+        with self._lock:
+            rows = [
+                item
+                for item in self._identity_table.values()
+                if item.campaign_id == campaign_id
+            ]
+        return sorted(rows, key=lambda row: row.principal)
+
+    def list_lateral_movement_edges(
+        self,
+        *,
+        campaign_id: str,
+        identity_id: str | None = None,
+    ) -> list[LateralMovementEdge]:
+        """List lateral movement edges for a campaign, optionally filtered by identity."""
+        with self._lock:
+            rows = [
+                item
+                for item in self._lateral_edges_table.values()
+                if item.campaign_id == campaign_id
+                and (identity_id is None or item.identity_id == identity_id)
+            ]
+        return sorted(rows, key=lambda row: row.occurred_at)
+
+    def list_campaign_escalations(self, *, campaign_id: str) -> list[PrivilegeEscalationRecord]:
+        """List all privilege escalation records for a campaign."""
+        with self._lock:
+            rows = [
+                item
+                for item in self._escalation_table.values()
+                if item.campaign_id == campaign_id
+            ]
+        return sorted(rows, key=lambda row: row.occurred_at)
+
     def list_campaign_steps(self, *, campaign_id: str) -> list[CampaignStepRecord]:
         """List campaign steps in execution order."""
         with self._lock:

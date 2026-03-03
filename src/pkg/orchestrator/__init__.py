@@ -22,6 +22,14 @@ from .anti_repudiation import (
     verify_execution_intent_api,
 )
 from .audit_trail import AuditTrailRecord, OrchestratorAuditTrail
+from .adversary_graph import (
+    AdversaryGraphEngine,
+    AdversaryGraphError,
+    AttackPathRecord,
+    CampaignGraphReconstruction,
+    IdentityCompromiseChain,
+    TechniqueLinkRecord,
+)
 from .control_plane_integrity import (
     ConfigurationSignatureMismatchError,
     ControlPlaneIntegrityEnforcer,
@@ -184,6 +192,12 @@ __all__ = [
     "verify_execution_intent_api",
     "AuditTrailRecord",
     "OrchestratorAuditTrail",
+    "AdversaryGraphError",
+    "TechniqueLinkRecord",
+    "AttackPathRecord",
+    "IdentityCompromiseChain",
+    "CampaignGraphReconstruction",
+    "AdversaryGraphEngine",
     "DualSignatureError",
     "ManifestSignatureBundle",
     "HighRiskManifestDualSigner",
