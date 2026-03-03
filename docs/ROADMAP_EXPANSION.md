@@ -12,16 +12,16 @@
 
 ### Commits
 
-* [ ] docs: generate complete vv_core model index
-* [ ] docs: export ER diagram from vv_core
-* [ ] docs: list all nullable fields per model
-* [ ] docs: list all FK relationships
-* [ ] docs: identify orphaned or unused models
-* [ ] docs: identify unused scoring-related fields
-* [ ] docs: identify unused detection-related fields
-* [ ] docs: identify unused ATT&CK-related fields
-* [ ] docs: build SpectraStrike → VV field mapping spreadsheet
-* [ ] test: DB migration dry-run validation
+* [x] docs: generate complete vv_core model index
+* [x] docs: export ER diagram from vv_core
+* [x] docs: list all nullable fields per model
+* [x] docs: list all FK relationships
+* [x] docs: identify orphaned or unused models
+* [x] docs: identify unused scoring-related fields
+* [x] docs: identify unused detection-related fields
+* [x] docs: identify unused ATT&CK-related fields
+* [x] docs: build SpectraStrike → VV field mapping spreadsheet
+* [x] test: DB migration dry-run validation
 
 ---
 
