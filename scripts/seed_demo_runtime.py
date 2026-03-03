@@ -7,8 +7,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import string
+import time
 from dataclasses import dataclass
 
 import requests
@@ -24,19 +26,68 @@ class Wrapper:
     node_type: str
 
 
-def _token(session: requests.Session, base_url: str) -> str:
+def _candidate_base_urls(base_url: str) -> list[str]:
+    candidates = [
+        base_url.rstrip("/"),
+        "https://127.0.0.1:18443/ui/api",
+        "https://localhost:18443/ui/api",
+        "http://127.0.0.1:3000/ui/api",
+        "http://localhost:3000/ui/api",
+    ]
+    out: list[str] = []
+    for item in candidates:
+        if item not in out:
+            out.append(item)
+    return out
+
+
+def _try_bootstrap_login(session: requests.Session, api_base: str) -> str:
+    username = os.getenv("UI_AUTH_BOOTSTRAP_USERNAME", "operator")
+    password = os.getenv("UI_AUTH_BOOTSTRAP_PASSWORD", "Operator!ChangeMe123")
     res = session.post(
-        f"{base_url}/v1/auth/demo",
-        headers={"origin": base_url.replace("/ui/api", "/ui")},
+        f"{api_base}/v1/auth/login",
+        json={"username": username, "password": password},
         timeout=15,
         verify=False,
     )
     res.raise_for_status()
-    body = res.json()
-    token = str(body.get("access_token", "")).strip()
+    token = str(res.json().get("access_token", "")).strip()
     if not token:
-        raise RuntimeError("demo auth did not return access_token")
+        raise RuntimeError("bootstrap login did not return access token")
     return token
+
+
+def _token(session: requests.Session, base_url: str) -> tuple[str, str]:
+    last_error = "unknown_error"
+    for api_base in _candidate_base_urls(base_url):
+        for _ in range(20):
+            try:
+                res = session.post(
+                    f"{api_base}/v1/auth/demo",
+                    timeout=15,
+                    verify=False,
+                )
+                if res.status_code in {502, 503, 504}:
+                    time.sleep(1.0)
+                    continue
+                if res.status_code == 403:
+                    # Demo may be disabled. Try bootstrap auth fallback.
+                    try:
+                        return _try_bootstrap_login(session, api_base), api_base
+                    except Exception as exc:  # noqa: BLE001
+                        last_error = f"demo_403_and_bootstrap_failed_on_{api_base}:{exc}"
+                        time.sleep(0.8)
+                        continue
+                res.raise_for_status()
+                body = res.json()
+                token = str(body.get("access_token", "")).strip()
+                if not token:
+                    return _try_bootstrap_login(session, api_base), api_base
+                return token, api_base
+            except Exception as exc:  # noqa: BLE001
+                last_error = f"{type(exc).__name__}:{exc}"
+                time.sleep(0.8)
+    raise RuntimeError(f"unable to authenticate demo session against any API endpoint: {last_error}")
 
 
 def _wrappers(session: requests.Session, base_url: str, token: str) -> list[Wrapper]:
@@ -111,7 +162,6 @@ def _seed_tenant(
         headers={
             "authorization": f"Bearer {token}",
             "content-type": "application/json",
-            "origin": base_url.replace("/ui/api", "/ui"),
         },
         data=json.dumps(playbook_payload),
         timeout=20,
@@ -137,7 +187,6 @@ def _seed_tenant(
             headers={
                 "authorization": f"Bearer {token}",
                 "content-type": "application/json",
-                "origin": base_url.replace("/ui/api", "/ui"),
             },
             data=json.dumps(payload),
             timeout=20,
@@ -154,13 +203,13 @@ def main() -> int:
     args = parser.parse_args()
 
     session = requests.Session()
-    token = _token(session, args.base_url)
-    wrappers = _wrappers(session, args.base_url, token)
+    token, resolved_base = _token(session, args.base_url)
+    wrappers = _wrappers(session, resolved_base, token)
     if not wrappers:
         raise RuntimeError("wrapper registry is empty; cannot seed demo runtime")
 
-    _seed_tenant(session, args.base_url, token, args.tenant_a, wrappers, "acme")
-    _seed_tenant(session, args.base_url, token, args.tenant_b, wrappers, "globex")
+    _seed_tenant(session, resolved_base, token, args.tenant_a, wrappers, "acme")
+    _seed_tenant(session, resolved_base, token, args.tenant_b, wrappers, "globex")
     print("SpectraStrike demo runtime seeded for two tenants.")
     return 0
 
