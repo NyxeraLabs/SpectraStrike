@@ -25,3 +25,7 @@
 
 ## Impact on ingestion pipeline
 - No ingestion behavior change; diagnostics are output/observability enhancements only.
+
+## Addendum - 2026-03-03 CI/license stabilization
+- No telemetry contract or ingestion changes.
+- CI fixes were limited to license headers and validation coverage.

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 NyxeraLabs
+# Licensed under BSL 1.1
+# Change Date: 2033-02-22 -> Apache-2.0
+
 """Unit tests for sensor core runtime and ingestion reliability."""
 
 from __future__ import annotations

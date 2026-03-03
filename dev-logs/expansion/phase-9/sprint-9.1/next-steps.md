@@ -5,3 +5,4 @@
 3. Proceed to Sprint 59 (Phase 9 Sprint 9.2) for full documentation and internal readiness package.
 4. Use new `HOST_SMOKE` VectorVue diagnostics to triage and eliminate current `fingerprint_validation` failures in local federation.
 5. Add one assertion to CI parsing that rejects `vectorvue_ok=False` without non-empty failure diagnostics.
+6. Keep license header checks in pre-commit for both repos to prevent recurrent CI license failures.

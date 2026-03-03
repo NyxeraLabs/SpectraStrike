@@ -18,3 +18,8 @@ Execute hardening-focused improvements covering RBAC, observability, DB/index pe
 - Hardened host integration smoke observability to eliminate ambiguous `vectorvue_ok=False` outcomes.
 - Bridge diagnostics now emit failed envelope IDs, failure categories, signature verification states, and retry counts per failed envelope.
 - This adds deterministic audit evidence without changing federation payload contracts.
+
+## Addendum - 2026-03-03 CI/license stabilization
+- Addressed cross-repo CI failures triggered by license-header enforcement checks.
+- Applied required BSL header markers in flagged SpectraStrike and VectorVue files.
+- Revalidated both header-gate scripts and targeted unit suites after updates.

@@ -1,3 +1,7 @@
+# Copyright (c) 2026 NyxeraLabs
+# Licensed under BSL 1.1
+# Change Date: 2033-02-22 -> Apache-2.0
+
 """Unit tests for adversary graph modeling and campaign reconstruction."""
 
 from __future__ import annotations
@@ -149,4 +153,3 @@ def test_graph_traversal_engine_finds_path() -> None:
     )
     assert len(paths) == 1
     assert paths[0].node_path == ("a", "b", "c")
-

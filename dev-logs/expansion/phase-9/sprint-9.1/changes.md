@@ -65,6 +65,32 @@
 - `SpectraStrike/docs/ROADMAP_EXPANSION.md`
   - Marked `feat: VectorVue bridge failure diagnostics for E2E audit clarity` as done under Sprint 58.
 
+- `SpectraStrike/tests/unit/test_adversary_graph.py`
+- `SpectraStrike/tests/unit/test_playbook_engine.py`
+- `SpectraStrike/tests/unit/test_sensor_core.py`
+- `SpectraStrike/ui/web/next-env.d.ts`
+  - Added required license-header markers to satisfy CI license enforcement.
+
+- `VectorVue/portal/lib/intelligence-metrics.d.ts`
+- `VectorVue/portal/lib/nexus-context.d.ts`
+- `VectorVue/portal/tests/dashboard-rendering-performance.test.mjs`
+- `VectorVue/portal/tests/global-ui-accessibility-performance.test.mjs`
+- `VectorVue/portal/tests/nexus-state-synchronization.test.mjs`
+- `VectorVue/portal/tests/telemetry-to-heatmap-integrity.test.mjs`
+- `VectorVue/tests/unit/test_phase3_sprint31_control_modeling.py`
+- `VectorVue/tests/unit/test_phase3_sprint32_soc_ir_readiness.py`
+- `VectorVue/tests/unit/test_phase4_sprint41_asset_discovery.py`
+- `VectorVue/tests/unit/test_phase4_sprint42_exposure_intelligence.py`
+- `VectorVue/tests/unit/test_phase4_sprint43_asm_adversary_bridge.py`
+- `VectorVue/tests/unit/test_phase6_sprint61_coverage_analytics.py`
+- `VectorVue/tests/unit/test_phase6_sprint62_compliance_reporting.py`
+- `VectorVue/tests/unit/test_phase7_sprint72_behavioral_ml.py`
+  - Added required license-header markers to satisfy VectorVue CI license enforcement.
+
+- `SpectraStrike/docs/ROADMAP_EXPANSION.md`
+  - Marked `chore: cross-repo license header CI stabilization` as done under Sprint 58.
+
 ## Reason for each change
 - Implement all Sprint 58 hardening commitments with practical runtime safeguards, measurable validation tooling, and backward-compatible DB improvements.
 - Convert ambiguous VectorVue bridge outcomes into machine-parseable audit evidence for E2E verification.
+- Remove current CI workflow blockers on both repos by meeting license-header gate requirements.
