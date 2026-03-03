@@ -63,6 +63,18 @@ from .campaign_engine import (
     TechniqueExecutionRecord,
     validate_lifecycle_transition,
 )
+from .playbook_engine import (
+    PlaybookEngine,
+    PlaybookEngineError,
+    PlaybookRecord,
+    PlaybookSimulationResult,
+    PlaybookStatus,
+    PlaybookStepRecord,
+    StepExecutionStatus,
+    StepSimulationRecord,
+    TechniqueModuleRecord,
+    WrapperTemplateRecord,
+)
 from .engine import OrchestratorEngine, TaskSubmissionRequest
 from .execution_fingerprint import (
     ExecutionFingerprintError,
@@ -210,6 +222,16 @@ __all__ = [
     "ALLOWED_CAMPAIGN_STATUS_TRANSITIONS",
     "validate_lifecycle_transition",
     "CampaignEngine",
+    "PlaybookEngineError",
+    "PlaybookStatus",
+    "StepExecutionStatus",
+    "PlaybookRecord",
+    "WrapperTemplateRecord",
+    "TechniqueModuleRecord",
+    "PlaybookStepRecord",
+    "StepSimulationRecord",
+    "PlaybookSimulationResult",
+    "PlaybookEngine",
     "OrchestratorEngine",
     "TaskSubmissionRequest",
     "ExecutionFingerprintError",

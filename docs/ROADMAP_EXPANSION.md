@@ -204,15 +204,15 @@
 
 ### Commits
 
-* [ ] feat: Playbook table
-* [ ] feat: PlaybookStep table
-* [ ] feat: step ordering logic
-* [ ] feat: conditional branching support
-* [ ] feat: variable injection support
-* [ ] feat: wrapper template registry
-* [ ] feat: reusable technique modules
-* [ ] feat: execution rollback handling
-* [ ] test: complex multi-step simulation tests
+* [x] feat: Playbook table
+* [x] feat: PlaybookStep table
+* [x] feat: step ordering logic
+* [x] feat: conditional branching support
+* [x] feat: variable injection support
+* [x] feat: wrapper template registry
+* [x] feat: reusable technique modules
+* [x] feat: execution rollback handling
+* [x] test: complex multi-step simulation tests
 
 ---
 
