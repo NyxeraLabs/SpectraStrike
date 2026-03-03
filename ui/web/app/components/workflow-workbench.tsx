@@ -1,6 +1,6 @@
 /*
 Copyright (c) 2026 NyxeraLabs
-Author: José María Micoli
+Author: Jose Maria Micoli
 Licensed under BSL 1.1
 Change Date: 2033-02-22 -> Apache-2.0
 
@@ -16,54 +16,17 @@ Sell derived competing products
 
 "use client";
 
+import "reactflow/dist/style.css";
+
 import React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import ReactFlow, { Background, Controls, MiniMap, type Edge, type Node } from "reactflow";
 
-import {
-  defaultWorkflowGraph,
-  executionOverlayByNode,
-  reorderNodes,
-  simulateConcurrentExecutionStates,
-  type ExecutionState,
-  type WorkflowNode,
-} from "../lib/workflow-graph";
+import { buildNexusDemoUrl, SPECTRA_ONBOARDED_KEY } from "../lib/demo-mode";
+import { useWorkflowStore, type FlowNode, type TelemetryEvent } from "../lib/workflow-store";
+import type { RuntimeExecutionState, WorkflowEdge } from "../lib/workflow-graph";
 
-const palette: WorkflowNode[] = [
-  { id: "p-init", label: "Phishing Access", technique: "T1566", nodeType: "initial_access" },
-  { id: "p-priv", label: "Privilege Lift", technique: "T1068", nodeType: "privilege_escalation" },
-  { id: "p-lat", label: "Remote Service", technique: "T1021.001", nodeType: "lateral_movement" },
-  { id: "p-c2", label: "Beacon Channel", technique: "T1071", nodeType: "c2" },
-  { id: "p-exf", label: "Exfil Over C2", technique: "T1041", nodeType: "exfiltration" },
-];
-
-const exposureRows = [
-  { asset: "vpn.edge.example", title: "Public Admin Interface", value: 0.86 },
-  { asset: "api-core-02", title: "Weak Auth", value: 0.63 },
-  { asset: "db-finance-01", title: "Legacy TLS", value: 0.74 },
-];
-
-const timelineRows = [
-  { t: "08:15", label: "Campaign queued", tone: "text-info" },
-  { t: "08:23", label: "Initial access validated", tone: "text-telemetryGlow" },
-  { t: "08:31", label: "Privilege escalation observed", tone: "text-warning" },
-  { t: "08:38", label: "SOC detected suspicious auth chain", tone: "text-critical" },
-];
-
-const heatmapRows = [
-  { tactic: "TA0001", vals: [0.72, 0.52, 0.41, 0.83] },
-  { tactic: "TA0004", vals: [0.68, 0.49, 0.39, 0.75] },
-  { tactic: "TA0008", vals: [0.58, 0.35, 0.64, 0.55] },
-  { tactic: "TA0011", vals: [0.61, 0.46, 0.73, 0.62] },
-];
-
-function severityClass(value: number): string {
-  if (value >= 0.75) return "bg-critical";
-  if (value >= 0.55) return "bg-warning";
-  if (value >= 0.35) return "bg-info";
-  return "bg-success";
-}
-
-function nodeTypeClass(nodeType: WorkflowNode["nodeType"]): string {
+function nodeTypeClass(nodeType: string): string {
   switch (nodeType) {
     case "initial_access":
       return "text-info";
@@ -80,89 +43,309 @@ function nodeTypeClass(nodeType: WorkflowNode["nodeType"]): string {
   }
 }
 
-function overlayClass(state: ExecutionState): string {
+function overlayClass(state: RuntimeExecutionState): string {
   if (state === "running") return "ring-2 ring-info";
-  if (state === "succeeded") return "ring-2 ring-success";
+  if (state === "completed") return "ring-2 ring-success";
+  if (state === "retrying") return "ring-2 ring-warning";
+  if (state === "blocked") return "ring-2 ring-warning";
   if (state === "failed") return "ring-2 ring-critical";
   return "ring-1 ring-borderSubtle";
 }
 
-export function WorkflowWorkbench() {
-  const graph = useMemo(() => defaultWorkflowGraph(), []);
-  const [nodes, setNodes] = useState<WorkflowNode[]>(graph.nodes);
-  const [draggedId, setDraggedId] = useState<string | null>(null);
-  const [heatCell, setHeatCell] = useState<{ tactic: string; idx: number } | null>(null);
-  const [tick, setTick] = useState(0);
-  const [timelineIndex, setTimelineIndex] = useState<number>(timelineRows.length - 1);
+function nodeLabel(node: Node<{ label: string; technique: string; nodeType: string; wrapperKey?: string }>): string {
+  return `${node.data.label} (${node.data.technique})`;
+}
 
-  const stateByTechnique = useMemo(() => simulateConcurrentExecutionStates(nodes, tick), [nodes, tick]);
-  const overlay = useMemo(() => executionOverlayByNode(nodes, stateByTechnique), [nodes, stateByTechnique]);
+export function WorkflowWorkbench() {
+  const nodes = useWorkflowStore((state) => state.nodes);
+  const edges = useWorkflowStore((state) => state.edges);
+  const queue = useWorkflowStore((state) => state.queue);
+  const wrappers = useWorkflowStore((state) => state.wrappers);
+  const telemetry = useWorkflowStore((state) => state.telemetry);
+  const executionStatus = useWorkflowStore((state) => state.executionStatus);
+  const statusMessage = useWorkflowStore((state) => state.statusMessage);
+  const edgeBranch = useWorkflowStore((state) => state.edgeBranch);
+  const spectraDemoActive = useWorkflowStore((state) => state.spectraDemoActive);
+  const spectraDemoStep = useWorkflowStore((state) => state.spectraDemoStep);
+
+  const setFromBackend = useWorkflowStore((state) => state.setFromBackend);
+  const setWrappers = useWorkflowStore((state) => state.setWrappers);
+  const setTelemetry = useWorkflowStore((state) => state.setTelemetry);
+  const setExecutionStatus = useWorkflowStore((state) => state.setExecutionStatus);
+  const setStatusMessage = useWorkflowStore((state) => state.setStatusMessage);
+  const setEdgeBranch = useWorkflowStore((state) => state.setEdgeBranch);
+  const seedDemoPlaybook = useWorkflowStore((state) => state.seedDemoPlaybook);
+  const nextDemoStep = useWorkflowStore((state) => state.nextDemoStep);
+  const dismissDemo = useWorkflowStore((state) => state.dismissDemo);
+  const enableDemo = useWorkflowStore((state) => state.enableDemo);
+  const onNodesChange = useWorkflowStore((state) => state.onNodesChange);
+  const onEdgesChange = useWorkflowStore((state) => state.onEdgesChange);
+  const onConnect = useWorkflowStore((state) => state.onConnect);
+  const addWrapperNode = useWorkflowStore((state) => state.addWrapperNode);
+  const addPrivilegeLiftNode = useWorkflowStore((state) => state.addPrivilegeLiftNode);
+  const duplicateNode = useWorkflowStore((state) => state.duplicateNode);
+  const removeNode = useWorkflowStore((state) => state.removeNode);
+  const queueNode = useWorkflowStore((state) => state.queueNode);
+  const removeQueuedNode = useWorkflowStore((state) => state.removeQueuedNode);
+  const moveQueueUp = useWorkflowStore((state) => state.moveQueueUp);
+  const moveQueueDown = useWorkflowStore((state) => state.moveQueueDown);
+  const addManualEdge = useWorkflowStore((state) => state.addManualEdge);
+  const removeEdge = useWorkflowStore((state) => state.removeEdge);
+  const getPersistencePayload = useWorkflowStore((state) => state.getPersistencePayload);
+
+  const [edgeSource, setEdgeSource] = useState<string>("");
+  const [edgeTarget, setEdgeTarget] = useState<string>("");
+
+  const nodesRef = useRef<FlowNode[]>(nodes);
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
 
   useEffect(() => {
-    const timer = setInterval(() => setTick((prev) => prev + 1), 2400);
-    return () => clearInterval(timer);
-  }, []);
+    if (typeof window === "undefined") return;
+    const onboarded = window.localStorage.getItem(SPECTRA_ONBOARDED_KEY) === "true";
+    if (!onboarded) {
+      enableDemo();
+      setStatusMessage("Guided first-run demo is active.");
+    }
+  }, [enableDemo, setStatusMessage]);
 
-  const telemetryFeed = nodes.slice(0, 4).map((node) => ({
-    id: node.id,
-    line: `${node.technique} ${overlay[node.id].toUpperCase()} (${node.nodeType})`,
-  }));
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      fetch("/ui/api/execution/wrappers").then((res) => res.json()),
+      fetch("/ui/api/execution/playbook").then((res) => res.json()),
+      fetch("/ui/api/execution/queue?limit=50").then((res) => res.json()),
+      fetch("/ui/api/telemetry/events?limit=25").then((res) => res.json()),
+    ])
+      .then(([wrapperBody, playbookBody, queueBody, telemetryBody]) => {
+        if (!active) return;
+        setWrappers(Array.isArray(wrapperBody.items) ? wrapperBody.items : []);
+
+        if (Array.isArray(playbookBody.nodes) && Array.isArray(playbookBody.edges) && Array.isArray(playbookBody.queue)) {
+          setFromBackend({
+            nodes: playbookBody.nodes,
+            edges: playbookBody.edges,
+            queue: playbookBody.queue,
+          });
+          setStatusMessage("Playbook loaded from backend.");
+        }
+
+        if (Array.isArray(queueBody.items)) {
+          setExecutionStatus(() => {
+            const next: Record<string, RuntimeExecutionState> = {};
+            for (const item of queueBody.items) {
+              const status = String(item.status) as RuntimeExecutionState;
+              if (status !== "queued" && status !== "running" && status !== "blocked" && status !== "retrying" && status !== "failed" && status !== "completed") {
+                continue;
+              }
+              const tool = String(item.tool ?? "");
+              for (const node of playbookBody.nodes ?? []) {
+                if (String(node.wrapperKey ?? "") === tool) {
+                  next[String(node.id)] = status;
+                }
+              }
+            }
+            return next;
+          });
+        }
+
+        if (Array.isArray(telemetryBody.items)) {
+          setTelemetry(telemetryBody.items as TelemetryEvent[]);
+        }
+      })
+      .catch(() => setStatusMessage("Unable to load backend execution surfaces."));
+
+    return () => {
+      active = false;
+    };
+  }, [setExecutionStatus, setFromBackend, setStatusMessage, setTelemetry, setWrappers]);
+
+  useEffect(() => {
+    if (!spectraDemoActive) return;
+    if (spectraDemoStep !== "auto_build_playbook") return;
+    seedDemoPlaybook();
+  }, [seedDemoPlaybook, spectraDemoActive, spectraDemoStep]);
+
+  useEffect(() => {
+    const stream = new EventSource("/ui/api/execution/stream");
+    stream.addEventListener("diagnostic", (event) => {
+      const payload = JSON.parse((event as MessageEvent<string>).data);
+      setStatusMessage(`Execution stream mode=${payload.mode} detail=${payload.detail}`);
+    });
+    stream.addEventListener("status_snapshot", (event) => {
+      const payload = JSON.parse((event as MessageEvent<string>).data);
+      if (!Array.isArray(payload.items)) return;
+      setExecutionStatus((prev) => {
+        const next = { ...prev };
+        for (const item of payload.items) {
+          const status = String(item.status) as RuntimeExecutionState;
+          if (status !== "queued" && status !== "running" && status !== "blocked" && status !== "retrying" && status !== "failed" && status !== "completed") {
+            continue;
+          }
+          const tool = String(item.tool ?? "");
+          for (const node of nodesRef.current) {
+            if (String(node.data.wrapperKey ?? "") === tool) {
+              next[node.id] = status;
+            }
+          }
+        }
+        return next;
+      });
+    });
+    return () => stream.close();
+  }, [setExecutionStatus, setStatusMessage]);
+
+  useEffect(() => {
+    const id = setTimeout(() => {
+      const payload = getPersistencePayload();
+      fetch("/ui/api/execution/playbook", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(payload),
+      }).catch(() => undefined);
+    }, 350);
+    return () => clearTimeout(id);
+  }, [nodes, edges, queue, getPersistencePayload]);
+
+  const overlay = useMemo(() => {
+    const out: Record<string, RuntimeExecutionState> = {};
+    for (const node of nodes) {
+      out[node.id] = executionStatus[node.id] ?? "queued";
+    }
+    return out;
+  }, [executionStatus, nodes]);
+
+  const renderedNodes = useMemo(() => {
+    return nodes.map((node) => ({
+      ...node,
+      className: overlayClass(overlay[node.id]),
+      data: {
+        ...node.data,
+        label: `${node.data.label} [${overlay[node.id]}]`,
+      },
+    }));
+  }, [nodes, overlay]);
+
+  const renderedEdges = useMemo(() => {
+    return edges.map((edge) => {
+      const branch = edge.data?.branchCondition ?? "always";
+      return {
+        ...edge,
+        label: branch,
+        animated: branch === "on_success",
+      };
+    });
+  }, [edges]);
+
+  async function executeQueue() {
+    for (const nodeId of queue) {
+      const node = nodes.find((item) => item.id === nodeId);
+      if (!node) continue;
+      setExecutionStatus((prev) => ({ ...prev, [node.id]: "running" }));
+      try {
+        const response = await fetch("/ui/api/actions/tasks", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            tool: node.data.wrapperKey ?? "nmap",
+            target: "127.0.0.1",
+            parameters: { technique: node.data.technique, demoMode: spectraDemoActive },
+          }),
+        });
+        if (!response.ok) {
+          setExecutionStatus((prev) => ({ ...prev, [node.id]: "failed" }));
+          continue;
+        }
+        setExecutionStatus((prev) => ({ ...prev, [node.id]: "completed" }));
+      } catch {
+        setExecutionStatus((prev) => ({ ...prev, [node.id]: "retrying" }));
+      }
+    }
+
+    if (spectraDemoActive && spectraDemoStep === "execute_demo") {
+      nextDemoStep();
+    }
+  }
+
+  const federationDiagnostics = telemetry
+    .filter((item) => item.envelope_id || item.failure_reason || item.signature_state)
+    .slice(0, 5);
 
   return (
     <section className="grid gap-4 xl:grid-cols-[1.1fr_1fr]">
+      {spectraDemoActive ? (
+        <article className="spectra-panel p-5 xl:col-span-2">
+          <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">Assisted First-Run Demo</h2>
+          <p className="mt-2 text-sm text-slate-300">
+            Demo step: <span className="spectra-mono">{spectraDemoStep}</span>
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" className="spectra-button-primary px-3 py-2 text-sm font-semibold" onClick={nextDemoStep}>
+              Next Demo Step
+            </button>
+            {spectraDemoStep === "open_nexus" || spectraDemoStep === "complete" ? (
+              <a href={buildNexusDemoUrl()} className="spectra-button-secondary px-3 py-2 text-sm font-semibold">
+                Open Nexus Demo
+              </a>
+            ) : null}
+            <button
+              type="button"
+              className="spectra-button-secondary px-3 py-2 text-sm font-semibold"
+              onClick={() => {
+                dismissDemo();
+                if (typeof window !== "undefined") {
+                  window.localStorage.setItem(SPECTRA_ONBOARDED_KEY, "true");
+                }
+              }}
+            >
+              Finish / Dismiss Demo
+            </button>
+          </div>
+        </article>
+      ) : null}
+
       <article className="spectra-panel p-5">
         <h2 className="text-sm uppercase tracking-[0.2em] text-telemetry">Node-Link Execution Canvas</h2>
-        <svg viewBox="0 0 720 250" className="mt-4 w-full rounded-lg border border-borderSubtle bg-slate-950/70 p-2">
-          {nodes.slice(0, 4).map((node, idx) => {
-            const x = 120 + idx * 170;
-            const y = idx % 2 === 0 ? 90 : 160;
-            const next = nodes[idx + 1];
-            if (!next) return null;
-            const x2 = 120 + (idx + 1) * 170;
-            const y2 = (idx + 1) % 2 === 0 ? 90 : 160;
-            return (
-              <line key={`edge-${node.id}`} x1={x} y1={y} x2={x2} y2={y2} stroke="#3b82f6" strokeWidth="2" />
-            );
-          })}
-
-          {nodes.slice(0, 4).map((node, idx) => {
-            const x = 120 + idx * 170;
-            const y = idx % 2 === 0 ? 90 : 160;
-            return (
-              <g key={node.id} data-testid={`path-node-${node.id}`}>
-                <circle cx={x} cy={y} r={24} fill="#1a2238" stroke="#94a3b8" />
-                <text x={x} y={y + 4} fill="#e6e9f5" textAnchor="middle" fontSize="9">
-                  {node.technique}
-                </text>
-              </g>
-            );
-          })}
-
-          <line x1="120" y1="60" x2="460" y2="40" strokeDasharray="6 4" stroke="#22c55e" strokeWidth="2" />
-          <text x="290" y="30" fill="#22c55e" textAnchor="middle" fontSize="10">
-            identity-pivot overlay
-          </text>
-        </svg>
+        <div className="mt-4 h-[300px] w-full overflow-hidden rounded-lg border border-borderSubtle bg-slate-950/70 p-2">
+          <ReactFlow
+            nodes={renderedNodes as Node[]}
+            edges={renderedEdges as Edge[]}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            fitView
+          >
+            <MiniMap />
+            <Controls />
+            <Background />
+          </ReactFlow>
+        </div>
       </article>
 
       <article className="spectra-panel p-5">
-        <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">Drag-and-Drop Playbook Builder</h2>
+        <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">Backend-Persisted Playbook Builder</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <div className="rounded-lg border border-borderSubtle bg-slate-950/70 p-3">
-            <p className="text-xs uppercase tracking-wide text-slate-400">Palette</p>
+            <p className="text-xs uppercase tracking-wide text-slate-400">Wrapper Palette (Full Surface)</p>
             <div className="mt-2 flex flex-wrap gap-2">
-              {palette.map((node) => (
+              {wrappers.map((wrapper) => (
                 <button
-                  key={node.id}
+                  key={wrapper.key}
                   type="button"
                   className="spectra-button-secondary px-2 py-1 text-xs font-semibold"
-                  onClick={() =>
-                    setNodes((prev) => [...prev, { ...node, id: `s-${Date.now()}-${node.id}` }])
-                  }
+                  onClick={() => addWrapperNode(wrapper)}
                 >
-                  + {node.label}
+                  + {wrapper.label}
                 </button>
               ))}
+              <button
+                type="button"
+                className="spectra-button-secondary px-2 py-1 text-xs font-semibold"
+                onClick={addPrivilegeLiftNode}
+              >
+                + Privilege Lift
+              </button>
             </div>
           </div>
           <div className="rounded-lg border border-borderSubtle bg-slate-950/70 p-3" data-testid="playbook-list">
@@ -171,110 +354,141 @@ export function WorkflowWorkbench() {
               {nodes.map((node, idx) => (
                 <li
                   key={node.id}
-                  draggable
-                  onDragStart={() => setDraggedId(node.id)}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={() => {
-                    if (!draggedId) return;
-                    setNodes((prev) => reorderNodes(prev, draggedId, node.id));
-                    setDraggedId(null);
-                  }}
-                  className={`cursor-move rounded border border-borderSubtle bg-slate-900/80 px-2 py-2 text-sm ${overlayClass(overlay[node.id])}`}
+                  className={`rounded border border-borderSubtle bg-slate-900/80 px-2 py-2 text-sm ${overlayClass(overlay[node.id])}`}
                   data-testid={`playbook-step-${idx + 1}`}
                 >
-                  <span className="spectra-mono text-telemetryGlow">{idx + 1}.</span> {node.label}{" "}
-                  <span className={`spectra-mono ${nodeTypeClass(node.nodeType)}`}>{node.nodeType}</span>
+                  <span className="spectra-mono text-telemetryGlow">{idx + 1}.</span> {node.data.label}{" "}
+                  <span className={`spectra-mono ${nodeTypeClass(node.data.nodeType)}`}>{node.data.nodeType}</span>
+                  <span className="ml-2 text-xs text-slate-400">{node.data.wrapperKey ?? "unbound-wrapper"}</span>
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      type="button"
+                      className="spectra-button-secondary px-2 py-1 text-xs"
+                      onClick={() => duplicateNode(node.id)}
+                    >
+                      duplicate
+                    </button>
+                    <button
+                      type="button"
+                      className="spectra-button-secondary px-2 py-1 text-xs"
+                      onClick={() => removeNode(node.id)}
+                    >
+                      remove
+                    </button>
+                    <button type="button" className="spectra-button-secondary px-2 py-1 text-xs" onClick={() => queueNode(node.id)}>
+                      queue
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-xs text-slate-400">Branching: always / on_success / on_failure</p>
+            <div className="mt-3 rounded border border-borderSubtle p-2 text-xs">
+              <p className="text-slate-300">Branching / Edge Builder</p>
+              <div className="mt-2 grid gap-2 md:grid-cols-4">
+                <select className="bg-slate-950 px-2 py-1" value={edgeSource} onChange={(event) => setEdgeSource(event.target.value)}>
+                  <option value="">source</option>
+                  {nodes.map((node) => (
+                    <option key={node.id} value={node.id}>{nodeLabel(node)}</option>
+                  ))}
+                </select>
+                <select className="bg-slate-950 px-2 py-1" value={edgeTarget} onChange={(event) => setEdgeTarget(event.target.value)}>
+                  <option value="">target</option>
+                  {nodes.map((node) => (
+                    <option key={node.id} value={node.id}>{nodeLabel(node)}</option>
+                  ))}
+                </select>
+                <select
+                  className="bg-slate-950 px-2 py-1"
+                  value={edgeBranch}
+                  onChange={(event) => setEdgeBranch(event.target.value as WorkflowEdge["branchCondition"])}
+                >
+                  <option value="always">always</option>
+                  <option value="on_success">on_success</option>
+                  <option value="on_failure">on_failure</option>
+                </select>
+                <button
+                  type="button"
+                  className="spectra-button-primary px-2 py-1"
+                  onClick={() => addManualEdge(edgeSource, edgeTarget)}
+                >
+                  add edge
+                </button>
+              </div>
+              <ul className="mt-2 space-y-1">
+                {edges.map((edge) => (
+                  <li key={edge.id} className="flex items-center justify-between rounded border border-borderSubtle px-2 py-1">
+                    <span>{edge.source} {"->"} {edge.target} ({edge.data?.branchCondition ?? "always"})</span>
+                    <button type="button" className="spectra-button-secondary px-2 py-0.5 text-xs" onClick={() => removeEdge(edge.id)}>
+                      remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
         </div>
       </article>
 
       <article className="spectra-panel p-5">
-        <h2 className="text-sm uppercase tracking-[0.2em] text-info">Real-time Telemetry Streaming Panel</h2>
+        <h2 className="text-sm uppercase tracking-[0.2em] text-info">Execution Queue + Live Stream</h2>
+        <p className="mt-2 text-xs text-slate-400">{statusMessage}</p>
         <div className="mt-3 rounded-lg border border-borderSubtle bg-slate-950/70 p-3">
-          {telemetryFeed.map((item) => (
-            <p key={item.id} className="spectra-mono text-sm text-slate-200" data-testid="telemetry-line">
-              {item.line}
-            </p>
-          ))}
+          <ol className="space-y-2">
+            {queue.map((nodeId, idx) => (
+              <li key={nodeId} className="flex items-center justify-between rounded border border-borderSubtle px-2 py-2 text-sm">
+                <span>{idx + 1}. {nodes.find((node) => node.id === nodeId)?.data.label ?? nodeId}</span>
+                <div className="flex gap-1">
+                  <button type="button" className="spectra-button-secondary px-2 py-0.5 text-xs" onClick={() => moveQueueUp(nodeId)}>
+                    up
+                  </button>
+                  <button type="button" className="spectra-button-secondary px-2 py-0.5 text-xs" onClick={() => moveQueueDown(nodeId)}>
+                    down
+                  </button>
+                  <button type="button" className="spectra-button-secondary px-2 py-0.5 text-xs" onClick={() => removeQueuedNode(nodeId)}>
+                    remove
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <button type="button" className="spectra-button-primary mt-3 px-3 py-2 text-sm font-semibold" onClick={executeQueue}>
+            Execute Queue
+          </button>
         </div>
       </article>
 
       <article className="spectra-panel p-5">
-        <h2 className="text-sm uppercase tracking-[0.2em] text-warning">Interactive ATT&amp;CK Heatmap UI</h2>
-        <div className="mt-3 overflow-x-auto rounded-lg border border-borderSubtle">
-          <table className="w-full min-w-[440px] text-xs">
-            <thead className="bg-slate-900/80 text-slate-300">
-              <tr>
-                <th className="px-2 py-2 text-left">Tactic</th>
-                <th className="px-2 py-2 text-left">A</th>
-                <th className="px-2 py-2 text-left">B</th>
-                <th className="px-2 py-2 text-left">C</th>
-                <th className="px-2 py-2 text-left">D</th>
-              </tr>
-            </thead>
-            <tbody>
-              {heatmapRows.map((row) => (
-                <tr key={row.tactic} className="border-t border-borderSubtle">
-                  <td className="px-2 py-2 spectra-mono">{row.tactic}</td>
-                  {row.vals.map((value, idx) => (
-                    <td key={`${row.tactic}-${idx}`} className="px-2 py-2">
-                      <button
-                        type="button"
-                        className={`h-6 w-12 rounded ${severityClass(value)}`}
-                        data-testid={`heat-cell-${row.tactic}-${idx}`}
-                        onClick={() => setHeatCell({ tactic: row.tactic, idx })}
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <h2 className="text-sm uppercase tracking-[0.2em] text-warning">Telemetry + Federation Diagnostics</h2>
+        <div className="mt-3 grid gap-3">
+          <div className="rounded border border-borderSubtle bg-slate-950/70 p-3">
+            <p className="text-xs uppercase tracking-wide text-slate-400">Execution Logs / Raw Output</p>
+            {telemetry.slice(0, 6).map((item) => (
+              <pre key={item.event_id} className="spectra-mono mt-2 overflow-x-auto text-xs text-slate-200">
+                {JSON.stringify(item, null, 2)}
+              </pre>
+            ))}
+          </div>
+          <div className="rounded border border-borderSubtle bg-slate-950/70 p-3">
+            <p className="text-xs uppercase tracking-wide text-slate-400">Federation Diagnostics</p>
+            {federationDiagnostics.length === 0 ? (
+              <p className="mt-2 text-xs text-slate-300">No envelope diagnostics emitted yet.</p>
+            ) : (
+              <ul className="mt-2 space-y-2 text-xs">
+                {federationDiagnostics.map((item) => (
+                  <li key={`${item.event_id}-diag`} className="rounded border border-borderSubtle p-2">
+                    <p>Envelope ID: {item.envelope_id ?? "n/a"}</p>
+                    <p>Signature state: {item.signature_state ?? "n/a"}</p>
+                    <p>Failure reason: {item.failure_reason ?? "none"}</p>
+                    <p>Retry attempts: {item.retry_attempts ?? 0}</p>
+                    <p>VectorVue response: {item.vectorvue_response ?? "n/a"}</p>
+                    <p>Attestation proof: {item.attestation_proof ?? "n/a"}</p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
-        <p className="mt-2 text-xs text-slate-300">
-          {heatCell ? `Selected ${heatCell.tactic} cell ${heatCell.idx + 1}` : "Select a heatmap cell."}
-        </p>
-      </article>
-
-      <article className="spectra-panel p-5">
-        <h2 className="text-sm uppercase tracking-[0.2em] text-critical">Exposure Visualization Dashboard</h2>
-        <div className="mt-3 grid gap-2">
-          {exposureRows.map((row) => (
-            <div key={row.asset} className="rounded-lg border border-borderSubtle bg-slate-950/70 p-3">
-              <p className="text-xs uppercase tracking-wide text-slate-400">{row.asset}</p>
-              <p className="mt-1 text-sm text-slate-200">{row.title}</p>
-              <div className="mt-2 h-2 w-full rounded bg-slate-800">
-                <div className={`h-2 rounded ${severityClass(row.value)}`} style={{ width: `${Math.round(row.value * 100)}%` }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </article>
-
-      <article className="spectra-panel p-5">
-        <h2 className="text-sm uppercase tracking-[0.2em] text-success">Campaign Timeline Replay View</h2>
-        <input
-          type="range"
-          min={0}
-          max={timelineRows.length - 1}
-          value={timelineIndex}
-          onChange={(event) => setTimelineIndex(Number(event.target.value))}
-          className="mt-3 w-full"
-          data-testid="timeline-slider"
-        />
-        <ol className="mt-3 space-y-2">
-          {timelineRows.slice(0, timelineIndex + 1).map((row) => (
-            <li key={row.t} className="rounded border border-borderSubtle bg-slate-950/70 px-3 py-2 text-sm">
-              <span className="spectra-mono text-slate-400">{row.t}</span> <span className={row.tone}>{row.label}</span>
-            </li>
-          ))}
-        </ol>
       </article>
     </section>
   );
 }
-

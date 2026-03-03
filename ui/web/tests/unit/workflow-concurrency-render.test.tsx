@@ -16,16 +16,42 @@ Sell derived competing products
 
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { WorkflowWorkbench } from "../../app/components/workflow-workbench";
 
 describe("Workflow concurrent execution rendering stress test", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              items: [],
+              nodes: [],
+              edges: [],
+              queue: [],
+            }),
+            { status: 200 }
+          )
+        )
+      )
+    );
+    vi.stubGlobal(
+      "EventSource",
+      class {
+        addEventListener() {}
+        close() {}
+      }
+    );
+  });
+
   it("renders key visualization panels and telemetry feed lines consistently", () => {
     render(<WorkflowWorkbench />);
     expect(screen.getByText(/Node-Link Execution Canvas/i)).toBeInTheDocument();
-    expect(screen.getByText(/Real-time Telemetry Streaming Panel/i)).toBeInTheDocument();
-    expect(screen.getAllByTestId("telemetry-line").length).toBeGreaterThanOrEqual(3);
-    expect(screen.getByTestId("timeline-slider")).toBeInTheDocument();
+    expect(screen.getByText(/Execution Queue \+ Live Stream/i)).toBeInTheDocument();
+    expect(screen.getByText(/Telemetry \+ Federation Diagnostics/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Execute Queue/i })).toBeInTheDocument();
   });
 });
-

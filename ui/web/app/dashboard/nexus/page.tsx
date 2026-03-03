@@ -17,10 +17,11 @@ Sell derived competing products
 import { cookies } from "next/headers";
 
 import { NexusWorkbench } from "../../components/nexus-workbench";
+import { getVectorVueUrl } from "../../lib/cross-app-links";
 import { TopNav } from "../../components/top-nav";
 import { type NexusRole } from "../../lib/nexus-context";
 
-const fallbackVectorVueBaseUrl = process.env.UI_VECTORVUE_BASE_URL ?? "https://localhost:3001";
+const fallbackVectorVueBaseUrl = getVectorVueUrl();
 
 function resolveRole(value: string | undefined): NexusRole {
   if (value === "admin" || value === "analyst" || value === "auditor") return value;

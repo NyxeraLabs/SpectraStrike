@@ -22,12 +22,20 @@ export type ExecutionNodeType =
   | "c2";
 
 export type ExecutionState = "queued" | "running" | "succeeded" | "failed";
+export type RuntimeExecutionState =
+  | "queued"
+  | "running"
+  | "blocked"
+  | "retrying"
+  | "failed"
+  | "completed";
 
 export type WorkflowNode = {
   id: string;
   label: string;
   technique: string;
   nodeType: ExecutionNodeType;
+  wrapperKey?: string;
 };
 
 export type WorkflowEdge = {
@@ -87,3 +95,22 @@ export function simulateConcurrentExecutionStates(nodes: WorkflowNode[], tick: n
   return out;
 }
 
+export function enqueueNode(queue: string[], nodeId: string): string[] {
+  if (queue.includes(nodeId)) return [...queue];
+  return [...queue, nodeId];
+}
+
+export function dequeueNode(queue: string[], nodeId: string): string[] {
+  return queue.filter((id) => id !== nodeId);
+}
+
+export function reorderQueue(queue: string[], sourceId: string, targetId: string): string[] {
+  if (sourceId === targetId) return [...queue];
+  const sourceIdx = queue.indexOf(sourceId);
+  const targetIdx = queue.indexOf(targetId);
+  if (sourceIdx < 0 || targetIdx < 0) return [...queue];
+  const next = [...queue];
+  const [moved] = next.splice(sourceIdx, 1);
+  next.splice(targetIdx, 0, moved);
+  return next;
+}

@@ -89,6 +89,32 @@ Each execution carries an `attestation_measurement_hash` that represents measure
 - Full federation integration: `docs/FULL_FEDERATION_INTEGRATION.md`
 - Roadmap: `docs/ROADMAP.md`
 
+## Interactive Demo Flow (Tri-App)
+
+- SpectraStrike can launch an explicit guided demo session.
+- Demo links use query flags (`demo=true`) and preserve source attribution (`source=spectrastrike|nexus|vectorvue`).
+- Cross-app destinations are environment-driven (`VITE_NEXUS_URL`, `VITE_VECTORVUE_URL`) with warnings when missing.
+- Demo mode is explicit and does not silently override real execution paths.
+
+## Drag-and-Drop Playbook Builder
+
+- Full wrapper palette is sourced from a centralized registry surface (`/ui/api/execution/wrappers`).
+- Playbooks persist through `/ui/api/execution/playbook` (nodes, edges, branch conditions, queue).
+- Queue controls support add/remove/reorder and execution dispatch through `/ui/api/actions/tasks`.
+- Runtime statuses surfaced: `queued`, `running`, `blocked`, `retrying`, `failed`, `completed`.
+
+## Live Execution + Telemetry
+
+- Live execution snapshots stream via `/ui/api/execution/stream`.
+- Queue snapshots available at `/ui/api/execution/queue`.
+- Telemetry panel exposes raw event records, parsed findings, envelope metadata, signature state, attestation proof, and retry diagnostics.
+
+## Federation Debug Guide
+
+- Inspect full envelope metadata, signature state, and attestation hash before accepting telemetry.
+- Use retry history and explicit failure reason fields for federation troubleshooting.
+- Avoid boolean-only success indicators; diagnostics should carry machine-readable cause codes.
+
 ## License
 
 Business Source License 1.1. See `LICENSE`.
