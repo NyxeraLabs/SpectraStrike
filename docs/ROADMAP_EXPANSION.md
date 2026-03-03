@@ -292,41 +292,146 @@
 
 ---
 
-# PHASE 8 — Modern Graph-Native UI & UX
-
-## Sprint 53 (Phase 8 Sprint 8.1) — Workflow & Visualization
-
-### Commits
-
-* [ ] feat: node-link execution canvas
-* [ ] feat: drag-and-drop playbook builder
-* [ ] feat: real-time execution feedback panel
-* [ ] feat: interactive attack path visualization
-* [ ] feat: interactive ATT&CK heatmap UI
-* [ ] feat: exposure visualization dashboard
-* [ ] feat: campaign timeline visualization
-* [ ] test: UI state consistency tests
+# PHASE 8 — Graph-Native UX & Unified Platform Interface
 
 ---
 
-## Sprint 54 (Phase 8 Sprint 8.2) — Dashboards & Reporting UX
+# Sprint 53 (Phase 8 Sprint 8.1)
+
+# 🔴 SpectraStrike — Execution & Playbook Graph UI
+
+### Scope: SpectraStrike repo only
+
+### Objective
+
+Build the offensive execution graph system with full drag-and-drop capability.
 
 ### Commits
 
-* [ ] feat: responsive dashboard framework
-* [ ] feat: executive summary dashboard
-* [ ] feat: SOC performance dashboard
-* [ ] feat: control vendor comparison dashboard
-* [ ] feat: compliance & assurance dashboard
-* [ ] feat: exportable PDF/JSON reporting module
-* [ ] feat: full user feedback & notification system
-* [ ] test: UI performance validation
+* [x] feat(spectrastrike-ui): graph-core integration (shared graph engine foundation)
+* [x] feat(spectrastrike-ui): node-link execution canvas
+* [x] feat(spectrastrike-ui): drag-and-drop playbook builder
+* [x] feat(spectrastrike-ui): execution node types (initial access, privilege escalation, lateral movement, exfiltration, C2)
+* [x] feat(spectrastrike-ui): conditional branching support in graph
+* [x] feat(spectrastrike-ui): execution state visualization overlay
+* [x] feat(spectrastrike-ui): real-time telemetry streaming panel
+* [x] feat(spectrastrike-ui): identity & pivot relationship overlays
+* [x] feat(spectrastrike-ui): campaign timeline replay view
+* [x] test(spectrastrike-ui): graph execution state validation
+* [x] test(spectrastrike-ui): concurrent execution rendering stress test
+
+---
+
+# Sprint 54 (Phase 8 Sprint 8.2)
+
+# 🟢 ASM — Asset & Exposure Graph Engine
+
+### Scope: SpectraStrike repo (ASM module)
+
+### Objective
+
+Graph-native attack surface modeling with drag-and-drop relationships.
+
+### Commits
+
+* [ ] feat(asm-ui): asset graph visualization engine
+* [ ] feat(asm-ui): drag-and-drop asset relationship builder
+* [ ] feat(asm-ui): exposure-to-asset linking visualization
+* [ ] feat(asm-ui): vulnerability relationship mapping
+* [ ] feat(asm-ui): external-to-internal pivot path visualization
+* [ ] feat(asm-ui): cloud IAM & role relationship graph
+* [ ] feat(asm-ui): exposure risk overlay scoring visualization
+* [ ] feat(asm-ui): convert exposure graph → SpectraStrike playbook action
+* [ ] test(asm-ui): large graph rendering performance test
+* [ ] test(asm-ui): exposure mapping integrity validation
+
+⚠️ Important:
+ASM graph must reuse same graph-core library as SpectraStrike execution graph.
+
+---
+
+# Sprint 55 (Phase 8 Sprint 8.3)
+
+# 🔵 VectorVue — Telemetry Intelligence & Detection Visualization
+
+### Scope: VectorVue repo
+
+### Objective
+
+Interactive intelligence dashboards powered by vv_core schema.
+
+### Commits
+
+* [ ] feat(vectorvue-ui): interactive ATT&CK heatmap (coverage vs detection vs response)
+* [ ] feat(vectorvue-ui): technique confidence score visualization
+* [ ] feat(vectorvue-ui): detection latency timeline graph
+* [ ] feat(vectorvue-ui): false negative analysis dashboard
+* [ ] feat(vectorvue-ui): control validation matrix (EDR/XDR/NGFW/AV)
+* [ ] feat(vectorvue-ui): SOC performance dashboard (MTTD, MTTR, containment rate)
+* [ ] feat(vectorvue-ui): telemetry field completeness dashboard
+* [ ] feat(vectorvue-ui): anomaly & behavioral analytics visualization
+* [ ] feat(vectorvue-ui): evidence lifecycle tracking interface
+* [ ] test(vectorvue-ui): telemetry-to-heatmap integrity tests
+* [ ] test(vectorvue-ui): dashboard rendering performance test
+
+---
+
+# Sprint 56 (Phase 8 Sprint 8.4)
+
+# 🟣 Unified Bundle Experience (Nexus Mode)
+
+### Scope: Integration between SpectraStrike & VectorVue
+
+⚠️ Not a separate repo.
+This is the cross-product experience layer.
+
+### Objective
+
+Provide a unified navigation and cross-linking experience.
+
+### Commits
+
+* [ ] feat(platform-ui): unified navigation shell (SpectraStrike ↔ VectorVue)
+* [ ] feat(platform-ui): cross-product deep-link routing
+* [ ] feat(platform-ui): shared authentication & RBAC layer
+* [ ] feat(platform-ui): unified activity feed (execution + detection events)
+* [ ] feat(platform-ui): cross-product search engine
+* [ ] feat(platform-ui): campaign → detection → assurance drill-down flow
+* [ ] feat(platform-ui): export unified validation report (execution + detection)
+* [ ] test(platform-ui): cross-module state synchronization tests
+
+This is what commercially becomes “Nexus” — but technically it's integrated UX.
+
+---
+
+# Sprint 57 (Phase 8 Sprint 8.5)
+
+# 🌐 Global UX System & Feedback Layer
+
+### Scope: Shared design system across both repos
+
+### Objective
+
+Modern, enterprise-grade UX maturity.
+
+### Commits
+
+* [ ] feat(global-ui): design system tokens (colors, spacing, typography)
+* [ ] feat(global-ui): responsive layout framework
+* [ ] feat(global-ui): global notification & feedback system
+* [ ] feat(global-ui): role-based UI rendering (Red Team / Blue Team / Exec / Auditor)
+* [ ] feat(global-ui): real-time system health indicators
+* [ ] feat(global-ui): keyboard shortcuts & power-user mode
+* [ ] feat(global-ui): theme system (dark/light enterprise)
+* [ ] feat(global-ui): persistent workspace state recovery
+* [ ] test(global-ui): accessibility validation (WCAG)
+* [ ] test(global-ui): rendering performance benchmark
 
 ---
 
 # PHASE 9 — Hardening & Internal Release Readiness
 
-## Sprint 55 (Phase 9 Sprint 9.1) — System Hardening
+## Sprint 58 (Phase 9 Sprint 9.1) — System Hardening
 
 ### Commits
 
@@ -341,7 +446,7 @@
 
 ---
 
-## Sprint 56 (Phase 9 Sprint 9.2) — Documentation & Internal Readiness
+## Sprint 59 (Phase 9 Sprint 9.2) — Documentation & Internal Readiness
 
 ### Commits
 

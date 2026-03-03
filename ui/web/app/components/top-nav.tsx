@@ -17,12 +17,14 @@ Sell derived competing products
 "use client";
 
 import { useState } from "react";
+import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/dashboard/workflow", label: "Workflow" },
   { href: "/dashboard/telemetry", label: "Telemetry" },
   { href: "/dashboard/armory", label: "Armory" },
   { href: "/dashboard/fleet", label: "Fleet" },
