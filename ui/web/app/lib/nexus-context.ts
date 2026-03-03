@@ -35,6 +35,42 @@ export type NexusActivity = {
   ts: string;
 };
 
+export type ExecutionTaskItem = {
+  task_id?: string;
+  tool?: string;
+  target?: string;
+  status?: string;
+  retry_count?: number;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type TelemetryEventItem = {
+  event_id?: string;
+  source?: string;
+  status?: string;
+  event_type?: string;
+  actor?: string;
+  target?: string;
+  timestamp?: string;
+  envelope_id?: string;
+  signature_state?: string;
+  attestation_proof?: string;
+  retry_attempts?: number;
+  failure_reason?: string;
+  vectorvue_response?: string;
+};
+
+export type FederationDiagnostic = {
+  envelopeId: string;
+  signatureState: string;
+  failureReason: string;
+  retryAttempts: number;
+  vectorVueResponse: string;
+  attestationProof: string;
+  timestamp: string;
+};
+
 const rolePermissions: Record<NexusRole, NexusArea[]> = {
   operator: ["execution", "detection"],
   analyst: ["detection", "assurance"],
@@ -123,6 +159,55 @@ export function searchUnifiedActivities(items: NexusActivity[], query: string): 
   const q = query.trim().toLowerCase();
   if (!q) return items;
   return items.filter((item) => `${item.title} ${item.detail} ${item.type} ${item.source}`.toLowerCase().includes(q));
+}
+
+export function buildExecutionActivities(items: ExecutionTaskItem[]): NexusActivity[] {
+  return items.map((item) => {
+    const tool = clean(item.tool ?? "unknown-tool");
+    const target = clean(item.target ?? "unknown-target");
+    const status = clean(item.status ?? "queued");
+    const retryCount = Number(item.retry_count ?? 0);
+    return {
+      source: "spectrastrike",
+      type: "execution",
+      title: `Execution task ${tool}`,
+      detail: `${status} on ${target} (retries=${retryCount})`,
+      ts: item.updated_at ?? item.created_at ?? new Date().toISOString(),
+    };
+  });
+}
+
+export function buildTelemetryActivities(items: TelemetryEventItem[]): NexusActivity[] {
+  return items.map((item) => {
+    const eventType = clean(item.event_type ?? "telemetry_event");
+    const target = clean(item.target ?? "unknown-target");
+    const status = clean(item.status ?? "unknown");
+    const hasAssuranceSignals = Boolean(item.vectorvue_response || item.signature_state || item.attestation_proof);
+    const type: NexusActivity["type"] = hasAssuranceSignals ? "assurance" : "detection";
+    return {
+      source: hasAssuranceSignals ? "vectorvue" : "spectrastrike",
+      type,
+      title: `Telemetry ${eventType}`,
+      detail: `${status} on ${target}`,
+      ts: item.timestamp ?? new Date().toISOString(),
+    };
+  });
+}
+
+export function buildFederationDiagnostics(items: TelemetryEventItem[]): FederationDiagnostic[] {
+  return items
+    .filter((item) =>
+      Boolean(item.envelope_id || item.signature_state || item.failure_reason || item.vectorvue_response || item.attestation_proof),
+    )
+    .map((item) => ({
+      envelopeId: clean(item.envelope_id ?? "n/a"),
+      signatureState: clean(item.signature_state ?? "n/a"),
+      failureReason: clean(item.failure_reason ?? "none"),
+      retryAttempts: Number(item.retry_attempts ?? 0),
+      vectorVueResponse: clean(item.vectorvue_response ?? "n/a"),
+      attestationProof: clean(item.attestation_proof ?? "n/a"),
+      timestamp: item.timestamp ?? new Date().toISOString(),
+    }));
 }
 
 export function exportUnifiedValidationReport(context: NexusContext, activities: NexusActivity[]): string {

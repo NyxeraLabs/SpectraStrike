@@ -16,18 +16,23 @@ Sell derived competing products
 
 "use client";
 
+import React from "react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { buildVectorVueDemoUrl, isDemoQuery, NEXUS_DEMO_STEPS, nextDemoStep, type NexusDemoStep } from "../lib/demo-mode";
 import {
   buildNexusContext,
+  buildExecutionActivities,
+  buildFederationDiagnostics,
+  buildTelemetryActivities,
   buildVectorVueDeepLink,
   canAccessNexusArea,
   exportUnifiedValidationReport,
   mergeUnifiedActivities,
   searchUnifiedActivities,
+  type FederationDiagnostic,
   type NexusActivity,
   type NexusContext,
   type NexusRole,
@@ -39,40 +44,6 @@ type NexusWorkbenchProps = {
   role: NexusRole;
   vectorVueBaseUrl: string;
 };
-
-const execFeed: NexusActivity[] = [
-  {
-    source: "spectrastrike",
-    type: "execution",
-    title: "Campaign node execution",
-    detail: "Privilege escalation branch succeeded for T1068",
-    ts: "2026-03-03T13:20:00Z",
-  },
-  {
-    source: "spectrastrike",
-    type: "execution",
-    title: "Pivot graph update",
-    detail: "New lateral movement edge observed on SMB path",
-    ts: "2026-03-03T13:18:30Z",
-  },
-];
-
-const detectionFeed: NexusActivity[] = [
-  {
-    source: "vectorvue",
-    type: "detection",
-    title: "Detection event correlated",
-    detail: "Alert chain mapped to T1021.002 and queued for analyst review",
-    ts: "2026-03-03T13:21:22Z",
-  },
-  {
-    source: "vectorvue",
-    type: "assurance",
-    title: "Assurance delta",
-    detail: "Containment effectiveness increased by 6.2%",
-    ts: "2026-03-03T13:17:40Z",
-  },
-];
 
 function downloadReport(content: string, filename: string): void {
   const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
@@ -93,6 +64,9 @@ export function NexusWorkbench({ tenantName, tenantId, role, vectorVueBaseUrl }:
   const [findingId, setFindingId] = useState("fnd-184");
   const [query, setQuery] = useState("");
   const [nexusDemoStep, setNexusDemoStep] = useState<NexusDemoStep>("intro");
+  const [activities, setActivities] = useState<NexusActivity[]>([]);
+  const [federationDiagnostics, setFederationDiagnostics] = useState<FederationDiagnostic[]>([]);
+  const [liveStatus, setLiveStatus] = useState("Loading execution and telemetry surfaces...");
 
   const context: NexusContext = useMemo(
     () =>
@@ -106,7 +80,36 @@ export function NexusWorkbench({ tenantName, tenantId, role, vectorVueBaseUrl }:
     [campaignId, findingId, role, tenantId, tenantName],
   );
 
-  const unifiedFeed = useMemo(() => mergeUnifiedActivities([...execFeed, ...detectionFeed]), []);
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      fetch("/ui/api/execution/queue?limit=50").then((res) => res.json()),
+      fetch("/ui/api/telemetry/events?limit=50").then((res) => res.json()),
+    ])
+      .then(([queueBody, telemetryBody]) => {
+        if (!active) return;
+        const queueItems = Array.isArray(queueBody.items) ? queueBody.items : [];
+        const telemetryItems = Array.isArray(telemetryBody.items) ? telemetryBody.items : [];
+        const nextFeed = mergeUnifiedActivities([
+          ...buildExecutionActivities(queueItems),
+          ...buildTelemetryActivities(telemetryItems),
+        ]);
+        setActivities(nextFeed);
+        setFederationDiagnostics(buildFederationDiagnostics(telemetryItems).slice(0, 8));
+        setLiveStatus("Live execution + telemetry feed loaded.");
+      })
+      .catch(() => {
+        if (!active) return;
+        setActivities([]);
+        setFederationDiagnostics([]);
+        setLiveStatus("Unable to load execution or telemetry surfaces.");
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const unifiedFeed = useMemo(() => mergeUnifiedActivities(activities), [activities]);
   const filteredFeed = useMemo(() => searchUnifiedActivities(unifiedFeed, query), [query, unifiedFeed]);
   const vectorVueLink = useMemo(() => {
     if (demoQueryActive) return buildVectorVueDemoUrl();
@@ -176,6 +179,7 @@ export function NexusWorkbench({ tenantName, tenantId, role, vectorVueBaseUrl }:
 
       <article className="spectra-panel p-5">
         <h2 className="text-sm uppercase tracking-[0.2em] text-warning">Unified Activity Feed</h2>
+        <p className="mt-2 text-xs text-slate-400">{liveStatus}</p>
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -189,7 +193,32 @@ export function NexusWorkbench({ tenantName, tenantId, role, vectorVueBaseUrl }:
               <p className="mt-1 text-xs text-slate-300">{item.detail}</p>
             </li>
           ))}
+          {filteredFeed.length === 0 ? (
+            <li className="rounded border border-borderSubtle bg-slate-950/70 px-3 py-2 text-sm text-slate-300">
+              No live execution or telemetry events available.
+            </li>
+          ) : null}
         </ol>
+      </article>
+
+      <article className="spectra-panel p-5">
+        <h2 className="text-sm uppercase tracking-[0.2em] text-critical">Federation Diagnostics</h2>
+        {federationDiagnostics.length === 0 ? (
+          <p className="mt-2 text-xs text-slate-300">No federation diagnostics emitted yet.</p>
+        ) : (
+          <ul className="mt-3 space-y-2 text-xs" data-testid="federation-diagnostics">
+            {federationDiagnostics.map((item) => (
+              <li key={`${item.envelopeId}-${item.timestamp}`} className="rounded border border-borderSubtle p-2">
+                <p>Envelope ID: {item.envelopeId}</p>
+                <p>Signature state: {item.signatureState}</p>
+                <p>Failure reason: {item.failureReason}</p>
+                <p>Retry attempts: {item.retryAttempts}</p>
+                <p>VectorVue response: {item.vectorVueResponse}</p>
+                <p>Attestation proof: {item.attestationProof}</p>
+              </li>
+            ))}
+          </ul>
+        )}
       </article>
 
       <article className="spectra-panel p-5">

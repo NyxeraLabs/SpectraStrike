@@ -38,8 +38,17 @@ describe("cross app link resolution", () => {
 
   it("falls back to defaults and warns when env is missing", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    expect(getNexusUrl()).toBe("http://localhost:3001");
-    expect(getVectorVueUrl()).toBe("http://localhost:3002");
+    expect(getNexusUrl()).toBe("https://localhost:3001");
+    expect(getVectorVueUrl()).toBe("https://localhost:3002");
+    expect(warnSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("upgrades insecure env URLs to https", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    process.env.VITE_NEXUS_URL = "http://nexus.test";
+    process.env.VITE_VECTORVUE_URL = "http://vectorvue.test";
+    expect(getNexusUrl()).toBe("https://nexus.test");
+    expect(getVectorVueUrl()).toBe("https://vectorvue.test");
     expect(warnSpy).toHaveBeenCalledTimes(2);
   });
 });
