@@ -362,17 +362,17 @@ Interactive intelligence dashboards powered by vv_core schema.
 
 ### Commits
 
-* [ ] feat(vectorvue-ui): interactive ATT&CK heatmap (coverage vs detection vs response)
-* [ ] feat(vectorvue-ui): technique confidence score visualization
-* [ ] feat(vectorvue-ui): detection latency timeline graph
-* [ ] feat(vectorvue-ui): false negative analysis dashboard
-* [ ] feat(vectorvue-ui): control validation matrix (EDR/XDR/NGFW/AV)
-* [ ] feat(vectorvue-ui): SOC performance dashboard (MTTD, MTTR, containment rate)
-* [ ] feat(vectorvue-ui): telemetry field completeness dashboard
-* [ ] feat(vectorvue-ui): anomaly & behavioral analytics visualization
-* [ ] feat(vectorvue-ui): evidence lifecycle tracking interface
-* [ ] test(vectorvue-ui): telemetry-to-heatmap integrity tests
-* [ ] test(vectorvue-ui): dashboard rendering performance test
+* [x] feat(vectorvue-ui): interactive ATT&CK heatmap (coverage vs detection vs response)
+* [x] feat(vectorvue-ui): technique confidence score visualization
+* [x] feat(vectorvue-ui): detection latency timeline graph
+* [x] feat(vectorvue-ui): false negative analysis dashboard
+* [x] feat(vectorvue-ui): control validation matrix (EDR/XDR/NGFW/AV)
+* [x] feat(vectorvue-ui): SOC performance dashboard (MTTD, MTTR, containment rate)
+* [x] feat(vectorvue-ui): telemetry field completeness dashboard
+* [x] feat(vectorvue-ui): anomaly & behavioral analytics visualization
+* [x] feat(vectorvue-ui): evidence lifecycle tracking interface
+* [x] test(vectorvue-ui): telemetry-to-heatmap integrity tests
+* [x] test(vectorvue-ui): dashboard rendering performance test
 
 ---
 
