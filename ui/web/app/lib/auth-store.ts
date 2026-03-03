@@ -38,6 +38,7 @@ type StoredUser = {
 type StoredSession = {
   token: string;
   userId: string;
+  roles: string[];
   expiresAtMs: number;
 };
 
@@ -60,14 +61,21 @@ type PublicUser = {
 
 type AuthDataStore = {
   usersByKey: Map<string, StoredUser>;
+  usersById: Map<string, StoredUser>;
   sessionsByToken: Map<string, StoredSession>;
   bootstrapPromise: Promise<void> | null;
   demoPromise: Promise<PublicUser> | null;
 };
 
+type SessionPrincipal = {
+  userId: string;
+  roles: string[];
+};
+
 export type AuthValidationResult = {
   ok: boolean;
-  error?: "unauthorized" | "LEGAL_ACCEPTANCE_REQUIRED";
+  error?: "unauthorized" | "forbidden" | "LEGAL_ACCEPTANCE_REQUIRED";
+  principal?: SessionPrincipal;
   legal?: {
     environment: "self-hosted" | "enterprise" | "saas";
     reason?: string;
@@ -75,11 +83,16 @@ export type AuthValidationResult = {
   };
 };
 
+type AuthValidationOptions = {
+  requiredAnyRole?: string[];
+};
+
 const globalStoreKey = "__spectrastrikeAuthStore__";
 const store = (globalThis as Record<string, unknown>)[globalStoreKey] as AuthDataStore | undefined;
 
 const authStore: AuthDataStore = store ?? {
   usersByKey: new Map<string, StoredUser>(),
+  usersById: new Map<string, StoredUser>(),
   sessionsByToken: new Map<string, StoredSession>(),
   bootstrapPromise: null,
   demoPromise: null,
@@ -129,6 +142,7 @@ async function createUser(input: RegisterUserInput): Promise<StoredUser> {
     acceptedPoliciesAt: input.acceptedPoliciesAt,
   };
   authStore.usersByKey.set(usernameKey, user);
+  authStore.usersById.set(user.id, user);
   return user;
 }
 
@@ -158,15 +172,22 @@ export async function ensureBootstrapUser(): Promise<void> {
     const defaultPassword = process.env.UI_AUTH_BOOTSTRAP_PASSWORD ?? "Operator!ChangeMe123";
     const defaultFullName = process.env.UI_AUTH_BOOTSTRAP_FULL_NAME ?? "Default Operator";
     const defaultEmail = process.env.UI_AUTH_BOOTSTRAP_EMAIL ?? "operator@spectrastrike.local";
+    const defaultRoles = (process.env.UI_AUTH_BOOTSTRAP_ROLES ?? "operator,admin")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
     const nowIso = new Date().toISOString();
 
-    await createUser({
+    const created = await createUser({
       username: defaultUsername,
       fullName: defaultFullName,
       email: defaultEmail,
       password: defaultPassword,
       acceptedPoliciesAt: nowIso,
     });
+    created.roles = defaultRoles.length > 0 ? defaultRoles : ["operator", "admin"];
+    authStore.usersByKey.set(userKey, created);
+    authStore.usersById.set(created.id, created);
   })();
 
   await authStore.bootstrapPromise;
@@ -236,9 +257,11 @@ export async function authenticateUser(
 export function issueSessionToken(userId: string): { accessToken: string; expiresAt: string; maxAge: number } {
   const accessToken = randomBytes(32).toString("base64url");
   const expiresAtMs = Date.now() + sessionTtlSeconds * 1000;
+  const user = authStore.usersById.get(userId);
   authStore.sessionsByToken.set(accessToken, {
     token: accessToken,
     userId,
+    roles: user?.roles ?? [],
     expiresAtMs,
   });
   return {
@@ -255,6 +278,22 @@ function pruneExpiredSessions(): void {
       authStore.sessionsByToken.delete(token);
     }
   }
+}
+
+function getSessionPrincipal(token: string): SessionPrincipal | null {
+  pruneExpiredSessions();
+  const session = authStore.sessionsByToken.get(token);
+  if (!session) {
+    return null;
+  }
+  if (session.expiresAtMs <= Date.now()) {
+    authStore.sessionsByToken.delete(token);
+    return null;
+  }
+  return {
+    userId: session.userId,
+    roles: session.roles,
+  };
 }
 
 export function isSessionTokenValid(token: string): boolean {
@@ -292,12 +331,24 @@ export function revokeSession(token: string): void {
 }
 
 export async function validateAuthenticatedRequest(
-  request: Request
+  request: Request,
+  options?: AuthValidationOptions
 ): Promise<AuthValidationResult> {
   await ensureBootstrapUser();
   const token = extractSessionToken(request);
   if (!token || !isSessionTokenValid(token)) {
     return { ok: false, error: "unauthorized" };
+  }
+  const principal = getSessionPrincipal(token);
+  if (!principal) {
+    return { ok: false, error: "unauthorized" };
+  }
+
+  if (options?.requiredAnyRole && options.requiredAnyRole.length > 0) {
+    const allowed = options.requiredAnyRole.some((role) => principal.roles.includes(role));
+    if (!allowed) {
+      return { ok: false, error: "forbidden", principal };
+    }
   }
 
   const legalDecision = await legalEnforcementService.hooks().forAuthMiddleware();
@@ -305,6 +356,7 @@ export async function validateAuthenticatedRequest(
     return {
       ok: false,
       error: "LEGAL_ACCEPTANCE_REQUIRED",
+      principal,
       legal: {
         environment: legalDecision.environment,
         reason: legalDecision.reason,
@@ -313,5 +365,5 @@ export async function validateAuthenticatedRequest(
     };
   }
 
-  return { ok: true };
+  return { ok: true, principal };
 }

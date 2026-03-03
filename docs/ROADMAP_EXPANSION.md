@@ -435,14 +435,14 @@ Modern, enterprise-grade UX maturity.
 
 ### Commits
 
-* [ ] chore: performance optimization pass
-* [ ] chore: DB index optimization
-* [ ] chore: load testing framework
-* [ ] chore: stress testing scenarios
-* [ ] chore: security hardening review
-* [ ] chore: RBAC enforcement audit
-* [ ] chore: logging & observability refinement
-* [ ] test: full integration test suite
+* [x] chore: performance optimization pass
+* [x] chore: DB index optimization
+* [x] chore: load testing framework
+* [x] chore: stress testing scenarios
+* [x] chore: security hardening review
+* [x] chore: RBAC enforcement audit
+* [x] chore: logging & observability refinement
+* [x] test: full integration test suite
 
 ---
 
