@@ -120,15 +120,15 @@
 
 ### Commits
 
-* [ ] feat: ControlVendor table
-* [ ] feat: ControlInstance table
-* [ ] feat: ControlType enum
-* [ ] feat: DetectionEvent table
-* [ ] feat: alert normalization adapter layer
-* [ ] feat: alert severity normalization
-* [ ] feat: detection-to-technique mapping logic
-* [ ] feat: vendor performance comparison support
-* [ ] test: detection normalization tests
+* [x] feat: ControlVendor table
+* [x] feat: ControlInstance table
+* [x] feat: ControlType enum
+* [x] feat: DetectionEvent table
+* [x] feat: alert normalization adapter layer
+* [x] feat: alert severity normalization
+* [x] feat: detection-to-technique mapping logic
+* [x] feat: vendor performance comparison support
+* [x] test: detection normalization tests
 
 ---
 
