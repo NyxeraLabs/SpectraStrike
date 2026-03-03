@@ -124,7 +124,7 @@ def _seed_tenant(
     tenant_id: str,
     wrappers: list[Wrapper],
     target_prefix: str,
-) -> None:
+) -> int:
     sample = wrappers[:12]
     nodes = []
     edges = []
@@ -169,6 +169,7 @@ def _seed_tenant(
     )
     pb.raise_for_status()
 
+    failures = 0
     for idx, wrapper in enumerate(sample):
         random_suffix = "".join(random.choice(string.ascii_lowercase) for _ in range(4))
         target = f"{target_prefix}.{idx+10}.{random_suffix}.corp.local"
@@ -182,17 +183,38 @@ def _seed_tenant(
                 "technique": f"T{1000 + idx}",
             },
         }
-        task = session.post(
-            f"{base_url}/actions/tasks",
-            headers={
-                "authorization": f"Bearer {token}",
-                "content-type": "application/json",
-            },
-            data=json.dumps(payload),
-            timeout=20,
-            verify=False,
-        )
-        task.raise_for_status()
+        submitted = False
+        last_error = "unknown"
+        for attempt in range(1, 13):
+            try:
+                task = session.post(
+                    f"{base_url}/actions/tasks",
+                    headers={
+                        "authorization": f"Bearer {token}",
+                        "content-type": "application/json",
+                    },
+                    data=json.dumps(payload),
+                    timeout=20,
+                    verify=False,
+                )
+                if task.status_code in {502, 503, 504, 429}:
+                    last_error = f"http_{task.status_code}"
+                    time.sleep(min(1.6 * attempt, 8.0))
+                    continue
+                task.raise_for_status()
+                submitted = True
+                break
+            except Exception as exc:  # noqa: BLE001
+                last_error = f"{type(exc).__name__}:{exc}"
+                time.sleep(min(1.2 * attempt, 8.0))
+        if not submitted:
+            failures += 1
+            print(
+                f"WARNING: task seed failed tenant={tenant_id} tool={wrapper.key} "
+                f"target={target} error={last_error}"
+            )
+
+    return failures
 
 
 def main() -> int:
@@ -200,6 +222,7 @@ def main() -> int:
     parser.add_argument("--base-url", default="https://127.0.0.1:18443/ui/api")
     parser.add_argument("--tenant-a", default="10000000-0000-0000-0000-000000000001")
     parser.add_argument("--tenant-b", default="20000000-0000-0000-0000-000000000002")
+    parser.add_argument("--strict", action="store_true", help="Fail when all task submissions fail for a tenant.")
     args = parser.parse_args()
 
     session = requests.Session()
@@ -208,9 +231,19 @@ def main() -> int:
     if not wrappers:
         raise RuntimeError("wrapper registry is empty; cannot seed demo runtime")
 
-    _seed_tenant(session, resolved_base, token, args.tenant_a, wrappers, "acme")
-    _seed_tenant(session, resolved_base, token, args.tenant_b, wrappers, "globex")
-    print("SpectraStrike demo runtime seeded for two tenants.")
+    failures_a = _seed_tenant(session, resolved_base, token, args.tenant_a, wrappers, "acme")
+    failures_b = _seed_tenant(session, resolved_base, token, args.tenant_b, wrappers, "globex")
+
+    total = min(12, len(wrappers))
+    if failures_a:
+        print(f"WARNING: tenant={args.tenant_a} failed task submissions: {failures_a}/{total}")
+    if failures_b:
+        print(f"WARNING: tenant={args.tenant_b} failed task submissions: {failures_b}/{total}")
+
+    if args.strict and (failures_a >= total or failures_b >= total):
+        raise RuntimeError("strict mode: at least one tenant failed all task submissions")
+
+    print("SpectraStrike demo runtime seeded for two tenants (with resilient fallback).")
     return 0
 
 
