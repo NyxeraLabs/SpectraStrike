@@ -334,16 +334,16 @@ Graph-native attack surface modeling with drag-and-drop relationships.
 
 ### Commits
 
-* [ ] feat(asm-ui): asset graph visualization engine
-* [ ] feat(asm-ui): drag-and-drop asset relationship builder
-* [ ] feat(asm-ui): exposure-to-asset linking visualization
-* [ ] feat(asm-ui): vulnerability relationship mapping
-* [ ] feat(asm-ui): external-to-internal pivot path visualization
-* [ ] feat(asm-ui): cloud IAM & role relationship graph
-* [ ] feat(asm-ui): exposure risk overlay scoring visualization
-* [ ] feat(asm-ui): convert exposure graph → SpectraStrike playbook action
-* [ ] test(asm-ui): large graph rendering performance test
-* [ ] test(asm-ui): exposure mapping integrity validation
+* [x] feat(asm-ui): asset graph visualization engine
+* [x] feat(asm-ui): drag-and-drop asset relationship builder
+* [x] feat(asm-ui): exposure-to-asset linking visualization
+* [x] feat(asm-ui): vulnerability relationship mapping
+* [x] feat(asm-ui): external-to-internal pivot path visualization
+* [x] feat(asm-ui): cloud IAM & role relationship graph
+* [x] feat(asm-ui): exposure risk overlay scoring visualization
+* [x] feat(asm-ui): convert exposure graph → SpectraStrike playbook action
+* [x] test(asm-ui): large graph rendering performance test
+* [x] test(asm-ui): exposure mapping integrity validation
 
 ⚠️ Important:
 ASM graph must reuse same graph-core library as SpectraStrike execution graph.

@@ -25,6 +25,7 @@ import { useRouter } from "next/navigation";
 const navItems = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/dashboard/workflow", label: "Workflow" },
+  { href: "/dashboard/asm", label: "ASM" },
   { href: "/dashboard/telemetry", label: "Telemetry" },
   { href: "/dashboard/armory", label: "Armory" },
   { href: "/dashboard/fleet", label: "Fleet" },
