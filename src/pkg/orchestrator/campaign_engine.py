@@ -60,6 +60,26 @@ class ExecutionStatus(str, Enum):
     CANCELED = "canceled"
 
 
+class PrivilegeLevel(str, Enum):
+    """Identity privilege classification."""
+
+    LOW = "low"
+    USER = "user"
+    LOCAL_ADMIN = "local_admin"
+    DOMAIN_ADMIN = "domain_admin"
+    SYSTEM = "system"
+
+
+class CredentialMaterialType(str, Enum):
+    """Credential material type."""
+
+    PASSWORD = "password"
+    HASH = "hash"
+    TOKEN = "token"
+    TICKET = "ticket"
+    KEY = "key"
+
+
 ALLOWED_CAMPAIGN_STATUS_TRANSITIONS: dict[CampaignStatus, set[CampaignStatus]] = {
     CampaignStatus.DRAFT: {CampaignStatus.SCHEDULED, CampaignStatus.RUNNING, CampaignStatus.CANCELED},
     CampaignStatus.SCHEDULED: {CampaignStatus.RUNNING, CampaignStatus.CANCELED},
@@ -172,6 +192,71 @@ class CrossAssetCorrelation:
     execution_ids: tuple[str, ...]
 
 
+@dataclass(slots=True, frozen=True)
+class IdentityRecord:
+    """Identity entity model."""
+
+    identity_id: str
+    campaign_id: str
+    principal: str
+    source_asset_id: str
+    privilege_level: PrivilegeLevel
+    compromised: bool = False
+    compromised_at: datetime | None = None
+    compromised_by_execution_id: str | None = None
+
+
+@dataclass(slots=True, frozen=True)
+class CredentialMaterialRecord:
+    """Credential material tracking model."""
+
+    credential_id: str
+    campaign_id: str
+    identity_id: str
+    material_type: CredentialMaterialType
+    material_ref: str
+    captured_at: datetime
+    source_execution_id: str | None = None
+
+
+@dataclass(slots=True, frozen=True)
+class PrivilegeEscalationRecord:
+    """Privilege escalation event tracking model."""
+
+    escalation_id: str
+    campaign_id: str
+    identity_id: str
+    from_level: PrivilegeLevel
+    to_level: PrivilegeLevel
+    execution_id: str
+    asset_id: str
+    occurred_at: datetime
+
+
+@dataclass(slots=True, frozen=True)
+class LateralMovementEdge:
+    """Lateral movement edge model."""
+
+    edge_id: str
+    campaign_id: str
+    identity_id: str
+    source_asset_id: str
+    target_asset_id: str
+    execution_id: str
+    occurred_at: datetime
+    relation: str = "lateral_movement"
+
+
+@dataclass(slots=True, frozen=True)
+class PivotChain:
+    """Pivot graph persistence projection for one identity."""
+
+    campaign_id: str
+    identity_id: str
+    asset_path: tuple[str, ...]
+    edge_ids: tuple[str, ...]
+
+
 class CampaignEngine:
     """Thread-safe stateful campaign manager with lifecycle guarantees."""
 
@@ -180,6 +265,10 @@ class CampaignEngine:
         self._campaign_steps_table: dict[str, CampaignStepRecord] = {}
         self._technique_execution_table: dict[str, TechniqueExecutionRecord] = {}
         self._correlation_index: dict[str, set[str]] = {}
+        self._identity_table: dict[str, IdentityRecord] = {}
+        self._credential_material_table: dict[str, CredentialMaterialRecord] = {}
+        self._escalation_table: dict[str, PrivilegeEscalationRecord] = {}
+        self._lateral_edges_table: dict[str, LateralMovementEdge] = {}
         self._lock = Lock()
 
     def create_campaign(
@@ -383,6 +472,189 @@ class CampaignEngine:
                 step_id=step_id,
                 asset_ids=asset_ids,
                 execution_ids=tuple(execution_ids),
+            )
+
+    def add_identity(
+        self,
+        *,
+        campaign_id: str,
+        principal: str,
+        source_asset_id: str,
+        privilege_level: PrivilegeLevel,
+    ) -> IdentityRecord:
+        """Create identity entity model record."""
+        if not principal.strip() or not source_asset_id.strip():
+            raise CampaignEngineError("principal and source_asset_id are required")
+        with self._lock:
+            if campaign_id not in self._campaign_table:
+                raise CampaignEngineError("campaign not found")
+            normalized = principal.strip().lower()
+            for identity in self._identity_table.values():
+                if identity.campaign_id == campaign_id and identity.principal.lower() == normalized:
+                    raise CampaignEngineError("identity principal already exists in campaign")
+            record = IdentityRecord(
+                identity_id=f"idn-{uuid4()}",
+                campaign_id=campaign_id,
+                principal=principal.strip(),
+                source_asset_id=source_asset_id.strip(),
+                privilege_level=privilege_level,
+            )
+            self._identity_table[record.identity_id] = record
+            return record
+
+    def record_credential_material(
+        self,
+        *,
+        campaign_id: str,
+        identity_id: str,
+        material_type: CredentialMaterialType,
+        material_ref: str,
+        source_execution_id: str | None = None,
+    ) -> CredentialMaterialRecord:
+        """Track credential material associated with identity."""
+        if not material_ref.strip():
+            raise CampaignEngineError("material_ref is required")
+        with self._lock:
+            identity = self._identity_table.get(identity_id)
+            if identity is None or identity.campaign_id != campaign_id:
+                raise CampaignEngineError("identity not found")
+            record = CredentialMaterialRecord(
+                credential_id=f"cred-{uuid4()}",
+                campaign_id=campaign_id,
+                identity_id=identity_id,
+                material_type=material_type,
+                material_ref=material_ref.strip(),
+                captured_at=datetime.now(UTC),
+                source_execution_id=source_execution_id,
+            )
+            self._credential_material_table[record.credential_id] = record
+            return record
+
+    def record_privilege_escalation(
+        self,
+        *,
+        campaign_id: str,
+        identity_id: str,
+        to_level: PrivilegeLevel,
+        execution_id: str,
+        asset_id: str,
+    ) -> PrivilegeEscalationRecord:
+        """Record privilege escalation event and update identity privilege state."""
+        with self._lock:
+            identity = self._identity_table.get(identity_id)
+            if identity is None or identity.campaign_id != campaign_id:
+                raise CampaignEngineError("identity not found")
+            if execution_id not in self._technique_execution_table:
+                raise CampaignEngineError("execution not found")
+            record = PrivilegeEscalationRecord(
+                escalation_id=f"esc-{uuid4()}",
+                campaign_id=campaign_id,
+                identity_id=identity_id,
+                from_level=identity.privilege_level,
+                to_level=to_level,
+                execution_id=execution_id,
+                asset_id=asset_id.strip(),
+                occurred_at=datetime.now(UTC),
+            )
+            self._escalation_table[record.escalation_id] = record
+            self._identity_table[identity_id] = replace(
+                identity,
+                privilege_level=to_level,
+                compromised=True,
+                compromised_at=record.occurred_at,
+                compromised_by_execution_id=execution_id,
+            )
+            return record
+
+    def add_lateral_movement_edge(
+        self,
+        *,
+        campaign_id: str,
+        identity_id: str,
+        source_asset_id: str,
+        target_asset_id: str,
+        execution_id: str,
+    ) -> LateralMovementEdge:
+        """Create lateral movement graph edge."""
+        if not source_asset_id.strip() or not target_asset_id.strip():
+            raise CampaignEngineError("source_asset_id and target_asset_id are required")
+        with self._lock:
+            identity = self._identity_table.get(identity_id)
+            if identity is None or identity.campaign_id != campaign_id:
+                raise CampaignEngineError("identity not found")
+            if execution_id not in self._technique_execution_table:
+                raise CampaignEngineError("execution not found")
+            edge = LateralMovementEdge(
+                edge_id=f"lme-{uuid4()}",
+                campaign_id=campaign_id,
+                identity_id=identity_id,
+                source_asset_id=source_asset_id.strip(),
+                target_asset_id=target_asset_id.strip(),
+                execution_id=execution_id,
+                occurred_at=datetime.now(UTC),
+            )
+            self._lateral_edges_table[edge.edge_id] = edge
+            return edge
+
+    def reconstruct_pivot_chain(
+        self,
+        *,
+        campaign_id: str,
+        identity_id: str,
+    ) -> PivotChain:
+        """Rebuild ordered pivot chain for an identity."""
+        with self._lock:
+            identity = self._identity_table.get(identity_id)
+            if identity is None or identity.campaign_id != campaign_id:
+                raise CampaignEngineError("identity not found")
+            edges = [
+                edge
+                for edge in self._lateral_edges_table.values()
+                if edge.campaign_id == campaign_id and edge.identity_id == identity_id
+            ]
+            if not edges:
+                return PivotChain(
+                    campaign_id=campaign_id,
+                    identity_id=identity_id,
+                    asset_path=(identity.source_asset_id,),
+                    edge_ids=tuple(),
+                )
+            edges_sorted = sorted(edges, key=lambda row: row.occurred_at)
+            asset_path: list[str] = [identity.source_asset_id]
+            for edge in edges_sorted:
+                if asset_path[-1] != edge.source_asset_id and edge.source_asset_id not in asset_path:
+                    asset_path.append(edge.source_asset_id)
+                if edge.target_asset_id not in asset_path:
+                    asset_path.append(edge.target_asset_id)
+            return PivotChain(
+                campaign_id=campaign_id,
+                identity_id=identity_id,
+                asset_path=tuple(asset_path),
+                edge_ids=tuple(edge.edge_id for edge in edges_sorted),
+            )
+
+    def list_identity_credentials(self, *, campaign_id: str, identity_id: str) -> list[CredentialMaterialRecord]:
+        """List credential material for one identity."""
+        with self._lock:
+            return sorted(
+                [
+                    item
+                    for item in self._credential_material_table.values()
+                    if item.campaign_id == campaign_id and item.identity_id == identity_id
+                ],
+                key=lambda row: row.captured_at,
+            )
+
+    def list_identity_escalations(self, *, campaign_id: str, identity_id: str) -> list[PrivilegeEscalationRecord]:
+        """List privilege escalation events for one identity."""
+        with self._lock:
+            return sorted(
+                [
+                    item
+                    for item in self._escalation_table.values()
+                    if item.campaign_id == campaign_id and item.identity_id == identity_id
+                ],
+                key=lambda row: row.occurred_at,
             )
 
     def list_campaign_steps(self, *, campaign_id: str) -> list[CampaignStepRecord]:

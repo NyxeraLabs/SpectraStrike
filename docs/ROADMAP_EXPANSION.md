@@ -67,14 +67,14 @@
 
 ### Commits
 
-* [ ] feat: identity entity model
-* [ ] feat: credential material tracking
-* [ ] feat: privilege level classification
-* [ ] feat: escalation event tracking
-* [ ] feat: lateral movement edge modeling
-* [ ] feat: pivot graph persistence
-* [ ] feat: compromised account attribution
-* [ ] test: pivot chain reconstruction tests
+* [x] feat: identity entity model
+* [x] feat: credential material tracking
+* [x] feat: privilege level classification
+* [x] feat: escalation event tracking
+* [x] feat: lateral movement edge modeling
+* [x] feat: pivot graph persistence
+* [x] feat: compromised account attribution
+* [x] test: pivot chain reconstruction tests
 
 ---
 
