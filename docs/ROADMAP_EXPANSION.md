@@ -252,13 +252,13 @@
 
 ### Commits
 
-* [ ] feat: NIST control mapping
-* [ ] feat: ISO 27001 control mapping
-* [ ] feat: SOC2 control mapping
-* [ ] feat: automated assurance report generator
-* [ ] feat: signed audit export package
-* [ ] feat: multi-cycle validation comparison
-* [ ] test: compliance mapping validation
+* [x] feat: NIST control mapping
+* [x] feat: ISO 27001 control mapping
+* [x] feat: SOC2 control mapping
+* [x] feat: automated assurance report generator
+* [x] feat: signed audit export package
+* [x] feat: multi-cycle validation comparison
+* [x] test: compliance mapping validation
 
 ---
 
