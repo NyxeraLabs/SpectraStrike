@@ -6,6 +6,8 @@
 from __future__ import annotations
 
 import argparse
+import os
+import time
 
 import requests
 from urllib3.exceptions import InsecureRequestWarning
@@ -19,22 +21,63 @@ def main() -> int:
     args = parser.parse_args()
 
     session = requests.Session()
-    auth = session.post(
-        f"{args.base_url}/v1/auth/demo",
-        headers={"origin": args.base_url.replace("/ui/api", "/ui")},
-        timeout=15,
-        verify=False,
-    )
-    auth.raise_for_status()
-    token = str(auth.json().get("access_token", "")).strip()
+    candidates = [
+        args.base_url.rstrip("/"),
+        "https://127.0.0.1:18443/ui/api",
+        "https://localhost:18443/ui/api",
+        "http://127.0.0.1:3000/ui/api",
+        "http://localhost:3000/ui/api",
+    ]
+    api_base = ""
+    token = ""
+    last_error = "unknown"
+    for candidate in candidates:
+        for _ in range(20):
+            try:
+                auth = session.post(
+                    f"{candidate}/v1/auth/demo",
+                    timeout=15,
+                    verify=False,
+                )
+                if auth.status_code in {502, 503, 504, 403}:
+                    if auth.status_code == 403:
+                        try:
+                            username = os.getenv("UI_AUTH_BOOTSTRAP_USERNAME", "operator")
+                            password = os.getenv("UI_AUTH_BOOTSTRAP_PASSWORD", "Operator!ChangeMe123")
+                            login = session.post(
+                                f"{candidate}/v1/auth/login",
+                                json={"username": username, "password": password},
+                                timeout=15,
+                                verify=False,
+                            )
+                            login.raise_for_status()
+                            token = str(login.json().get("access_token", "")).strip()
+                            if token:
+                                api_base = candidate
+                                break
+                        except Exception as exc:  # noqa: BLE001
+                            last_error = f"demo_403_and_bootstrap_failed_on_{candidate}:{exc}"
+                    else:
+                        last_error = f"http_{auth.status_code}_on_{candidate}"
+                    time.sleep(0.8)
+                    continue
+                auth.raise_for_status()
+                token = str(auth.json().get("access_token", "")).strip()
+                if token:
+                    api_base = candidate
+                    break
+            except Exception as exc:  # noqa: BLE001
+                last_error = f"{type(exc).__name__}:{exc}"
+                time.sleep(0.8)
+        if token:
+            break
     if not token:
-        raise RuntimeError("demo auth did not return access token")
+        raise RuntimeError(f"demo auth failed for all candidate endpoints: {last_error}")
 
     reset = session.post(
-        f"{args.base_url}/execution/reset",
+        f"{api_base}/execution/reset",
         headers={
             "authorization": f"Bearer {token}",
-            "origin": args.base_url.replace("/ui/api", "/ui"),
         },
         timeout=20,
         verify=False,
