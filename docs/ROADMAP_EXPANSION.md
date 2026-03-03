@@ -237,14 +237,14 @@
 
 ### Commits
 
-* [ ] feat: ATT&CK heatmap generator
-* [ ] feat: tactic-level coverage score
-* [ ] feat: technique-level coverage score
-* [ ] feat: detection effectiveness index
-* [ ] feat: control reliability score
-* [ ] feat: historical trend comparison engine
-* [ ] feat: executive risk summary builder
-* [ ] test: analytics engine validation
+* [x] feat: ATT&CK heatmap generator
+* [x] feat: tactic-level coverage score
+* [x] feat: technique-level coverage score
+* [x] feat: detection effectiveness index
+* [x] feat: control reliability score
+* [x] feat: historical trend comparison engine
+* [x] feat: executive risk summary builder
+* [x] test: analytics engine validation
 
 ---
 
