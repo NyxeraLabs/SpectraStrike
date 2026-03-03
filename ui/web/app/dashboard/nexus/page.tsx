@@ -20,7 +20,7 @@ import { NexusWorkbench } from "../../components/nexus-workbench";
 import { TopNav } from "../../components/top-nav";
 import { type NexusRole } from "../../lib/nexus-context";
 
-const fallbackVectorVueBaseUrl = process.env.UI_VECTORVUE_BASE_URL ?? "http://localhost:3001";
+const fallbackVectorVueBaseUrl = process.env.UI_VECTORVUE_BASE_URL ?? "https://localhost:3001";
 
 function resolveRole(value: string | undefined): NexusRole {
   if (value === "admin" || value === "analyst" || value === "auditor") return value;

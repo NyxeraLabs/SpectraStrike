@@ -277,10 +277,8 @@ local-federation-up:
 	@echo ""
 	@echo "Local federation is up."
 	@echo "SpectraStrike UI URLs:"
-	@echo "  - http://127.0.0.1:18080"
 	@echo "  - https://127.0.0.1:18443"
 	@echo "VectorVue UI URLs:"
-	@echo "  - http://127.0.0.1"
 	@echo "  - https://127.0.0.1"
 
 full-regression: qa security-gate
