@@ -154,19 +154,19 @@
 
 ### Commits
 
-* [ ] feat: AssetInventory core table
-* [ ] feat: domain discovery module
-* [ ] feat: subdomain brute-force module
-* [ ] feat: IP range ingestion module
-* [ ] feat: ASN lookup integration
-* [ ] feat: certificate transparency ingestion
-* [ ] feat: DNS record normalization
-* [ ] feat: cloud metadata ingestion (AWS)
-* [ ] feat: cloud metadata ingestion (Azure)
-* [ ] feat: cloud metadata ingestion (GCP)
-* [ ] feat: asset ownership tagging
-* [ ] feat: asset criticality classification
-* [ ] test: asset deduplication validation
+* [x] feat: AssetInventory core table
+* [x] feat: domain discovery module
+* [x] feat: subdomain brute-force module
+* [x] feat: IP range ingestion module
+* [x] feat: ASN lookup integration
+* [x] feat: certificate transparency ingestion
+* [x] feat: DNS record normalization
+* [x] feat: cloud metadata ingestion (AWS)
+* [x] feat: cloud metadata ingestion (Azure)
+* [x] feat: cloud metadata ingestion (GCP)
+* [x] feat: asset ownership tagging
+* [x] feat: asset criticality classification
+* [x] test: asset deduplication validation
 
 ---
 
