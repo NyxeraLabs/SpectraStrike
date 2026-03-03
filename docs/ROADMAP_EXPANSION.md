@@ -29,18 +29,18 @@
 
 ### Commits
 
-* [ ] feat: define execution lifecycle enum
-* [ ] feat: define lifecycle transition rules
-* [ ] feat: define execution metadata schema
-* [ ] feat: define asset metadata schema
-* [ ] feat: define identity metadata schema
-* [ ] feat: define TTP metadata schema
-* [ ] feat: define detection metadata schema
-* [ ] feat: define response metadata schema
-* [ ] feat: define control metadata schema
-* [ ] feat: add telemetry schema versioning
-* [ ] feat: add ingestion validation middleware
-* [ ] test: contract enforcement unit tests
+* [x] feat: define execution lifecycle enum
+* [x] feat: define lifecycle transition rules
+* [x] feat: define execution metadata schema
+* [x] feat: define asset metadata schema
+* [x] feat: define identity metadata schema
+* [x] feat: define TTP metadata schema
+* [x] feat: define detection metadata schema
+* [x] feat: define response metadata schema
+* [x] feat: define control metadata schema
+* [x] feat: add telemetry schema versioning
+* [x] feat: add ingestion validation middleware
+* [x] test: contract enforcement unit tests
 
 ---
 
