@@ -84,6 +84,21 @@ describe("WorkflowWorkbench UI state consistency", () => {
     });
   });
 
+  it("allows loading and unloading campaign timeline steps", async () => {
+    const user = userEvent.setup();
+    render(<WorkflowWorkbench />);
+    await user.click(await screen.findByRole("button", { name: /Nmap/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId("playbook-list")).toHaveTextContent("Nmap");
+    });
+    await user.click(screen.getByRole("button", { name: /^Unload$/i }));
+    expect(screen.getByTestId("playbook-list")).toHaveTextContent("Timeline unloaded");
+    await user.click(screen.getByRole("button", { name: /Load All/i }));
+    await waitFor(() => {
+      expect(screen.getByTestId("playbook-list")).toHaveTextContent("Nmap");
+    });
+  });
+
   it("renders campaign selector with seeded tenant options", async () => {
     render(<WorkflowWorkbench />);
     const selector = await screen.findByLabelText(/Active Campaign/i);

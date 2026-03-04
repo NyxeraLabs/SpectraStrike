@@ -79,3 +79,12 @@
   - SpectraStrike UI login URL
   - Bootstrap username (`UI_AUTH_BOOTSTRAP_USERNAME`, fallback `operator`)
   - Bootstrap password (`UI_AUTH_BOOTSTRAP_PASSWORD`, fallback `Operator!ChangeMe123`)
+
+## Campaign Timeline Bar (Workflow)
+- Added `timelineVisibleSteps` state in workflow workbench.
+- New timeline control section includes:
+  - slider (`min=0`, `max=nodes.length`)
+  - `Load All` action
+  - `Unload` action
+- Playbook step rendering now uses `timelineNodes = nodes.slice(0, timelineVisibleSteps)`.
+- On campaign change, timeline resets and then auto-loads once the campaign playbook is present.

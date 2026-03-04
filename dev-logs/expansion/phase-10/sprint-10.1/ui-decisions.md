@@ -51,3 +51,7 @@
 ## Decision 13: Seed Commands Must Emit Operator Login Credentials
 - `make demo-seed` now prints SpectraStrike login credentials directly.
 - Rationale: match VectorVue credential visibility and reduce onboarding friction.
+
+## Decision 14: Timeline Visibility Must Be Operator-Controlled
+- Added explicit load/unload controls for campaign timeline steps in workflow UI.
+- Rationale: allow fast narrowing or full expansion of campaign timeline without mutating the underlying graph.

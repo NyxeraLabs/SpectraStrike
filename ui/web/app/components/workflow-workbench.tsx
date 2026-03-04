@@ -187,6 +187,7 @@ export function WorkflowWorkbench() {
   const [wizardWrappers, setWizardWrappers] = useState<string[]>(["nmap", "metasploit", "sliver"]);
   const [wizardFederationEndpoint, setWizardFederationEndpoint] = useState("http://localhost:8000");
   const [campaignId, setCampaignId] = useState(() => normalizeCampaignId(safeLocalStorageGet(CAMPAIGN_STORAGE_KEY)));
+  const [timelineVisibleSteps, setTimelineVisibleSteps] = useState(0);
 
   const canvasHostRef = useRef<HTMLDivElement | null>(null);
   const nodesRef = useRef<FlowNode[]>(nodes);
@@ -208,6 +209,10 @@ export function WorkflowWorkbench() {
 
   useEffect(() => {
     safeLocalStorageSet(CAMPAIGN_STORAGE_KEY, campaignId);
+  }, [campaignId]);
+
+  useEffect(() => {
+    setTimelineVisibleSteps(0);
   }, [campaignId]);
 
   useEffect(() => {
@@ -335,6 +340,14 @@ export function WorkflowWorkbench() {
   }, [campaignId, nodes, edges, queue, getPersistencePayload]);
 
   useEffect(() => {
+    setTimelineVisibleSteps((current) => {
+      if (nodes.length === 0) return 0;
+      if (current === 0) return nodes.length;
+      return Math.min(current, nodes.length);
+    });
+  }, [nodes.length]);
+
+  useEffect(() => {
     const handleDelete = (event: KeyboardEvent) => {
       if ((event.key !== "Delete" && event.key !== "Backspace") || selectedNodeIds.length === 0) {
         return;
@@ -396,6 +409,7 @@ export function WorkflowWorkbench() {
   }, [pickerFilter, pickerQuery, wrappers]);
 
   const configNode = configNodeId ? nodes.find((node) => node.id === configNodeId) : null;
+  const timelineNodes = useMemo(() => nodes.slice(0, timelineVisibleSteps), [nodes, timelineVisibleSteps]);
 
   async function executeQueue() {
     registerDemoAction("execution_started");
@@ -703,8 +717,44 @@ export function WorkflowWorkbench() {
 
         <div className="spectra-panel p-5" data-testid="playbook-list">
           <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">Playbook Builder</h2>
+          <div className="mt-3 rounded border border-borderSubtle bg-slate-950/70 p-3" data-testid="campaign-timeline-bar">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs uppercase tracking-wide text-slate-400">Campaign Timeline</p>
+              <p className="text-xs text-slate-300">
+                Loaded {timelineVisibleSteps}/{nodes.length} steps
+              </p>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={Math.max(0, nodes.length)}
+              step={1}
+              value={timelineVisibleSteps}
+              onChange={(event) => setTimelineVisibleSteps(Number(event.target.value))}
+              className="mt-2 w-full accent-accentPrimary"
+              disabled={nodes.length === 0}
+            />
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                className="spectra-button-secondary px-2 py-1 text-xs"
+                onClick={() => setTimelineVisibleSteps(nodes.length)}
+                disabled={nodes.length === 0}
+              >
+                Load All
+              </button>
+              <button
+                type="button"
+                className="spectra-button-secondary px-2 py-1 text-xs"
+                onClick={() => setTimelineVisibleSteps(0)}
+                disabled={nodes.length === 0}
+              >
+                Unload
+              </button>
+            </div>
+          </div>
           <ul className="mt-3 space-y-2">
-            {nodes.map((node, idx) => (
+            {timelineNodes.map((node, idx) => (
               <li key={node.id} className={`rounded border border-borderSubtle bg-slate-900/80 px-2 py-2 text-sm ${overlayClass(overlay[node.id])}`} data-testid={`playbook-step-${idx + 1}`}>
                 <span className="spectra-mono text-telemetryGlow">{idx + 1}.</span> {node.data.label} <span className={`spectra-mono ${nodeTypeClass(node.data.nodeType)}`}>{node.data.nodeType}</span>
                 <span className="ml-2 text-xs text-slate-400">{node.data.wrapperKey ?? "unbound-wrapper"}</span>
@@ -726,6 +776,11 @@ export function WorkflowWorkbench() {
                 </div>
               </li>
             ))}
+            {nodes.length > 0 && timelineNodes.length === 0 ? (
+              <li className="rounded border border-borderSubtle bg-slate-900/40 px-2 py-2 text-xs text-slate-400">
+                Timeline unloaded. Move the bar or click Load All to show campaign steps.
+              </li>
+            ) : null}
           </ul>
 
           <div className="mt-3 rounded border border-borderSubtle p-2 text-xs">

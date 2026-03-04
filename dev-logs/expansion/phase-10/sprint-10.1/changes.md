@@ -59,3 +59,11 @@
   - playbook persistence (`PUT /ui/api/execution/playbook` with `tenant_id`)
   - task execution (`POST /ui/api/actions/tasks` with `tenant_id`)
 - Updated `make demo-seed` output to print SpectraStrike web login credentials and URL.
+
+## Incremental UX - Campaign Timeline Load/Unload Bar
+- Added timeline control bar to Workflow Playbook Builder:
+  - range slider from `0..N` steps
+  - `Load All` button
+  - `Unload` button
+- Timeline list now renders only the loaded subset (`nodes.slice(0, loadedCount)`).
+- Added empty-state hint when timeline is explicitly unloaded while nodes exist.

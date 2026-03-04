@@ -489,6 +489,7 @@ Modern, enterprise-grade UX maturity.
 * [x] fix(spectrastrike-runtime): improve reset auth failure diagnostics with per-endpoint error details
 * [x] feat(spectrastrike-ui): add workflow campaign selector for tenant-scoped playbook context (ACME/Globex)
 * [x] feat(spectrastrike-runtime): print SpectraStrike Web UI credentials after `make demo-seed`
+* [x] feat(spectrastrike-ui): add campaign timeline load/unload bar for workflow playbook steps
 
 ---
 

@@ -38,3 +38,9 @@
 - [x] Workflow task execution includes selected `tenant_id` in POST payload.
 - [x] `demo-seed` Make target prints SpectraStrike URL + bootstrap credentials.
 - [x] `vitest`: `tests/unit/workflow-workbench.test.tsx` passes after campaign-selector wiring.
+
+## Campaign Timeline Bar Validation
+- [x] Workflow timeline slider renders with `0..N` range bound to playbook step count.
+- [x] `Unload` hides timeline steps and shows explicit unloaded hint.
+- [x] `Load All` restores all visible timeline steps.
+- [x] `vitest`: timeline load/unload behavior covered in `workflow-workbench.test.tsx`.
