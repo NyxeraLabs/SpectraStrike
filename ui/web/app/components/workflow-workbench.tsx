@@ -83,6 +83,12 @@ const CAMPAIGN_OPTIONS: Array<{ id: string; label: string }> = [
   { id: "10000000-0000-0000-0000-000000000001", label: "ACME Campaign" },
   { id: "20000000-0000-0000-0000-000000000002", label: "Globex Campaign" },
 ];
+const DEFAULT_CAMPAIGN_ID = CAMPAIGN_OPTIONS[0].id;
+
+function normalizeCampaignId(candidate: string | null): string {
+  if (!candidate) return DEFAULT_CAMPAIGN_ID;
+  return CAMPAIGN_OPTIONS.some((item) => item.id === candidate) ? candidate : DEFAULT_CAMPAIGN_ID;
+}
 
 const PICKER_SECTIONS: { key: string; title: string }[] = [
   { key: "recon", title: "Recon" },
@@ -180,9 +186,7 @@ export function WorkflowWorkbench() {
   const [wizardWorkspace, setWizardWorkspace] = useState("spectra-workspace");
   const [wizardWrappers, setWizardWrappers] = useState<string[]>(["nmap", "metasploit", "sliver"]);
   const [wizardFederationEndpoint, setWizardFederationEndpoint] = useState("http://localhost:8000");
-  const [campaignId, setCampaignId] = useState(
-    () => safeLocalStorageGet(CAMPAIGN_STORAGE_KEY) ?? CAMPAIGN_OPTIONS[0].id,
-  );
+  const [campaignId, setCampaignId] = useState(() => normalizeCampaignId(safeLocalStorageGet(CAMPAIGN_STORAGE_KEY)));
 
   const canvasHostRef = useRef<HTMLDivElement | null>(null);
   const nodesRef = useRef<FlowNode[]>(nodes);
