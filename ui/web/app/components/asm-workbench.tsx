@@ -18,7 +18,7 @@ Sell derived competing products
 
 import "reactflow/dist/style.css";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -31,6 +31,7 @@ import ReactFlow, {
   type EdgeChange,
   type Node,
   type NodeChange,
+  type ReactFlowInstance,
 } from "reactflow";
 
 import {
@@ -44,11 +45,41 @@ import {
 } from "../lib/asm-graph";
 import { useFullscreenController } from "../lib/fullscreen-controller";
 
-const palette: AsmNode[] = [
-  { id: "p-cdn", label: "CDN Endpoint", nodeType: "external", riskScore: 0.52 },
-  { id: "p-k8s", label: "K8s Service", nodeType: "service", riskScore: 0.58 },
-  { id: "p-ad", label: "AD Tier", nodeType: "internal", riskScore: 0.66 },
-  { id: "p-role", label: "Cloud Role", nodeType: "cloud_identity", riskScore: 0.71 },
+type AsmPickerSection =
+  | "domains"
+  | "subdomains"
+  | "ip_ranges"
+  | "cloud_assets"
+  | "surfaces"
+  | "exposures"
+  | "integrations";
+
+type AsmPickerEntry = {
+  id: string;
+  label: string;
+  section: AsmPickerSection;
+  nodeType: AsmNode["nodeType"];
+  riskScore: number;
+};
+
+const ASM_PICKER_SECTIONS: Array<{ key: AsmPickerSection; title: string }> = [
+  { key: "domains", title: "Domains" },
+  { key: "subdomains", title: "Subdomains" },
+  { key: "ip_ranges", title: "IP Ranges" },
+  { key: "cloud_assets", title: "Cloud Assets" },
+  { key: "surfaces", title: "Surfaces" },
+  { key: "exposures", title: "Exposures" },
+  { key: "integrations", title: "Integrations" },
+];
+
+const palette: AsmPickerEntry[] = [
+  { id: "domain-root", label: "Corp Domain", section: "domains", nodeType: "external", riskScore: 0.35 },
+  { id: "subdomain-api", label: "API Subdomain", section: "subdomains", nodeType: "external", riskScore: 0.45 },
+  { id: "range-edge", label: "Edge IP Range", section: "ip_ranges", nodeType: "external", riskScore: 0.52 },
+  { id: "cloud-role", label: "Cloud Role", section: "cloud_assets", nodeType: "cloud_identity", riskScore: 0.61 },
+  { id: "service-k8s", label: "K8s Service", section: "surfaces", nodeType: "service", riskScore: 0.58 },
+  { id: "exposure-cve", label: "CVE Exposure", section: "exposures", nodeType: "internal", riskScore: 0.79 },
+  { id: "integration-siem", label: "SIEM Link", section: "integrations", nodeType: "service", riskScore: 0.29 },
 ];
 
 type AsmFlowNodeData = {
@@ -126,6 +157,10 @@ function typeClass(type: AsmNode["nodeType"]): string {
   return "text-info";
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
   const graph = useMemo(() => defaultAsmGraph(), []);
   const [flowNodes, setFlowNodes] = useState<Node<AsmFlowNodeData>[]>(
@@ -142,8 +177,22 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
   const [campaignTimeline, setCampaignTimeline] = useState<string[]>([]);
   const [asmStatus, setAsmStatus] = useState<string>("Loading live campaign graph surfaces...");
   const [connectRelation, setConnectRelation] = useState<AsmEdge["relation"]>("pivot");
+  const [pickerOpen, setPickerOpen] = useState(true);
+  const [pickerQuery, setPickerQuery] = useState("");
+  const [pickerFilter, setPickerFilter] = useState<AsmPickerSection | "all">("all");
+  const [pickerSectionOpen, setPickerSectionOpen] = useState<Record<AsmPickerSection, boolean>>({
+    domains: true,
+    subdomains: true,
+    ip_ranges: true,
+    cloud_assets: true,
+    surfaces: true,
+    exposures: true,
+    integrations: true,
+  });
   const fullscreen = useFullscreenController();
   const asmFullscreen = fullscreen.isFullscreen;
+  const canvasHostRef = useRef<HTMLDivElement | null>(null);
+  const reactFlowApiRef = useRef<ReactFlowInstance | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -153,8 +202,8 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
     ])
       .then(([queueBody, telemetryBody]) => {
         if (!active) return;
-        const queueItems = Array.isArray(queueBody.items) ? queueBody.items : [];
-        const telemetryItems = Array.isArray(telemetryBody.items) ? telemetryBody.items : [];
+        const queueItems = Array.isArray(queueBody.items) ? queueBody.items.filter(isRecord) : [];
+        const telemetryItems = Array.isArray(telemetryBody.items) ? telemetryBody.items.filter(isRecord) : [];
         if (queueItems.length === 0 && telemetryItems.length === 0) {
           setAsmStatus("Using local ASM graph dataset.");
           return;
@@ -201,10 +250,7 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
         setCampaignTimeline(
           [...queueItems, ...telemetryItems]
             .slice(0, 12)
-            .map(
-              (item: Record<string, unknown>) =>
-                `${String(item.timestamp ?? item.updated_at ?? new Date().toISOString())} :: ${String(item.tool ?? item.event_type ?? item.source ?? "event")} :: ${String(item.status ?? "unknown")}`,
-            ),
+            .map((item: Record<string, unknown>) => `${String(item.timestamp ?? item.updated_at ?? new Date().toISOString())} :: ${String(item.tool ?? item.event_type ?? item.source ?? "event")} :: ${String(item.status ?? "unknown")}`),
         );
         setAsmStatus("Live campaign graph surfaces loaded.");
       })
@@ -250,6 +296,72 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
     setFlowEdges((prev) => addEdge(edge, prev));
   }
 
+  const addAsmNode = useCallback(
+    (entry: AsmPickerEntry, position?: { x: number; y: number }) => {
+      setFlowNodes((prev) => [
+        ...prev,
+        {
+          id: `asm-${Date.now()}-${entry.id}`,
+          position: position ?? defaultPosition(prev.length),
+          data: {
+            label: entry.label,
+            nodeType: entry.nodeType,
+            riskScore: entry.riskScore,
+          },
+        },
+      ]);
+    },
+    [],
+  );
+
+  const onDragStartPalette = useCallback((event: React.DragEvent, entryId: string) => {
+    event.dataTransfer.setData("application/spectrastrike-asm-picker", entryId);
+    event.dataTransfer.effectAllowed = "move";
+  }, []);
+
+  const onDropPalette = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault();
+      const entryId = event.dataTransfer.getData("application/spectrastrike-asm-picker");
+      const reactFlowApi = reactFlowApiRef.current;
+      if (!entryId || !reactFlowApi || !canvasHostRef.current) return;
+      const entry = palette.find((item) => item.id === entryId);
+      if (!entry) return;
+      const hostRect = canvasHostRef.current.getBoundingClientRect();
+      const projected = reactFlowApi.project({
+        x: event.clientX - hostRect.left,
+        y: event.clientY - hostRect.top,
+      });
+      addAsmNode(entry, projected);
+    },
+    [addAsmNode],
+  );
+
+  const pickerEntries = useMemo(() => {
+    const normalizedQuery = pickerQuery.trim().toLowerCase();
+    return palette.filter((entry) => {
+      if (pickerFilter !== "all" && entry.section !== pickerFilter) return false;
+      if (!normalizedQuery) return true;
+      return `${entry.label} ${entry.section}`.toLowerCase().includes(normalizedQuery);
+    });
+  }, [pickerFilter, pickerQuery]);
+
+  const pickerBySection = useMemo(() => {
+    const grouped: Record<AsmPickerSection, AsmPickerEntry[]> = {
+      domains: [],
+      subdomains: [],
+      ip_ranges: [],
+      cloud_assets: [],
+      surfaces: [],
+      exposures: [],
+      integrations: [],
+    };
+    for (const entry of pickerEntries) {
+      grouped[entry.section].push(entry);
+    }
+    return grouped;
+  }, [pickerEntries]);
+
   return (
     <section className="grid gap-4 xl:grid-cols-[1.1fr_1fr]">
       <article className="spectra-panel p-5">
@@ -274,18 +386,44 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
             >
               {asmFullscreen ? "Exit Full Screen" : "Full Screen"}
             </button>
+            <button
+              type="button"
+              className="spectra-button-secondary px-3 py-1.5 text-xs"
+              onClick={() => {
+                setFlowNodes([]);
+                setFlowEdges([]);
+                setExposures([]);
+                setSelectedAssetId("");
+                setCampaignTimeline([]);
+              }}
+            >
+              Reset Graph
+            </button>
           </div>
         </div>
         <p className="mt-2 text-xs text-slate-400">{asmStatus}</p>
-        <div className={`relative mt-4 rounded-lg border border-borderSubtle bg-slate-950/70 p-2 ${asmFullscreen ? "canvas-fullscreen rounded-none border-none p-4" : "h-[560px]"}`}>
+        <div
+          ref={canvasHostRef}
+          onDrop={onDropPalette}
+          onDragOver={(event) => event.preventDefault()}
+          className={`relative mt-4 rounded-lg border border-borderSubtle bg-slate-950/70 p-2 ${asmFullscreen ? "canvas-fullscreen rounded-none border-none p-4" : "h-[560px]"}`}
+        >
           <ReactFlow
             nodes={flowNodes}
             edges={flowEdges}
+            onInit={(instance) => {
+              reactFlowApiRef.current = instance;
+            }}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onEdgeClick={(_, edge) => setFlowEdges((prev) => prev.filter((item) => item.id !== edge.id))}
             fitView
+            minZoom={0.2}
+            maxZoom={2.5}
+            multiSelectionKeyCode={["Shift"]}
+            selectionOnDrag
+            panOnScroll
           >
             <MiniMap />
             <Controls />
@@ -300,38 +438,89 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
               Close
             </button>
           ) : null}
+          {flowNodes.length === 0 ? (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-slate-400">
+              Drag ASM assets from picker or click any picker entry to place.
+            </div>
+          ) : null}
         </div>
       </article>
 
       <article className="spectra-panel p-5" data-testid="asm-builder">
         <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">Drag-and-Drop Asset Relationship Builder</h2>
         <div className="mt-3 rounded-lg border border-borderSubtle bg-slate-950/70 p-3">
-          <p className="text-xs uppercase tracking-wide text-slate-400">Asset Palette</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {palette.map((asset) => (
-              <button
-                key={asset.id}
-                type="button"
-                className="spectra-button-secondary px-2 py-1 text-xs font-semibold"
-                onClick={() =>
-                  setFlowNodes((prev) => [
-                    ...prev,
-                    {
-                      id: `asm-${Date.now()}-${asset.id}`,
-                      position: defaultPosition(prev.length),
-                      data: {
-                        label: asset.label,
-                        nodeType: asset.nodeType,
-                        riskScore: asset.riskScore,
-                      },
-                    },
-                  ])
-                }
-              >
-                + {asset.label}
-              </button>
-            ))}
+          <div className="flex items-center justify-between">
+            <p className="text-xs uppercase tracking-wide text-slate-400">Asset Picker</p>
+            <button
+              type="button"
+              className="spectra-button-secondary px-2 py-1 text-xs"
+              onClick={() => setPickerOpen((current) => !current)}
+            >
+              {pickerOpen ? "Collapse" : "Expand"}
+            </button>
           </div>
+          {pickerOpen ? (
+            <>
+              <div className="mt-2 grid gap-2">
+                <input
+                  value={pickerQuery}
+                  onChange={(event) => setPickerQuery(event.target.value)}
+                  className="w-full rounded border border-borderSubtle bg-slate-950 px-2 py-1 text-xs"
+                  placeholder="Search ASM assets"
+                />
+                <select
+                  value={pickerFilter}
+                  onChange={(event) => setPickerFilter(event.target.value as AsmPickerSection | "all")}
+                  className="w-full rounded border border-borderSubtle bg-slate-950 px-2 py-1 text-xs"
+                >
+                  <option value="all">All categories</option>
+                  {ASM_PICKER_SECTIONS.map((section) => (
+                    <option key={`asm-filter-${section.key}`} value={section.key}>
+                      {section.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="mt-3 space-y-2">
+                {ASM_PICKER_SECTIONS.map((section) => (
+                  <div key={`asm-section-${section.key}`} className="rounded border border-borderSubtle p-2">
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between text-xs uppercase tracking-wide text-slate-400"
+                      onClick={() =>
+                        setPickerSectionOpen((current) => ({
+                          ...current,
+                          [section.key]: !current[section.key],
+                        }))
+                      }
+                    >
+                      <span>{section.title}</span>
+                      <span>{pickerSectionOpen[section.key] ? "−" : "+"}</span>
+                    </button>
+                    {pickerSectionOpen[section.key] ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {pickerBySection[section.key].map((entry) => (
+                          <button
+                            key={entry.id}
+                            type="button"
+                            draggable
+                            onDragStart={(event) => onDragStartPalette(event, entry.id)}
+                            onClick={() => addAsmNode(entry)}
+                            className="spectra-button-secondary px-2 py-1 text-xs font-semibold"
+                          >
+                            + {entry.label}
+                          </button>
+                        ))}
+                        {pickerBySection[section.key].length === 0 ? (
+                          <p className="text-xs text-slate-500">No assets in this section.</p>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : null}
         </div>
         <ul className="mt-3 space-y-2">
           {asmNodes.map((node) => (

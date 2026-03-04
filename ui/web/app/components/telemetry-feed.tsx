@@ -79,6 +79,10 @@ const fallbackItems: TelemetryItem[] = [
   },
 ];
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 export function TelemetryFeedView() {
   const [source, setSource] = useState<string>("all");
   const [status, setStatus] = useState<string>("all");
@@ -94,15 +98,18 @@ export function TelemetryFeedView() {
       fetch("/ui/api/telemetry/events?limit=200", { cache: "no-store" }).then((res) => res.json()).catch(() => ({ items: [] })),
     ]).then(([wrappers, telemetry]) => {
       if (!active) return;
-      const wrapperKeys = Array.isArray(wrappers.items) ? wrappers.items.map((item: { key?: string }) => String(item.key ?? "").trim()).filter(Boolean) : [];
+      const wrapperKeys = Array.isArray(wrappers.items)
+        ? wrappers.items.filter(isRecord).map((item: Record<string, unknown>) => String(item.key ?? "").trim()).filter(Boolean)
+        : [];
       const telemetrySources = Array.isArray(telemetry.items)
-        ? telemetry.items.map((item: { source?: string }) => String(item.source ?? "").trim()).filter(Boolean)
+        ? telemetry.items.filter(isRecord).map((item: Record<string, unknown>) => String(item.source ?? "").trim()).filter(Boolean)
         : [];
       const merged = Array.from(new Set([...knownSources, ...wrapperKeys, ...telemetrySources]));
       setKnownSources(merged);
       if (Array.isArray(telemetry.items) && telemetry.items.length > 0) {
+        const safeItems = telemetry.items.filter(isRecord);
         setItems(
-          telemetry.items.map((item: Record<string, unknown>) => ({
+          safeItems.map((item: Record<string, unknown>) => ({
             source: String(item.source ?? "manual"),
             status: normalizeStatus(String(item.status ?? "info")),
             actor: String(item.actor ?? "unknown"),
@@ -113,7 +120,7 @@ export function TelemetryFeedView() {
             details: item.raw_output ? String(item.raw_output) : undefined,
           })),
         );
-        setMessage(`Loaded ${telemetry.items.length} telemetry events.`);
+        setMessage(`Loaded ${safeItems.length} telemetry events.`);
       }
     });
     return () => {
@@ -163,7 +170,7 @@ export function TelemetryFeedView() {
 
       const body = await response.json();
       const nextItems = Array.isArray(body.items)
-        ? body.items.map((item: Record<string, unknown>) => ({
+        ? body.items.filter(isRecord).map((item: Record<string, unknown>) => ({
             source: String(item.source ?? "manual"),
             status: normalizeStatus(String(item.status ?? "info")),
             actor: String(item.actor ?? "unknown"),

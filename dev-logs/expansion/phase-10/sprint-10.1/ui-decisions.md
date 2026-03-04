@@ -15,3 +15,23 @@
 ## Decision 4: Fullscreen Chrome Suppression by Shared CSS Contract
 - Reuse `spectra-fullscreen-active` + `spectra-fullscreen-hide` contract.
 - Rationale: avoid per-page fullscreen hacks and ensure no partial expansion.
+
+## Decision 5: Workflow Picker Becomes Queryable + Filterable
+- Added text search, category filter, and collapsible category sections.
+- Rationale: reduce picker density and improve wrapper discoverability at scale.
+
+## Decision 6: ASM Picker Uses Domain-Oriented Categories
+- Category taxonomy aligned to requested ASM domains/surfaces/exposure/integration structure.
+- Rationale: support graph construction from clean empty state with predictable asset grouping.
+
+## Decision 7: Remove Demo-Query UX from Nexus
+- Removed web UI demo-step panel and query-triggered alternate branch.
+- Rationale: avoid overlap between seeded guided flows and first-run configuration paths.
+
+## Decision 8: Fail-Closed on Malformed UI API Arrays
+- Workflow/ASM/Telemetry render paths now ignore malformed/null array items rather than assuming object shape.
+- Rationale: prevent route-level client exceptions from partial/legacy backend payloads and preserve page availability.
+
+## Decision 9: Remove Dead Spotlight Styling Branches
+- Workflow panel spotlight class checks removed where no spotlight state exists.
+- Rationale: eliminate stale conditional code and keep route compile/runtime behavior deterministic.

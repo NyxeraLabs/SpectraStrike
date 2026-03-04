@@ -81,12 +81,12 @@ type SpectraBootstrapStatus = {
 const PICKER_SECTIONS: { key: string; title: string }[] = [
   { key: "recon", title: "Recon" },
   { key: "initial_access", title: "Initial Access" },
-  { key: "privilege_escalation", title: "Privilege Escalation" },
+  { key: "privilege_escalation", title: "PrivEsc" },
   { key: "lateral_movement", title: "Lateral Movement" },
   { key: "c2", title: "C2" },
   { key: "exfiltration", title: "Exfiltration" },
-  { key: "infra", title: "Infra" },
-  { key: "custom", title: "Custom" },
+  { key: "infra", title: "Infrastructure" },
+  { key: "custom", title: "Custom Wrappers" },
 ];
 
 function pickerBucketForWrapper(wrapper: WrapperDescriptor): string {
@@ -115,6 +115,10 @@ function parseSsePayload(raw: string): Record<string, unknown> | null {
   } catch {
     return null;
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 export function WorkflowWorkbench() {
@@ -154,6 +158,11 @@ export function WorkflowWorkbench() {
   const [edgeSource, setEdgeSource] = useState<string>("");
   const [edgeTarget, setEdgeTarget] = useState<string>("");
   const [pickerOpen, setPickerOpen] = useState(true);
+  const [pickerQuery, setPickerQuery] = useState("");
+  const [pickerFilter, setPickerFilter] = useState("all");
+  const [pickerSectionOpen, setPickerSectionOpen] = useState<Record<string, boolean>>(
+    () => Object.fromEntries(PICKER_SECTIONS.map((section) => [section.key, true])),
+  );
   const [activeTab, setActiveTab] = useState<"logs" | "telemetry" | "signature">("logs");
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [configNodeId, setConfigNodeId] = useState<string | null>(null);
@@ -206,16 +215,20 @@ export function WorkflowWorkbench() {
           setStatusMessage("Playbook loaded from backend.");
         }
 
-        if (Array.isArray(queueBody.items)) {
+        const queueItems = Array.isArray(queueBody.items) ? queueBody.items : [];
+        const playbookNodes = Array.isArray(playbookBody?.nodes) ? playbookBody.nodes : [];
+        if (queueItems.length > 0) {
           setExecutionStatus(() => {
             const next: Record<string, RuntimeExecutionState> = {};
-            for (const item of queueBody.items) {
-              const status = String(item.status) as RuntimeExecutionState;
+            for (const item of queueItems) {
+              if (!isRecord(item)) continue;
+              const status = String(item.status ?? "") as RuntimeExecutionState;
               if (status !== "queued" && status !== "running" && status !== "blocked" && status !== "retrying" && status !== "failed" && status !== "completed") {
                 continue;
               }
               const tool = String(item.tool ?? "");
-              for (const node of playbookBody.nodes ?? []) {
+              for (const node of playbookNodes) {
+                if (!isRecord(node)) continue;
                 if (String(node.wrapperKey ?? "") === tool) {
                   next[String(node.id)] = status;
                 }
@@ -344,19 +357,24 @@ export function WorkflowWorkbench() {
 
   const wrappersBySection = useMemo(() => {
     const grouped: Record<string, WrapperDescriptor[]> = {};
+    const normalizedQuery = pickerQuery.trim().toLowerCase();
     for (const section of PICKER_SECTIONS) {
       grouped[section.key] = [];
     }
     for (const wrapper of wrappers) {
       const bucket = pickerBucketForWrapper(wrapper);
+      if (pickerFilter !== "all" && bucket !== pickerFilter) continue;
+      if (normalizedQuery) {
+        const searchable = `${wrapper.label} ${wrapper.key} ${wrapper.category} ${wrapper.description}`.toLowerCase();
+        if (!searchable.includes(normalizedQuery)) continue;
+      }
       grouped[bucket] = grouped[bucket] ?? [];
       grouped[bucket].push(wrapper);
     }
     return grouped;
-  }, [wrappers]);
+  }, [pickerFilter, pickerQuery, wrappers]);
 
   const configNode = configNodeId ? nodes.find((node) => node.id === configNodeId) : null;
-  const activeSpotlight = "none";
 
   async function executeQueue() {
     registerDemoAction("execution_started");
@@ -504,7 +522,7 @@ export function WorkflowWorkbench() {
         </article>
       ) : null}
 
-      <article className={`spectra-panel p-4 ${activeSpotlight === "picker" ? "ring-2 ring-accentPrimary" : ""}`} data-testid="component-picker-panel">
+      <article className="spectra-panel p-4" data-testid="component-picker-panel">
         <div className="flex items-center justify-between">
           <h2 className="text-sm uppercase tracking-[0.2em] text-telemetry">Component Picker</h2>
           <button type="button" className="spectra-button-secondary px-2 py-1 text-xs" onClick={() => setPickerOpen((current) => !current)}>
@@ -513,27 +531,64 @@ export function WorkflowWorkbench() {
         </div>
         {pickerOpen ? (
           <div className="mt-3 max-h-[72vh] overflow-y-auto pr-1">
+            <div className="mb-3 grid gap-2">
+              <input
+                value={pickerQuery}
+                onChange={(event) => setPickerQuery(event.target.value)}
+                className="w-full rounded border border-borderSubtle bg-slate-950 px-2 py-1 text-xs"
+                placeholder="Search wrappers"
+              />
+              <select
+                value={pickerFilter}
+                onChange={(event) => setPickerFilter(event.target.value)}
+                className="w-full rounded border border-borderSubtle bg-slate-950 px-2 py-1 text-xs"
+              >
+                <option value="all">All categories</option>
+                {PICKER_SECTIONS.map((section) => (
+                  <option key={`filter-${section.key}`} value={section.key}>
+                    {section.title}
+                  </option>
+                ))}
+              </select>
+            </div>
             {PICKER_SECTIONS.map((section) => (
               <div key={section.key} className="mb-3 rounded border border-borderSubtle p-2">
-                <p className="text-xs uppercase tracking-wide text-slate-400">{section.title}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {(wrappersBySection[section.key] ?? []).map((wrapper) => (
-                    <button
-                      key={wrapper.key}
-                      type="button"
-                      draggable
-                      onDragStart={(event) => onDragStartWrapper(event, wrapper.key)}
-                      onClick={() => {
-                        addWrapperNode(wrapper);
-                        registerDemoAction("node_dragged");
-                      }}
-                      className="rounded border border-borderSubtle bg-slate-950 px-2 py-1 text-left text-xs hover:border-accentPrimary"
-                      title={wrapper.description}
-                    >
-                      {wrapper.label}
-                    </button>
-                  ))}
-                </div>
+                <button
+                  type="button"
+                  className="flex w-full items-center justify-between text-xs uppercase tracking-wide text-slate-400"
+                  onClick={() =>
+                    setPickerSectionOpen((current) => ({
+                      ...current,
+                      [section.key]: !current[section.key],
+                    }))
+                  }
+                >
+                  <span>{section.title}</span>
+                  <span>{pickerSectionOpen[section.key] ? "−" : "+"}</span>
+                </button>
+                {pickerSectionOpen[section.key] ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {(wrappersBySection[section.key] ?? []).map((wrapper) => (
+                      <button
+                        key={wrapper.key}
+                        type="button"
+                        draggable
+                        onDragStart={(event) => onDragStartWrapper(event, wrapper.key)}
+                        onClick={() => {
+                          addWrapperNode(wrapper);
+                          registerDemoAction("node_dragged");
+                        }}
+                        className="rounded border border-borderSubtle bg-slate-950 px-2 py-1 text-left text-xs hover:border-accentPrimary"
+                        title={wrapper.description}
+                      >
+                        {wrapper.label}
+                      </button>
+                    ))}
+                    {(wrappersBySection[section.key] ?? []).length === 0 ? (
+                      <p className="text-xs text-slate-500">No wrappers in this section.</p>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             ))}
             <button
@@ -552,7 +607,7 @@ export function WorkflowWorkbench() {
 
       <article className="space-y-4">
 
-        <div className={`spectra-panel p-5 ${activeSpotlight === "canvas" ? "ring-2 ring-accentPrimary" : ""}`}>
+        <div className="spectra-panel p-5">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-sm uppercase tracking-[0.2em] text-telemetry">Node-Link Execution Canvas</h2>
             <button type="button" className="spectra-button-secondary px-3 py-1.5 text-xs" onClick={toggleFullscreen}>
@@ -675,7 +730,7 @@ export function WorkflowWorkbench() {
           </div>
         </div>
 
-        <div className={`spectra-panel p-5 ${activeSpotlight === "queue" ? "ring-2 ring-accentPrimary" : ""}`}>
+        <div className="spectra-panel p-5">
           <h2 className="text-sm uppercase tracking-[0.2em] text-info">Execution Queue + Live Stream</h2>
           <p className="mt-2 text-xs text-slate-400">{statusMessage}</p>
           <div className="mt-3 rounded-lg border border-borderSubtle bg-slate-950/70 p-3">
@@ -697,7 +752,7 @@ export function WorkflowWorkbench() {
           </div>
         </div>
 
-        <div className={`spectra-panel p-5 ${activeSpotlight === "telemetry" ? "ring-2 ring-accentPrimary" : ""}`}>
+        <div className="spectra-panel p-5">
           <h2 className="text-sm uppercase tracking-[0.2em] text-warning">Telemetry + Federation Diagnostics</h2>
           <div className="mt-3 flex gap-2">
             <button type="button" className="spectra-button-secondary px-2 py-1 text-xs" onClick={() => { setActiveTab("logs"); registerDemoAction("logs_opened"); }}>Execution Logs</button>

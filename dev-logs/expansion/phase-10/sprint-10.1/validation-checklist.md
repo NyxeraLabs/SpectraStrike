@@ -16,3 +16,11 @@
 - [x] Workflow page still mounts and loads wrappers/playbook/queue data.
 - [x] ASM page still mounts and renders graph canvas.
 - [ ] Full end-to-end guided flow validation (deferred to next tranche).
+
+## Incremental Runtime Hardening Validation
+- [x] `workflow-workbench` no longer assumes queue/playbook array item object shape.
+- [x] `asm-workbench` no longer assumes queue/telemetry array item object shape.
+- [x] `telemetry-feed` no longer assumes wrappers/telemetry array item object shape.
+- [x] `vitest`: `tests/unit/workflow-workbench.test.tsx` passes after patch.
+- [x] `vitest`: `tests/unit/asm-large-graph-render.test.tsx` and `tests/unit/nexus-workbench.test.tsx` pass after patch.
+- [ ] Browser-console verification on `/ui/dashboard/workflow` pending user-side confirmation (sandbox cannot launch Chromium here).

@@ -477,7 +477,14 @@ Modern, enterprise-grade UX maturity.
 * [x] feat(spectrastrike-ui): apply fullscreen parity to Workflow canvas
 * [x] feat(spectrastrike-ui): apply fullscreen parity to ASM canvas
 * [x] feat(spectrastrike-ui): hide dashboard chrome during fullscreen in ASM page
+* [x] feat(spectrastrike-ui): add workflow picker search, category filter, and per-section collapse
+* [x] feat(spectrastrike-ui): add ASM categorized picker (domains/subdomains/ip ranges/cloud/surfaces/exposures/integrations)
+* [x] feat(spectrastrike-ui): add ASM drag-drop picker-to-canvas placement and reset-from-zero graph action
+* [x] chore(spectrastrike-ui): remove nexus demo-query panel and demo-step controls from web UX
 * [x] docs(spectrastrike): add expansion sprint logs for mode-separation/fullscreen tranche
+* [x] fix(spectrastrike-ui): guard workflow queue/playbook hydration against malformed API item payloads
+* [x] fix(spectrastrike-ui): remove stale spotlight condition checks causing impossible branch comparisons in workflow UI
+* [x] fix(spectrastrike-ui): harden ASM and telemetry list hydration against non-object/null API items
 
 ---
 

@@ -19,12 +19,38 @@
 ## Workflow Integration
 - Workflow canvas now delegates fullscreen state and toggling to shared hook.
 - Removed local fullscreen event wiring/DOM class management from workflow component.
+- Workflow picker now supports local filtering and dynamic grouped rendering by wrapper bucket.
+- Section collapse state is maintained client-side in `pickerSectionOpen`.
 
 ## ASM Integration
 - ASM canvas now delegates fullscreen state/toggling to shared hook.
 - Removed ASM-specific body overflow side-effect logic.
 - Canvas fullscreen class normalized to `canvas-fullscreen` for parity with workflow.
+- ASM picker now uses explicit section metadata (`domains`, `subdomains`, `ip_ranges`, `cloud_assets`, `surfaces`, `exposures`, `integrations`).
+- Picker-to-canvas placement implemented via drag payload key `application/spectrastrike-asm-picker` and ReactFlow projection.
+- Added graph reset action to support rebuild-from-zero workflows.
 
 ## Layout/Chrome Behavior
 - ASM page now uses `spectra-fullscreen-hide` wrappers around top navigation and page intro panel.
 - This aligns with existing workflow fullscreen chrome-hide behavior.
+
+## Nexus UI Mode Separation
+- Removed demo query branching and demo-step UI panel from Nexus workbench.
+- VectorVue deep-link now always resolves through contextual deep-link builder rather than demo query toggles.
+
+## Workflow Exception Remediation
+- Added local `isRecord` runtime guards in workflow hydration paths to protect against null/non-object elements from:
+  - `/ui/api/execution/queue`
+  - `/ui/api/execution/playbook`
+- In queue status mapping:
+  - unknown/non-runtime statuses are skipped
+  - non-object queue rows are skipped
+  - non-object playbook node rows are skipped
+- Removed stale `activeSpotlight` branch-condition class logic from workflow panel markup (no active spotlight state was driving it).
+
+## Similar-Error Sweep (SpectraStrike UI)
+- `asm-workbench.tsx`:
+  - queue/telemetry arrays now pre-filter to object records before property access.
+- `telemetry-feed.tsx`:
+  - wrappers/telemetry item arrays now pre-filter to object records before mapping.
+  - loaded-count message now reflects filtered/safe item count.
