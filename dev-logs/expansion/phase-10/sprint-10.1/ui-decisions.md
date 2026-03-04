@@ -43,3 +43,11 @@
 ## Decision 11: Failures Should Be Endpoint-Diagnostic
 - Reset auth failures now return candidate-by-candidate endpoint results.
 - Rationale: avoid misleading "last attempted endpoint" errors and reduce triage time when a service is down.
+
+## Decision 12: Campaign Selection Is Explicit in Workflow UI
+- Added explicit campaign selector for seeded multi-tenant context switching.
+- Rationale: prevent hidden tenant context and allow deterministic ACME/Globex graph editing in seeded mode.
+
+## Decision 13: Seed Commands Must Emit Operator Login Credentials
+- `make demo-seed` now prints SpectraStrike login credentials directly.
+- Rationale: match VectorVue credential visibility and reduce onboarding friction.

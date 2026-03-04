@@ -353,6 +353,10 @@ demo-seed:
 	@echo "Seeding SpectraStrike runtime demo datasets..."
 	@$(COMPOSE_DEV) run --rm app python scripts/seed_demo_runtime.py --base-url https://nginx:8443/ui/api
 	@echo "Demo seed complete."
+	@echo "SpectraStrike Web UI:"
+	@echo "  URL: https://127.0.0.1:18443/ui/login"
+	@echo "  Username: $${UI_AUTH_BOOTSTRAP_USERNAME:-operator}"
+	@echo "  Password: $${UI_AUTH_BOOTSTRAP_PASSWORD:-Operator!ChangeMe123}"
 
 demo-reset:
 	@echo "Resetting SpectraStrike database..."

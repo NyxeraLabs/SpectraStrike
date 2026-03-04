@@ -78,6 +78,12 @@ type SpectraBootstrapStatus = {
   platform_onboarded: boolean;
 };
 
+const CAMPAIGN_STORAGE_KEY = "spectrastrike_campaign_id";
+const CAMPAIGN_OPTIONS: Array<{ id: string; label: string }> = [
+  { id: "10000000-0000-0000-0000-000000000001", label: "ACME Campaign" },
+  { id: "20000000-0000-0000-0000-000000000002", label: "Globex Campaign" },
+];
+
 const PICKER_SECTIONS: { key: string; title: string }[] = [
   { key: "recon", title: "Recon" },
   { key: "initial_access", title: "Initial Access" },
@@ -174,6 +180,9 @@ export function WorkflowWorkbench() {
   const [wizardWorkspace, setWizardWorkspace] = useState("spectra-workspace");
   const [wizardWrappers, setWizardWrappers] = useState<string[]>(["nmap", "metasploit", "sliver"]);
   const [wizardFederationEndpoint, setWizardFederationEndpoint] = useState("http://localhost:8000");
+  const [campaignId, setCampaignId] = useState(
+    () => safeLocalStorageGet(CAMPAIGN_STORAGE_KEY) ?? CAMPAIGN_OPTIONS[0].id,
+  );
 
   const canvasHostRef = useRef<HTMLDivElement | null>(null);
   const nodesRef = useRef<FlowNode[]>(nodes);
@@ -194,10 +203,15 @@ export function WorkflowWorkbench() {
   }, [setStatusMessage]);
 
   useEffect(() => {
+    safeLocalStorageSet(CAMPAIGN_STORAGE_KEY, campaignId);
+  }, [campaignId]);
+
+  useEffect(() => {
     let active = true;
+    const encodedTenantId = encodeURIComponent(campaignId);
     Promise.all([
       fetch("/ui/api/execution/wrappers").then((res) => res.json()),
-      fetch("/ui/api/execution/playbook").then((res) => res.json()),
+      fetch(`/ui/api/execution/playbook?tenant_id=${encodedTenantId}`).then((res) => res.json()),
       fetch("/ui/api/execution/queue?limit=50").then((res) => res.json()),
       fetch("/ui/api/telemetry/events?limit=25").then((res) => res.json()),
       fetch("/ui/api/bootstrap/status").then((res) => res.json()).catch(() => null),
@@ -255,7 +269,7 @@ export function WorkflowWorkbench() {
     return () => {
       active = false;
     };
-  }, [setExecutionStatus, setFromBackend, setStatusMessage, setTelemetry, setWrappers]);
+  }, [campaignId, setExecutionStatus, setFromBackend, setStatusMessage, setTelemetry, setWrappers]);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.EventSource === "undefined") {
@@ -307,11 +321,14 @@ export function WorkflowWorkbench() {
       fetch("/ui/api/execution/playbook", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          ...payload,
+          tenant_id: campaignId,
+        }),
       }).catch(() => undefined);
     }, 350);
     return () => clearTimeout(id);
-  }, [nodes, edges, queue, getPersistencePayload]);
+  }, [campaignId, nodes, edges, queue, getPersistencePayload]);
 
   useEffect(() => {
     const handleDelete = (event: KeyboardEvent) => {
@@ -387,6 +404,7 @@ export function WorkflowWorkbench() {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
+            tenant_id: campaignId,
             tool: node.data.wrapperKey ?? "nmap",
             target: node.data.config?.target ?? "127.0.0.1",
             parameters: {
@@ -456,6 +474,26 @@ export function WorkflowWorkbench() {
 
   return (
     <section className="grid gap-4 xl:grid-cols-[320px_1fr]" data-testid="workflow-workbench-root">
+      <article className="spectra-panel p-4 xl:col-span-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">Campaign Context</h2>
+          <label className="text-xs text-slate-400">
+            Active Campaign
+            <select
+              value={campaignId}
+              onChange={(event) => setCampaignId(event.target.value)}
+              className="ml-2 rounded border border-borderSubtle bg-slate-950 px-2 py-1 text-xs text-slate-100"
+            >
+              {CAMPAIGN_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="spectra-mono text-xs text-slate-500">{campaignId}</span>
+        </div>
+      </article>
       {wizardOpen ? (
         <article className="spectra-panel p-5 xl:col-span-2" data-testid="first-run-wizard">
           <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">First Run Bootstrap Wizard</h2>

@@ -31,3 +31,10 @@
 - [x] Static check: both scripts handle legal-accept retry through `/v1/auth/legal/accept`.
 - [x] Syntax validation: `python -m py_compile scripts/reset_demo_runtime.py scripts/seed_demo_runtime.py`.
 - [ ] Runtime validation pending: re-run `make demo-reset` in your environment.
+
+## Campaign Selector + Seed Output Validation
+- [x] Workflow playbook load includes `tenant_id` query parameter from campaign selector.
+- [x] Workflow playbook persistence includes selected `tenant_id` in PUT payload.
+- [x] Workflow task execution includes selected `tenant_id` in POST payload.
+- [x] `demo-seed` Make target prints SpectraStrike URL + bootstrap credentials.
+- [x] `vitest`: `tests/unit/workflow-workbench.test.tsx` passes after campaign-selector wiring.

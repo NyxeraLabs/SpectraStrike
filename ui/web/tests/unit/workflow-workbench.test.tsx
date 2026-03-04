@@ -84,6 +84,14 @@ describe("WorkflowWorkbench UI state consistency", () => {
     });
   });
 
+  it("renders campaign selector with seeded tenant options", async () => {
+    render(<WorkflowWorkbench />);
+    const selector = await screen.findByLabelText(/Active Campaign/i);
+    expect(selector).toHaveValue("10000000-0000-0000-0000-000000000001");
+    expect(screen.getByRole("option", { name: /ACME Campaign/i })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Globex Campaign/i })).toBeInTheDocument();
+  });
+
   it("requests fullscreen API and applies true fullscreen mode", async () => {
     const user = userEvent.setup();
     render(<WorkflowWorkbench />);

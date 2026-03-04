@@ -67,3 +67,15 @@
 ## Seed Runtime Parity
 - `seed_demo_runtime.py` token resolver now also uses bootstrap login-first with legal-accept retry.
 - This prevents seed/reset divergence after removal of UI demo auth route.
+
+## Workflow Campaign Context Selector
+- Added campaign selector state in `workflow-workbench.tsx`.
+- Campaign ID persists in local storage key `spectrastrike_campaign_id`.
+- Selected campaign ID is applied to playbook GET/PUT and queued task execution requests.
+- Current implementation targets seeded dual-tenant defaults (ACME/Globex) for demo-seed parity.
+
+## Demo Seed Credential Visibility
+- `Makefile` target `demo-seed` now prints:
+  - SpectraStrike UI login URL
+  - Bootstrap username (`UI_AUTH_BOOTSTRAP_USERNAME`, fallback `operator`)
+  - Bootstrap password (`UI_AUTH_BOOTSTRAP_PASSWORD`, fallback `Operator!ChangeMe123`)

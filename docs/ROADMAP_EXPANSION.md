@@ -487,6 +487,8 @@ Modern, enterprise-grade UX maturity.
 * [x] fix(spectrastrike-ui): harden ASM and telemetry list hydration against non-object/null API items
 * [x] fix(spectrastrike-runtime): migrate demo seed/reset auth resolution to `/v1/auth/login` (login-first, legal-accept retry)
 * [x] fix(spectrastrike-runtime): improve reset auth failure diagnostics with per-endpoint error details
+* [x] feat(spectrastrike-ui): add workflow campaign selector for tenant-scoped playbook context (ACME/Globex)
+* [x] feat(spectrastrike-runtime): print SpectraStrike Web UI credentials after `make demo-seed`
 
 ---
 

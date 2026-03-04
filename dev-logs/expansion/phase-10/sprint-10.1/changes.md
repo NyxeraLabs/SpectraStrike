@@ -49,3 +49,13 @@
 - Added legal-accept retry handling during bootstrap login (`LEGAL_ACCEPTANCE_REQUIRED` path).
 - Added per-candidate endpoint error aggregation in reset failures to improve root-cause visibility.
 - Aligned `scripts/seed_demo_runtime.py` with the same login-first authentication strategy and legal-accept retry behavior.
+
+## Incremental UX + Seeding Improvements
+- Added campaign selection in workflow UI to switch tenant-scoped playbook context:
+  - ACME (`10000000-0000-0000-0000-000000000001`)
+  - Globex (`20000000-0000-0000-0000-000000000002`)
+- Wired selected campaign into:
+  - playbook load (`GET /ui/api/execution/playbook?tenant_id=...`)
+  - playbook persistence (`PUT /ui/api/execution/playbook` with `tenant_id`)
+  - task execution (`POST /ui/api/actions/tasks` with `tenant_id`)
+- Updated `make demo-seed` output to print SpectraStrike web login credentials and URL.
