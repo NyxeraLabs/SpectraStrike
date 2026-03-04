@@ -87,15 +87,32 @@ Each execution carries an `attestation_measurement_hash` that represents measure
 - End-user guide: `docs/END_USER_GUIDE.md`
 - SDK developer guide: `docs/SDK_DEVELOPER_GUIDE.md`
 - Full federation integration: `docs/FULL_FEDERATION_INTEGRATION.md`
-- First-run guided demo (granular): `docs/FIRST_RUN_GUIDED_DEMO.md`
+- First-run and seeded-tour guide: `docs/FIRST_RUN_GUIDED_DEMO.md`
 - Roadmap: `docs/ROADMAP.md`
 
-## Interactive Demo Flow (Tri-App)
+## Guided Platform Tour Flow (Tri-App)
 
-- SpectraStrike can launch an explicit guided demo session.
-- Demo links use query flags (`demo=true`) and preserve source attribution (`source=spectrastrike|nexus|vectorvue`).
+- Guided experience is initiated from seeded environment workflows, not from login buttons.
+- Cross-app links preserve source attribution (`source=spectrastrike|nexus|vectorvue`).
 - Cross-app destinations are environment-driven (`VITE_NEXUS_URL`, `VITE_VECTORVUE_URL`) with warnings when missing.
-- Demo mode is explicit and does not silently override real execution paths.
+
+## Fullscreen Canvas Behavior
+
+- Fullscreen uses `document.documentElement.requestFullscreen()` with CSS fallback (`.canvas-fullscreen`).
+- Canvas occupies full viewport (`100vw x 100vh`) with no sidebar/header offsets.
+- Body/html scroll is disabled while fullscreen is active to prevent scroll bleed.
+
+## Canvas Component Picker
+
+- Left collapsible picker contains: Recon, Initial Access, Privilege Escalation, Lateral Movement, C2, Exfiltration, Infra, Custom.
+- Wrappers can be dragged into empty canvas or clicked for auto placement.
+- Canvas starts empty by default (clean state) unless seeded runtime data is present.
+
+## First-Run + Reset Lifecycle
+
+- DB-zero bootstrap detection checks: users, tenants, keys, wrapper configuration, federation configuration.
+- First-run setup wizard drives admin bootstrap and environment readiness.
+- `Demo Reset` clears playbook/runtime/onboarding state and relaunches first-run wizard.
 
 ## Drag-and-Drop Playbook Builder
 

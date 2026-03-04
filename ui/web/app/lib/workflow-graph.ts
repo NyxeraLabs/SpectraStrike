@@ -47,19 +47,8 @@ export type WorkflowEdge = {
 
 export function defaultWorkflowGraph(): { nodes: WorkflowNode[]; edges: WorkflowEdge[] } {
   return {
-    nodes: [
-      { id: "n-initial", label: "Edge Access", technique: "T1133", nodeType: "initial_access" },
-      { id: "n-priv", label: "Token Escalation", technique: "T1068", nodeType: "privilege_escalation" },
-      { id: "n-lateral", label: "SMB Lateral", technique: "T1021.002", nodeType: "lateral_movement" },
-      { id: "n-c2", label: "C2 Stabilize", technique: "T1071", nodeType: "c2" },
-      { id: "n-exfil", label: "Data Staging", technique: "T1041", nodeType: "exfiltration" },
-    ],
-    edges: [
-      { id: "e1", sourceId: "n-initial", targetId: "n-priv", branchCondition: "on_success" },
-      { id: "e2", sourceId: "n-priv", targetId: "n-lateral", branchCondition: "on_success" },
-      { id: "e3", sourceId: "n-lateral", targetId: "n-c2", branchCondition: "always" },
-      { id: "e4", sourceId: "n-c2", targetId: "n-exfil", branchCondition: "on_success" },
-    ],
+    nodes: [],
+    edges: [],
   };
 }
 

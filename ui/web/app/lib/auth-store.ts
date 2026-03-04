@@ -367,3 +367,22 @@ export async function validateAuthenticatedRequest(
 
   return { ok: true, principal };
 }
+
+export function getAuthStoreStats(): { users: number; sessions: number } {
+  pruneExpiredSessions();
+  return {
+    users: authStore.usersById.size,
+    sessions: authStore.sessionsByToken.size,
+  };
+}
+
+export function resetAuthStore(): { users: number; sessions: number } {
+  const users = authStore.usersById.size;
+  const sessions = authStore.sessionsByToken.size;
+  authStore.usersById.clear();
+  authStore.usersByKey.clear();
+  authStore.sessionsByToken.clear();
+  authStore.bootstrapPromise = null;
+  authStore.demoPromise = null;
+  return { users, sessions };
+}

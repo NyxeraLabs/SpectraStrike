@@ -20,8 +20,10 @@ import { TopNav } from "../../components/top-nav";
 export default function AsmGraphPage() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 sm:py-8">
-      <TopNav />
-      <section className="spectra-panel p-5">
+      <div className="spectra-fullscreen-hide">
+        <TopNav />
+      </div>
+      <section className="spectra-panel p-5 spectra-fullscreen-hide">
         <h1 className="text-lg font-semibold text-white">ASM Graph Engine</h1>
         <p className="mt-2 text-sm text-slate-300">
           Attack-surface graph modeling for asset relationships, exposure pivots, cloud IAM links, and playbook conversion.

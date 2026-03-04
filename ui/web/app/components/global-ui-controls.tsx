@@ -17,6 +17,7 @@ Sell derived competing products
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { usePathname } from "next/navigation";
 
 import {
   accessibilityChecklist,
@@ -32,6 +33,7 @@ import {
   type GlobalRole,
   type UiTheme,
 } from "../lib/global-ui";
+import { safeLocalStorageGet, safeLocalStorageSet } from "../lib/browser-storage";
 
 type Notice = {
   id: string;
@@ -42,6 +44,7 @@ type Notice = {
 const storageKey = "spectra_workspace_state_v1";
 
 export function GlobalUiControls() {
+  const currentPath = usePathname();
   const [theme, setTheme] = useState<UiTheme>("dark");
   const [role, setRole] = useState<GlobalRole>("red_team");
   const [powerMode, setPowerMode] = useState(false);
@@ -50,7 +53,7 @@ export function GlobalUiControls() {
   const [notices, setNotices] = useState<Notice[]>([]);
 
   useEffect(() => {
-    const restored = parseWorkspaceState(localStorage.getItem(storageKey));
+    const restored = parseWorkspaceState(safeLocalStorageGet(storageKey));
     setTheme(restored.theme);
     setRole(restored.role);
     setPowerMode(restored.powerMode);
@@ -59,13 +62,14 @@ export function GlobalUiControls() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const snapshot = encodeWorkspaceState({
       theme,
       role,
       powerMode,
       lastPath: window.location.pathname,
     });
-    localStorage.setItem(storageKey, snapshot);
+    safeLocalStorageSet(storageKey, snapshot);
   }, [lastPath, powerMode, role, theme]);
 
   useEffect(() => {
@@ -104,7 +108,6 @@ export function GlobalUiControls() {
   }, [powerMode, role]);
 
   const a11y = useMemo(() => accessibilityChecklist(), []);
-  const currentPath = typeof window === "undefined" ? "" : window.location.pathname;
   const hasRecover = Boolean(currentPath) && lastPath !== currentPath;
 
   return (

@@ -101,14 +101,6 @@ All endpoints are internal API contracts served by orchestrator and consumed by 
   - Request: bearer token
   - Response: `204 No Content`
 
-- `POST /api/v1/auth/demo`
-  - Purpose: issue a demo operator session for local development/demo flows.
-  - Guard: controlled by `UI_AUTH_ENABLE_DEMO_LOGIN`.
-  - Response:
-    - `access_token: string`
-    - `expires_at: string (ISO-8601)`
-    - `roles: string[]`
-
 ### 4.2 Dashboard and Telemetry
 
 - `GET /api/v1/dashboard/summary`

@@ -226,42 +226,6 @@ export default function LoginPage() {
     }
   };
 
-  const openDemoShell = async () => {
-    setIsLoading(true);
-    setStatusMessage(null);
-    try {
-      const response = await fetch("/ui/api/v1/auth/demo", { method: "POST" });
-      const body = await parseApiErrorBody(response);
-      if (!response.ok) {
-        if (body.error === "LEGAL_ACCEPTANCE_REQUIRED") {
-          showStatus("info", "Legal acceptance required. Redirecting...");
-          router.push("/legal/acceptance");
-          router.refresh();
-          return;
-        }
-        const message =
-          body.error === "demo_disabled"
-            ? "Demo shell is disabled by policy."
-            : body.error === "origin_forbidden"
-            ? "Demo shell blocked by origin policy. Check UI_ALLOWED_ORIGINS."
-            : body.error === "rate_limited"
-            ? "Too many demo attempts. Try again in a minute."
-            : body.error
-            ? `Unable to open demo shell (${body.error}).`
-            : "Unable to open demo shell.";
-        showStatus("error", message);
-        return;
-      }
-      showStatus("success", "Demo shell session ready. Redirecting...");
-      router.push("/dashboard");
-      router.refresh();
-    } catch {
-      showStatus("error", "Unable to reach demo authentication service.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-5xl items-center px-6 py-10">
       <section className="grid w-full gap-6 md:grid-cols-[1.2fr_1fr]">
@@ -374,14 +338,6 @@ export default function LoginPage() {
                     className="spectra-button-primary px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isLoading ? "Signing In..." : "Sign In"}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isLoading}
-                    onClick={openDemoShell}
-                    className="spectra-button-secondary px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isLoading ? "Opening Demo..." : "Demo Shell"}
                   </button>
                 </div>
               </form>

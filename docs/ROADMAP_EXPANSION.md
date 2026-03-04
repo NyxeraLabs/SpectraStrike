@@ -464,6 +464,23 @@ Modern, enterprise-grade UX maturity.
 
 ---
 
+# PHASE 10 — Mode Separation & Canvas Runtime UX
+
+## Sprint 60 (Phase 10 Sprint 10.1) — Demo Surface Removal + Fullscreen Parity
+
+### Commits
+
+* [x] feat(spectrastrike-ui): remove login-level demo shell UI trigger
+* [x] chore(spectrastrike-ui): remove `/ui/api/v1/auth/demo` route surface
+* [x] feat(spectrastrike-ui): disable workflow guided-demo panel from UI runtime
+* [x] feat(spectrastrike-ui): add shared fullscreen controller hook for graph canvases
+* [x] feat(spectrastrike-ui): apply fullscreen parity to Workflow canvas
+* [x] feat(spectrastrike-ui): apply fullscreen parity to ASM canvas
+* [x] feat(spectrastrike-ui): hide dashboard chrome during fullscreen in ASM page
+* [x] docs(spectrastrike): add expansion sprint logs for mode-separation/fullscreen tranche
+
+---
+
 # END STATE
 
 * SpectraStrike is fully stateful, campaign-aware, TTP-native.

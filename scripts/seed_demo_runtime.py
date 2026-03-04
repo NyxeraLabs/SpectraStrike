@@ -26,9 +26,35 @@ class Wrapper:
     node_type: str
 
 
+def _accept_legal(session: requests.Session, api_base: str) -> None:
+    payload = {
+        "accepted_by": os.getenv("SPECTRASTRIKE_LEGAL_ACCEPTED_BY", "demo-seed"),
+        "accepted_documents": {
+            "eula": "2026.1",
+            "aup": "2026.1",
+            "privacy": "2026.1",
+        },
+    }
+    response = session.post(
+        f"{api_base}/v1/auth/legal/accept",
+        json=payload,
+        timeout=15,
+        verify=False,
+        allow_redirects=False,
+    )
+    if response.status_code not in {200, 202}:
+        response.raise_for_status()
+
+
 def _candidate_base_urls(base_url: str) -> list[str]:
     candidates = [
         base_url.rstrip("/"),
+        os.getenv("SPECTRASTRIKE_UI_API_BASE_URL", "").rstrip("/"),
+        os.getenv("UI_ADMIN_API_BASE_URL", "").rstrip("/"),
+        "https://nginx:8443/ui/api",
+        "https://spectrastrike_nginx:8443/ui/api",
+        "http://ui-web:3000/ui/api",
+        "http://spectrastrike_ui_web:3000/ui/api",
         "https://127.0.0.1:18443/ui/api",
         "https://localhost:18443/ui/api",
         "http://127.0.0.1:3000/ui/api",
@@ -49,6 +75,7 @@ def _try_bootstrap_login(session: requests.Session, api_base: str) -> str:
         json={"username": username, "password": password},
         timeout=15,
         verify=False,
+        allow_redirects=False,
     )
     res.raise_for_status()
     token = str(res.json().get("access_token", "")).strip()
@@ -66,11 +93,32 @@ def _token(session: requests.Session, base_url: str) -> tuple[str, str]:
                     f"{api_base}/v1/auth/demo",
                     timeout=15,
                     verify=False,
+                    allow_redirects=False,
                 )
+                if 300 <= res.status_code < 400:
+                    last_error = (
+                        f"http_{res.status_code}_redirect_on_{api_base}_to_"
+                        f"{res.headers.get('location', '')}"
+                    )
+                    time.sleep(0.4)
+                    continue
                 if res.status_code in {502, 503, 504}:
                     time.sleep(1.0)
                     continue
                 if res.status_code == 403:
+                    try:
+                        body = res.json()
+                    except Exception:  # noqa: BLE001
+                        body = {}
+                    if isinstance(body, dict) and body.get("error") == "LEGAL_ACCEPTANCE_REQUIRED":
+                        try:
+                            _accept_legal(session, api_base)
+                            time.sleep(0.3)
+                            continue
+                        except Exception as exc:  # noqa: BLE001
+                            last_error = f"legal_accept_failed_on_{api_base}:{exc}"
+                            time.sleep(0.8)
+                            continue
                     # Demo may be disabled. Try bootstrap auth fallback.
                     try:
                         return _try_bootstrap_login(session, api_base), api_base
@@ -96,6 +144,7 @@ def _wrappers(session: requests.Session, base_url: str, token: str) -> list[Wrap
         headers={"authorization": f"Bearer {token}"},
         timeout=15,
         verify=False,
+        allow_redirects=False,
     )
     res.raise_for_status()
     data = res.json()
@@ -166,6 +215,7 @@ def _seed_tenant(
         data=json.dumps(playbook_payload),
         timeout=20,
         verify=False,
+        allow_redirects=False,
     )
     pb.raise_for_status()
 
@@ -196,6 +246,7 @@ def _seed_tenant(
                     data=json.dumps(payload),
                     timeout=20,
                     verify=False,
+                    allow_redirects=False,
                 )
                 if task.status_code in {502, 503, 504, 429}:
                     last_error = f"http_{task.status_code}"

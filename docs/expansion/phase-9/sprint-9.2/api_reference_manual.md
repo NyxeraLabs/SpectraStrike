@@ -5,7 +5,6 @@
 - `POST /ui/api/v1/auth/login`
 - `POST /ui/api/v1/auth/register`
 - `POST /ui/api/v1/auth/logout`
-- `POST /ui/api/v1/auth/demo`
 - `POST /ui/api/v1/auth/legal/accept`
 
 ### Telemetry & Status

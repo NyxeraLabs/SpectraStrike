@@ -30,7 +30,8 @@ describe("workflow store state transitions", () => {
       statusMessage: "Loading playbook...",
       edgeBranch: "always",
       spectraDemoActive: false,
-      spectraDemoStep: "intro",
+      spectraDemoStep: "welcome",
+      completedDemoActions: [],
     });
   });
 
@@ -58,5 +59,19 @@ describe("workflow store state transitions", () => {
     useWorkflowStore.getState().removeNode(firstNode.id);
     expect(useWorkflowStore.getState().nodes.some((node) => node.id === firstNode.id)).toBe(false);
     expect(useWorkflowStore.getState().queue.includes(firstNode.id)).toBe(false);
+  });
+
+  it("advances demo state only when required actions happen", () => {
+    useWorkflowStore.getState().enableDemo();
+    expect(useWorkflowStore.getState().spectraDemoStep).toBe("welcome");
+
+    useWorkflowStore.getState().registerDemoAction("palette_seen");
+    expect(useWorkflowStore.getState().spectraDemoStep).toBe("welcome");
+
+    useWorkflowStore.getState().registerDemoAction("welcome_ack");
+    expect(useWorkflowStore.getState().spectraDemoStep).toBe("palette_intro");
+
+    useWorkflowStore.getState().registerDemoAction("palette_seen");
+    expect(useWorkflowStore.getState().spectraDemoStep).toBe("drag_first_node");
   });
 });

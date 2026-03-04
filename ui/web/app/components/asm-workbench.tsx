@@ -42,6 +42,7 @@ import {
   type AsmEdge,
   type AsmNode,
 } from "../lib/asm-graph";
+import { useFullscreenController } from "../lib/fullscreen-controller";
 
 const palette: AsmNode[] = [
   { id: "p-cdn", label: "CDN Endpoint", nodeType: "external", riskScore: 0.52 },
@@ -140,21 +141,9 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
   );
   const [campaignTimeline, setCampaignTimeline] = useState<string[]>([]);
   const [asmStatus, setAsmStatus] = useState<string>("Loading live campaign graph surfaces...");
-  const [asmFullscreen, setAsmFullscreen] = useState(false);
   const [connectRelation, setConnectRelation] = useState<AsmEdge["relation"]>("pivot");
-
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-    const previous = document.body.style.overflow;
-    if (asmFullscreen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = previous || "";
-    }
-    return () => {
-      document.body.style.overflow = previous || "";
-    };
-  }, [asmFullscreen]);
+  const fullscreen = useFullscreenController();
+  const asmFullscreen = fullscreen.isFullscreen;
 
   useEffect(() => {
     let active = true;
@@ -281,14 +270,14 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
             <button
               type="button"
               className="spectra-button-secondary px-3 py-1.5 text-xs"
-              onClick={() => setAsmFullscreen((current) => !current)}
+              onClick={() => void fullscreen.toggle()}
             >
               {asmFullscreen ? "Exit Full Screen" : "Full Screen"}
             </button>
           </div>
         </div>
         <p className="mt-2 text-xs text-slate-400">{asmStatus}</p>
-        <div className={`relative mt-4 rounded-lg border border-borderSubtle bg-slate-950/70 p-2 ${asmFullscreen ? "fixed inset-0 z-[120] h-screen w-screen rounded-none border-none p-4" : "h-[560px]"}`}>
+        <div className={`relative mt-4 rounded-lg border border-borderSubtle bg-slate-950/70 p-2 ${asmFullscreen ? "canvas-fullscreen rounded-none border-none p-4" : "h-[560px]"}`}>
           <ReactFlow
             nodes={flowNodes}
             edges={flowEdges}
@@ -306,7 +295,7 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
             <button
               type="button"
               className="spectra-button-secondary absolute right-4 top-4 z-10 px-3 py-1.5 text-xs"
-              onClick={() => setAsmFullscreen(false)}
+              onClick={() => void fullscreen.exit()}
             >
               Close
             </button>
