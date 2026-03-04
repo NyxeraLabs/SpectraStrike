@@ -54,3 +54,16 @@
 - `telemetry-feed.tsx`:
   - wrappers/telemetry item arrays now pre-filter to object records before mapping.
   - loaded-count message now reflects filtered/safe item count.
+
+## Demo Runtime Auth Path Correction
+- `reset_demo_runtime.py` no longer performs demo-auth probing as primary auth flow.
+- New auth sequence for reset:
+  1) `POST /v1/auth/login` with bootstrap credentials
+  2) if `LEGAL_ACCEPTANCE_REQUIRED`, call `POST /v1/auth/legal/accept`
+  3) retry `POST /v1/auth/login`
+  4) use bearer token for `POST /execution/reset`
+- Reset error output now includes endpoint-specific failure context across all candidate API bases.
+
+## Seed Runtime Parity
+- `seed_demo_runtime.py` token resolver now also uses bootstrap login-first with legal-accept retry.
+- This prevents seed/reset divergence after removal of UI demo auth route.

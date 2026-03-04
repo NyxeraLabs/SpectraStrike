@@ -77,6 +77,25 @@ def _try_bootstrap_login(session: requests.Session, api_base: str) -> str:
         verify=False,
         allow_redirects=False,
     )
+    if 300 <= res.status_code < 400:
+        raise RuntimeError(
+            f"http_{res.status_code}_redirect_to_{res.headers.get('location', '')}"
+        )
+    if res.status_code == 403:
+        body = {}
+        try:
+            body = res.json()
+        except Exception:  # noqa: BLE001
+            body = {}
+        if isinstance(body, dict) and body.get("error") == "LEGAL_ACCEPTANCE_REQUIRED":
+            _accept_legal(session, api_base)
+            res = session.post(
+                f"{api_base}/v1/auth/login",
+                json={"username": username, "password": password},
+                timeout=15,
+                verify=False,
+                allow_redirects=False,
+            )
     res.raise_for_status()
     token = str(res.json().get("access_token", "")).strip()
     if not token:
@@ -89,49 +108,7 @@ def _token(session: requests.Session, base_url: str) -> tuple[str, str]:
     for api_base in _candidate_base_urls(base_url):
         for _ in range(20):
             try:
-                res = session.post(
-                    f"{api_base}/v1/auth/demo",
-                    timeout=15,
-                    verify=False,
-                    allow_redirects=False,
-                )
-                if 300 <= res.status_code < 400:
-                    last_error = (
-                        f"http_{res.status_code}_redirect_on_{api_base}_to_"
-                        f"{res.headers.get('location', '')}"
-                    )
-                    time.sleep(0.4)
-                    continue
-                if res.status_code in {502, 503, 504}:
-                    time.sleep(1.0)
-                    continue
-                if res.status_code == 403:
-                    try:
-                        body = res.json()
-                    except Exception:  # noqa: BLE001
-                        body = {}
-                    if isinstance(body, dict) and body.get("error") == "LEGAL_ACCEPTANCE_REQUIRED":
-                        try:
-                            _accept_legal(session, api_base)
-                            time.sleep(0.3)
-                            continue
-                        except Exception as exc:  # noqa: BLE001
-                            last_error = f"legal_accept_failed_on_{api_base}:{exc}"
-                            time.sleep(0.8)
-                            continue
-                    # Demo may be disabled. Try bootstrap auth fallback.
-                    try:
-                        return _try_bootstrap_login(session, api_base), api_base
-                    except Exception as exc:  # noqa: BLE001
-                        last_error = f"demo_403_and_bootstrap_failed_on_{api_base}:{exc}"
-                        time.sleep(0.8)
-                        continue
-                res.raise_for_status()
-                body = res.json()
-                token = str(body.get("access_token", "")).strip()
-                if not token:
-                    return _try_bootstrap_login(session, api_base), api_base
-                return token, api_base
+                return _try_bootstrap_login(session, api_base), api_base
             except Exception as exc:  # noqa: BLE001
                 last_error = f"{type(exc).__name__}:{exc}"
                 time.sleep(0.8)

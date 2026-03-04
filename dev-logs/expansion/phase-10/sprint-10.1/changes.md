@@ -43,3 +43,9 @@
   - `app/components/telemetry-feed.tsx`
 - Added record-guard filtering before object property access on API item arrays.
 - Validated workflow unit test path after changes.
+
+## Incremental Fix - Demo Reset Authentication Failure
+- Fixed `scripts/reset_demo_runtime.py` to authenticate via `/v1/auth/login` (bootstrap operator credentials) instead of removed `/v1/auth/demo`.
+- Added legal-accept retry handling during bootstrap login (`LEGAL_ACCEPTANCE_REQUIRED` path).
+- Added per-candidate endpoint error aggregation in reset failures to improve root-cause visibility.
+- Aligned `scripts/seed_demo_runtime.py` with the same login-first authentication strategy and legal-accept retry behavior.

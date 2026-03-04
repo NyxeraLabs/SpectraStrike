@@ -24,3 +24,10 @@
 - [x] `vitest`: `tests/unit/workflow-workbench.test.tsx` passes after patch.
 - [x] `vitest`: `tests/unit/asm-large-graph-render.test.tsx` and `tests/unit/nexus-workbench.test.tsx` pass after patch.
 - [ ] Browser-console verification on `/ui/dashboard/workflow` pending user-side confirmation (sandbox cannot launch Chromium here).
+
+## Demo Reset Auth Validation
+- [x] Static check: `reset_demo_runtime.py` no longer references `/v1/auth/demo`.
+- [x] Static check: `seed_demo_runtime.py` auth resolver no longer references `/v1/auth/demo`.
+- [x] Static check: both scripts handle legal-accept retry through `/v1/auth/legal/accept`.
+- [x] Syntax validation: `python -m py_compile scripts/reset_demo_runtime.py scripts/seed_demo_runtime.py`.
+- [ ] Runtime validation pending: re-run `make demo-reset` in your environment.

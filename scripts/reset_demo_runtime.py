@@ -35,6 +35,42 @@ def _accept_legal(session: requests.Session, api_base: str) -> None:
         response.raise_for_status()
 
 
+def _try_bootstrap_login(session: requests.Session, api_base: str) -> str:
+    username = os.getenv("UI_AUTH_BOOTSTRAP_USERNAME", "operator")
+    password = os.getenv("UI_AUTH_BOOTSTRAP_PASSWORD", "Operator!ChangeMe123")
+    login = session.post(
+        f"{api_base}/v1/auth/login",
+        json={"username": username, "password": password},
+        timeout=15,
+        verify=False,
+        allow_redirects=False,
+    )
+    if 300 <= login.status_code < 400:
+        raise RuntimeError(
+            f"http_{login.status_code}_redirect_to_{login.headers.get('location', '')}"
+        )
+    if login.status_code == 403:
+        body = {}
+        try:
+            body = login.json()
+        except Exception:  # noqa: BLE001
+            body = {}
+        if isinstance(body, dict) and body.get("error") == "LEGAL_ACCEPTANCE_REQUIRED":
+            _accept_legal(session, api_base)
+            login = session.post(
+                f"{api_base}/v1/auth/login",
+                json={"username": username, "password": password},
+                timeout=15,
+                verify=False,
+                allow_redirects=False,
+            )
+    login.raise_for_status()
+    token = str(login.json().get("access_token", "")).strip()
+    if not token:
+        raise RuntimeError("bootstrap login did not return access token")
+    return token
+
+
 def _candidate_base_urls(base_url: str) -> list[str]:
     candidates = [
         base_url.rstrip("/"),
@@ -64,56 +100,12 @@ def main() -> int:
     session = requests.Session()
     api_base = ""
     token = ""
-    last_error = "unknown"
+    candidate_errors: list[str] = []
     for candidate in _candidate_base_urls(args.base_url):
+        last_error = "unknown"
         for _ in range(20):
             try:
-                auth = session.post(
-                    f"{candidate}/v1/auth/demo",
-                    timeout=15,
-                    verify=False,
-                    allow_redirects=False,
-                )
-                if 300 <= auth.status_code < 400:
-                    last_error = f"http_{auth.status_code}_redirect_on_{candidate}_to_{auth.headers.get('location', '')}"
-                    time.sleep(0.4)
-                    continue
-                if auth.status_code in {502, 503, 504, 403}:
-                    if auth.status_code == 403:
-                        try:
-                            body = auth.json()
-                        except Exception:  # noqa: BLE001
-                            body = {}
-                        if isinstance(body, dict) and body.get("error") == "LEGAL_ACCEPTANCE_REQUIRED":
-                            try:
-                                _accept_legal(session, candidate)
-                                time.sleep(0.3)
-                                continue
-                            except Exception as exc:  # noqa: BLE001
-                                last_error = f"legal_accept_failed_on_{candidate}:{exc}"
-                        try:
-                            username = os.getenv("UI_AUTH_BOOTSTRAP_USERNAME", "operator")
-                            password = os.getenv("UI_AUTH_BOOTSTRAP_PASSWORD", "Operator!ChangeMe123")
-                            login = session.post(
-                                f"{candidate}/v1/auth/login",
-                                json={"username": username, "password": password},
-                                timeout=15,
-                                verify=False,
-                                allow_redirects=False,
-                            )
-                            login.raise_for_status()
-                            token = str(login.json().get("access_token", "")).strip()
-                            if token:
-                                api_base = candidate
-                                break
-                        except Exception as exc:  # noqa: BLE001
-                            last_error = f"demo_403_and_bootstrap_failed_on_{candidate}:{exc}"
-                    else:
-                        last_error = f"http_{auth.status_code}_on_{candidate}"
-                    time.sleep(0.8)
-                    continue
-                auth.raise_for_status()
-                token = str(auth.json().get("access_token", "")).strip()
+                token = _try_bootstrap_login(session, candidate)
                 if token:
                     api_base = candidate
                     break
@@ -122,8 +114,14 @@ def main() -> int:
                 time.sleep(0.8)
         if token:
             break
+        candidate_errors.append(f"{candidate} -> {last_error}")
     if not token:
-        raise RuntimeError(f"demo auth failed for all candidate endpoints: {last_error}")
+        joined = "; ".join(candidate_errors) if candidate_errors else "no candidates attempted"
+        raise RuntimeError(
+            "authentication failed for all candidate endpoints. "
+            "Expected /v1/auth/login availability and bootstrap credentials. "
+            f"details: {joined}"
+        )
 
     reset = session.post(
         f"{api_base}/execution/reset",

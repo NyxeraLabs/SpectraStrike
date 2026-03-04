@@ -485,6 +485,8 @@ Modern, enterprise-grade UX maturity.
 * [x] fix(spectrastrike-ui): guard workflow queue/playbook hydration against malformed API item payloads
 * [x] fix(spectrastrike-ui): remove stale spotlight condition checks causing impossible branch comparisons in workflow UI
 * [x] fix(spectrastrike-ui): harden ASM and telemetry list hydration against non-object/null API items
+* [x] fix(spectrastrike-runtime): migrate demo seed/reset auth resolution to `/v1/auth/login` (login-first, legal-accept retry)
+* [x] fix(spectrastrike-runtime): improve reset auth failure diagnostics with per-endpoint error details
 
 ---
 

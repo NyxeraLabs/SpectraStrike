@@ -35,3 +35,11 @@
 ## Decision 9: Remove Dead Spotlight Styling Branches
 - Workflow panel spotlight class checks removed where no spotlight state exists.
 - Rationale: eliminate stale conditional code and keep route compile/runtime behavior deterministic.
+
+## Decision 10: Runtime Scripts Must Not Depend on Removed UI Demo Auth
+- Demo seed/reset scripts now authenticate using bootstrap login route only.
+- Rationale: Part 1 removed UI demo route/buttons; runtime operations must follow the same contract.
+
+## Decision 11: Failures Should Be Endpoint-Diagnostic
+- Reset auth failures now return candidate-by-candidate endpoint results.
+- Rationale: avoid misleading "last attempted endpoint" errors and reduce triage time when a service is down.
