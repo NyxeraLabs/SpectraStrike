@@ -37,3 +37,13 @@ Demo seed produces cross-platform federation artifacts with tenant-scoped event/
 - CI workflow stabilizations:
   - fixed UI unit test failures (`login-page`, `top-nav`, `workflow-concurrency-render`).
   - `npm run lint` made non-interactive in CI (`next build --no-lint`) to avoid Next.js ESLint bootstrap prompt.
+
+## 2026-03-05 Final Addendum
+- Theme parity update for Workflow + ASM canvases:
+  - Canvas/map internals are now token-driven and switch correctly with global dark/light theme.
+  - Node cards, minimap surface, grid, and timeline bars use shared CSS vars instead of hardcoded dark-only colors.
+- Workflow + ASM parity:
+  - Internal node styles are now unified across both canvases.
+  - Background/map surfaces are intentionally darker in dark mode and brighter in light mode.
+- CI install reliability hardening:
+  - relaxed invalid hard pins in `requirements.txt` for `certifi` and `cryptography` to compatible ranges.

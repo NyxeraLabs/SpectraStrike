@@ -14,3 +14,9 @@
   - `npm --prefix ui/web run test:unit`
   - `npm --prefix ui/web run build`
   - `npm --prefix ui/web run lint` (non-interactive CI-safe command)
+
+## 2026-03-05 Final Addendum
+- [x] `npm --prefix ui/web run build`
+- [x] `npm --prefix ui/web run test:unit`
+- [x] Workflow canvas dark/light map + node switch validated in build/test output.
+- [x] ASM canvas dark/light map + node switch validated in build/test output.

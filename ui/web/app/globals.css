@@ -18,6 +18,15 @@
   --info: #3b82f6;
   --text-primary: #e6e9f5;
   --text-muted: #94a3b8;
+  --canvas-bg: #050d1e;
+  --canvas-grid: #1e293b;
+  --canvas-minimap: #0b1220;
+  --canvas-node-bg: linear-gradient(165deg, #0a1220 0%, #0f172a 100%);
+  --canvas-node-text: #e2e8f0;
+  --canvas-node-border: #334155;
+  --canvas-node-shadow: 0 10px 24px rgba(2, 6, 23, 0.55);
+  --canvas-node-minimap: #1d4ed8;
+  --surface-muted: rgba(2, 6, 23, 0.65);
 }
 
 :root[data-theme="light"] {
@@ -36,6 +45,15 @@
   --info: #215fd3;
   --text-primary: #1d2a44;
   --text-muted: #4e5f84;
+  --canvas-bg: #e7edf8;
+  --canvas-grid: #c5d2ea;
+  --canvas-minimap: #f2f6ff;
+  --canvas-node-bg: linear-gradient(165deg, #ffffff 0%, #edf2ff 100%);
+  --canvas-node-text: #1d2a44;
+  --canvas-node-border: #b8c8e6;
+  --canvas-node-shadow: 0 10px 22px rgba(37, 99, 235, 0.12);
+  --canvas-node-minimap: #3556d6;
+  --surface-muted: rgba(226, 235, 251, 0.92);
 }
 
 body {
@@ -46,6 +64,13 @@ body {
     radial-gradient(circle at 15% 20%, rgba(124, 92, 255, 0.12), transparent 40%),
     var(--bg-primary);
   color: var(--text-primary);
+}
+
+html[data-theme="light"] body {
+  background:
+    radial-gradient(circle at top right, rgba(53, 86, 214, 0.15), transparent 40%),
+    radial-gradient(circle at 10% 12%, rgba(10, 125, 179, 0.14), transparent 32%),
+    var(--bg-primary);
 }
 
 * {
@@ -101,6 +126,40 @@ body {
   width: 100vw;
   height: 100vh;
   z-index: 9999;
+}
+
+.spectra-canvas-surface {
+  background: var(--canvas-bg);
+}
+
+.spectra-surface-muted {
+  background: var(--surface-muted);
+}
+
+.spectra-flow-theme .react-flow__pane {
+  background: var(--canvas-bg);
+}
+
+.spectra-flow-theme .react-flow__background path {
+  stroke: var(--canvas-grid);
+  stroke-width: 1;
+}
+
+.spectra-flow-theme .react-flow__minimap {
+  background: var(--canvas-minimap);
+  border: 1px solid var(--border-subtle);
+}
+
+.spectra-flow-theme .react-flow__controls {
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.spectra-flow-theme .react-flow__controls-button {
+  background: var(--surface-elevated);
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .spectra-fullscreen-active {

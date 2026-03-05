@@ -285,11 +285,11 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
         ...node,
         className: `ring-1 ${riskClass(overlays[node.id])}`,
         style: {
-          background: "linear-gradient(165deg, #0a1220 0%, #0f172a 100%)",
-          color: "#e2e8f0",
-          border: "1px solid #334155",
+          background: "var(--canvas-node-bg)",
+          color: "var(--canvas-node-text)",
+          border: "1px solid var(--canvas-node-border)",
           borderRadius: "10px",
-          boxShadow: "0 10px 24px rgba(2, 6, 23, 0.55)",
+          boxShadow: "var(--canvas-node-shadow)",
         },
       })),
     [flowNodes, overlays],
@@ -427,7 +427,7 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
           ref={canvasHostRef}
           onDrop={onDropPalette}
           onDragOver={(event) => event.preventDefault()}
-          className={`relative mt-4 rounded-lg border border-borderSubtle bg-slate-950/70 p-2 ${asmFullscreen ? "canvas-fullscreen rounded-none border-none p-4" : "h-[560px]"}`}
+          className={`spectra-canvas-surface spectra-flow-theme relative mt-4 rounded-lg border border-borderSubtle p-2 ${asmFullscreen ? "canvas-fullscreen rounded-none border-none p-4" : "h-[560px]"}`}
         >
           <ReactFlow
             nodes={renderedFlowNodes}
@@ -446,9 +446,12 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
             selectionOnDrag
             panOnScroll
           >
-            <MiniMap />
+            <MiniMap
+              nodeColor={() => "var(--canvas-node-minimap)"}
+              style={{ background: "var(--canvas-minimap)" }}
+            />
             <Controls />
-            <Background />
+            <Background color="var(--canvas-grid)" />
           </ReactFlow>
           {asmFullscreen ? (
             <button
@@ -665,7 +668,7 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
 
       <article className="spectra-panel p-5">
         <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">Campaign Timeline</h2>
-        <div className="mt-3 rounded border border-borderSubtle bg-slate-950/70 p-3" data-testid="asm-campaign-timeline-bar">
+        <div className="spectra-surface-muted mt-3 rounded border border-borderSubtle p-3" data-testid="asm-campaign-timeline-bar">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs uppercase tracking-wide text-slate-400">Campaign Timeline</p>
             <p className="text-xs text-slate-300">

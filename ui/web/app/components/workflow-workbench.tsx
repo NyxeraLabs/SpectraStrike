@@ -457,11 +457,11 @@ export function WorkflowWorkbench() {
       ...node,
       className: overlayClass(overlay[node.id]),
       style: {
-        background: "linear-gradient(165deg, #0a1220 0%, #0f172a 100%)",
-        color: "#e2e8f0",
-        border: "1px solid #334155",
+        background: "var(--canvas-node-bg)",
+        color: "var(--canvas-node-text)",
+        border: "1px solid var(--canvas-node-border)",
         borderRadius: "10px",
-        boxShadow: "0 10px 24px rgba(2, 6, 23, 0.55)",
+        boxShadow: "var(--canvas-node-shadow)",
       },
       data: {
         ...node.data,
@@ -782,7 +782,7 @@ export function WorkflowWorkbench() {
             ref={canvasHostRef}
             onDrop={onDropWrapper}
             onDragOver={(event) => event.preventDefault()}
-            className={`relative mt-4 w-full overflow-hidden rounded-lg border border-borderSubtle bg-slate-950/70 ${canvasFullscreen ? "canvas-fullscreen z-[9999] border-none rounded-none" : "h-[520px]"}`}
+            className={`spectra-canvas-surface spectra-flow-theme relative mt-4 w-full overflow-hidden rounded-lg border border-borderSubtle ${canvasFullscreen ? "canvas-fullscreen z-[9999] border-none rounded-none" : "h-[520px]"}`}
           >
             <ReactFlow
               nodes={renderedNodes as Node[]}
@@ -806,9 +806,12 @@ export function WorkflowWorkbench() {
               multiSelectionKeyCode={["Shift"]}
               panOnScroll
             >
-              <MiniMap />
+              <MiniMap
+                nodeColor={() => "var(--canvas-node-minimap)"}
+                style={{ background: "var(--canvas-minimap)" }}
+              />
               <Controls />
-              <Background />
+              <Background color="var(--canvas-grid)" />
             </ReactFlow>
             {canvasFullscreen ? (
               <button type="button" className="spectra-button-secondary absolute right-4 top-4 z-10 px-3 py-1.5 text-xs" onClick={toggleFullscreen}>
@@ -825,7 +828,7 @@ export function WorkflowWorkbench() {
 
         <div className="spectra-panel p-5" data-testid="playbook-list">
           <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">Playbook Builder</h2>
-          <div className="mt-3 rounded border border-borderSubtle bg-slate-950/70 p-3" data-testid="campaign-timeline-bar">
+          <div className="spectra-surface-muted mt-3 rounded border border-borderSubtle p-3" data-testid="campaign-timeline-bar">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs uppercase tracking-wide text-slate-400">Campaign Timeline</p>
               <p className="text-xs text-slate-300">

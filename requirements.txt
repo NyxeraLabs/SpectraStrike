@@ -12,9 +12,9 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-certifi==2026.1.4
+certifi>=2024.8.30,<2027
 charset-normalizer==3.4.4
-cryptography==46.0.5
+cryptography>=44,<47
 docker==7.1.0
 idna==3.11
 iniconfig==2.3.0

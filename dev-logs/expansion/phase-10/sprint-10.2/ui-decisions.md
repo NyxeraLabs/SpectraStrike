@@ -10,3 +10,9 @@
   - ASM and Workflow canvases share dark-node styling for a consistent operator visual language across graph engines.
 - Timeline UX parity decision:
   - ASM campaign timeline controls now mirror Workflow (`range` bar + `Load All` + `Unload`).
+
+## 2026-03-05 Final Addendum
+- Canvas visual policy:
+  - Dark mode prioritizes deep-map contrast for prolonged operator sessions.
+  - Light mode keeps graph readability with high-contrast node borders and softer shadows.
+- Workflow and ASM remain visually synchronized by sharing the same node/map token set.
