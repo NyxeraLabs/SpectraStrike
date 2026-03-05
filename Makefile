@@ -257,8 +257,21 @@ host-integration-smoke-full:
 	  --check-vectorvue
 
 vectorvue-rabbitmq-sync:
-	$(COMPOSE_DEV) run --rm \
+	@docker compose --env-file $(LOCAL_FED_ENV) -f docker-compose.dev.yml -f $(LOCAL_FED_OVERRIDE) exec -T rabbitmq sh -lc '\
+		BOOT_USER="$$(cat /run/secrets/rabbitmq_user)"; \
+		BOOT_PASS="$$(cat /run/secrets/rabbitmq_password)"; \
+		if rabbitmqctl list_users | awk "{print \$$1}" | grep -qx "$$BOOT_USER"; then \
+			rabbitmqctl change_password "$$BOOT_USER" "$$BOOT_PASS"; \
+		else \
+			rabbitmqctl add_user "$$BOOT_USER" "$$BOOT_PASS"; \
+		fi; \
+		rabbitmqctl set_permissions -p / "$$BOOT_USER" ".*" ".*" ".*" >/dev/null; \
+	'
+	docker compose --env-file $(LOCAL_FED_ENV) -f docker-compose.dev.yml -f $(LOCAL_FED_OVERRIDE) run --rm \
 		-v "$$(cd ../VectorVue/deploy/certs && pwd):/vectorvue-certs:ro" \
+		-e VECTORVUE_FEDERATION_URL=https://vectorvue.local \
+		-e RABBITMQ_USER="$$(cat docker/secrets/rabbitmq_user.txt)" \
+		-e RABBITMQ_PASSWORD="$$(cat docker/secrets/rabbitmq_password.txt)" \
 		-e VECTORVUE_VERIFY_TLS_CA_FILE=/vectorvue-certs/ca.crt \
 		-e VECTORVUE_FEDERATION_MTLS_CERT_FILE=/vectorvue-certs/client.crt \
 		-e VECTORVUE_FEDERATION_MTLS_KEY_FILE=/vectorvue-certs/client.key \
@@ -272,7 +285,7 @@ local-federation-prepare:
 		"HOST_INTEGRATION_ACTOR=op-001" \
 		"SPECTRASTRIKE_TENANT_ID=10000000-0000-0000-0000-000000000001" \
 		"SPECTRASTRIKE_WRAPPER_SIGNING_KEY_PATH=/home/xoce/Workspace/VectorVue/deploy/certs/spectrastrike_ed25519.key" \
-		"VECTORVUE_FEDERATION_URL=https://127.0.0.1" \
+		"VECTORVUE_FEDERATION_URL=https://vectorvue.local" \
 		"VECTORVUE_USERNAME=acme_viewer" \
 		"VECTORVUE_PASSWORD=AcmeView3r!" \
 		"VECTORVUE_TENANT_ID=10000000-0000-0000-0000-000000000001" \
@@ -293,6 +306,14 @@ local-federation-prepare:
 		"      - ./local_federation/.env.spectrastrike.local" \
 		"    volumes:" \
 		"      - ./local_federation/certs:/opt/spectrastrike/local_federation/certs:ro" \
+		"    networks:" \
+		"      - core_net" \
+		"      - edge_net" \
+		"      - vectorvue_bridge" \
+		"networks:" \
+		"  vectorvue_bridge:" \
+		"    external: true" \
+		"    name: vectorvue_default" \
 		> "$(LOCAL_FED_OVERRIDE)"; \
 	fi
 

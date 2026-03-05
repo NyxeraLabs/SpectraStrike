@@ -170,49 +170,59 @@ def _seed_tenant(
         campaign_cycle = ["OP_GLOBEX_REDWOLF_2026", "OP_GLOBEX_NIGHTGLASS_2026"]
     else:
         campaign_cycle = [f"seeded-campaign-{tenant_id[:8]}"]
-    nodes = []
-    edges = []
-    queue: list[str] = []
+    # Persist campaign-scoped node-link playbooks so each seeded campaign opens pre-populated.
+    campaign_entries: dict[str, list[tuple[int, Wrapper]]] = {campaign_id: [] for campaign_id in campaign_cycle}
     for idx, wrapper in enumerate(sample):
-        node_id = f"{tenant_id[:8]}-n-{idx+1}-{wrapper.key}"
-        nodes.append(
-            {
-                "id": node_id,
-                "label": wrapper.label,
-                "technique": f"T{1000 + idx}",
-                "nodeType": wrapper.node_type,
-                "wrapperKey": wrapper.key,
-            }
-        )
-        queue.append(node_id)
-        if idx > 0:
-            edges.append(
+        campaign_id = campaign_cycle[idx % len(campaign_cycle)]
+        campaign_entries.setdefault(campaign_id, []).append((idx, wrapper))
+
+    for campaign_id, entries in campaign_entries.items():
+        if not entries:
+            continue
+        nodes = []
+        edges = []
+        queue: list[str] = []
+        campaign_slug = campaign_id.lower().replace("_", "-")
+        for local_idx, (global_idx, wrapper) in enumerate(entries, start=1):
+            node_id = f"{tenant_id[:8]}-{campaign_slug}-n-{local_idx}-{wrapper.key}"
+            nodes.append(
                 {
-                    "id": f"{tenant_id[:8]}-e-{idx}",
-                    "sourceId": nodes[idx - 1]["id"],
-                    "targetId": node_id,
-                    "branchCondition": "on_success" if idx % 2 == 0 else "always",
+                    "id": node_id,
+                    "label": wrapper.label,
+                    "technique": f"T{1000 + global_idx}",
+                    "nodeType": wrapper.node_type,
+                    "wrapperKey": wrapper.key,
                 }
             )
-
-    playbook_payload = {
-        "tenant_id": tenant_id,
-        "nodes": nodes,
-        "edges": edges,
-        "queue": queue,
-    }
-    pb = session.put(
-        f"{base_url}/execution/playbook",
-        headers={
-            "authorization": f"Bearer {token}",
-            "content-type": "application/json",
-        },
-        data=json.dumps(playbook_payload),
-        timeout=20,
-        verify=False,
-        allow_redirects=False,
-    )
-    pb.raise_for_status()
+            queue.append(node_id)
+            if local_idx > 1:
+                edges.append(
+                    {
+                        "id": f"{tenant_id[:8]}-{campaign_slug}-e-{local_idx-1}",
+                        "sourceId": nodes[local_idx - 2]["id"],
+                        "targetId": node_id,
+                        "branchCondition": "on_success" if local_idx % 2 == 0 else "always",
+                    }
+                )
+        playbook_payload = {
+            "tenant_id": tenant_id,
+            "campaign_id": campaign_id,
+            "nodes": nodes,
+            "edges": edges,
+            "queue": queue,
+        }
+        pb = session.put(
+            f"{base_url}/execution/playbook",
+            headers={
+                "authorization": f"Bearer {token}",
+                "content-type": "application/json",
+            },
+            data=json.dumps(playbook_payload),
+            timeout=20,
+            verify=False,
+            allow_redirects=False,
+        )
+        pb.raise_for_status()
 
     failures = 0
     seeded_events: list[dict[str, object]] = []

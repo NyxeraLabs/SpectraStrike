@@ -25,3 +25,9 @@ Demo seed produces cross-platform federation artifacts with tenant-scoped event/
   - `ui/web/app/components/workflow-workbench.tsx`
   - `ui/web/app/api/execution/context/route.ts`
 - Expanded contract findings generation from subset sampling to all seeded wrappers per tenant (24 findings total across 2 tenants in latest run).
+- Added campaign-scoped playbook seeding:
+  - each seeded campaign now persists its own workflow graph payload (`tenant_id + campaign_id`) so Node-Link canvas is pre-populated when selecting that campaign.
+- Fixed live RabbitMQ sync routing and prep:
+  - sync now runs with local federation override network + `vectorvue.local` secure endpoint routing
+  - pre-sync user bootstrap creates/updates RabbitMQ producer user from Docker secrets
+  - queue/exchange declaration is now idempotent in bridge drain path.
