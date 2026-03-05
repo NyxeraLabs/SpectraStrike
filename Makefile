@@ -12,7 +12,7 @@
 # Offer as a commercial service
 # Sell derived competing products
 
-.PHONY: help build ui-build ui-web-rebuild runner-go-build runner-go-test secrets-init legal-accept-init pki-ensure tls-ensure up up-all full-up full-up-tools full-down open-ui open-tui ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db demo-seed demo-reset security-check license-check manifest-schema-regression tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down host-integration-smoke host-integration-smoke-full vectorvue-rabbitmq-sync local-federation-up
+.PHONY: help build ui-build ui-web-rebuild runner-go-build runner-go-test secrets-init legal-accept-init pki-ensure tls-ensure up up-all full-up full-up-tools full-down open-ui open-tui run-tui run-tui-fast ui-up ui-down ui-open ui-admin-shell ui-admin-up ui-admin-logs down down-all restart ps logs ui-logs test test-unit test-integration test-docker test-ui test-ui-e2e qa full-regression prod-up prod-down prod-logs clean tools-up tools-down backup-postgres backup-redis backup-all reset-db demo-seed demo-reset security-check license-check manifest-schema-regression tls-dev-cert pki-internal firewall-apply firewall-egress-apply sbom vuln-scan sign-image verify-sign policy-check security-gate obs-up obs-down host-integration-smoke host-integration-smoke-full vectorvue-rabbitmq-sync local-federation-up local-federation-up-fast local-federation-prepare
 
 COMPOSE_DEV = docker compose -f docker-compose.dev.yml
 COMPOSE_PROD = docker compose -f docker-compose.prod.yml
@@ -39,6 +39,8 @@ help:
 	@echo "  full-down         Stop full stack (core + tools + admin profile)"
 	@echo "  open-ui           Open Web UI URL in browser (or print URL)"
 	@echo "  open-tui          Launch interactive Admin TUI (break-glass console)"
+	@echo "  run-tui           Launch Admin TUI in full mode (rebuild + up)"
+	@echo "  run-tui-fast      Launch Admin TUI in fast mode (no rebuild)"
 	@echo "                    Requires SPECTRASTRIKE_TENANT_ID for task/sync submission"
 	@echo "  ui-up             Start dockerized web UI foundation only"
 	@echo "  ui-admin-shell    Run interactive Admin TUI shell container"
@@ -65,7 +67,8 @@ help:
 	@echo "  host-integration-smoke Run Sprint 16.7+ host toolchain integration smoke"
 	@echo "  host-integration-smoke-full Run host smoke with metasploit/sliver/mythic/vectorvue live checks"
 	@echo "  vectorvue-rabbitmq-sync Drain RabbitMQ telemetry queue into VectorVue APIs"
-	@echo "  local-federation-up Bootstrap local federation env and start VectorVue + SpectraStrike"
+	@echo "  local-federation-up Bootstrap local federation env and start VectorVue + SpectraStrike (with rebuild)"
+	@echo "  local-federation-up-fast Bootstrap local federation env and start both stacks without rebuilding images"
 	@echo "  full-regression   Run full QA + security + docker test path"
 	@echo "  prod-up           Start production compose stack"
 	@echo "  prod-down         Stop production compose stack"
@@ -162,7 +165,15 @@ full-down:
 
 open-ui: ui-open
 
-open-tui: legal-accept-init ui-admin-shell
+open-tui: run-tui-fast
+
+run-tui: legal-accept-init
+	$(COMPOSE_DEV) --profile admin up -d --build ui-admin
+	$(COMPOSE_DEV) --profile admin run --rm ui-admin
+
+run-tui-fast: legal-accept-init
+	$(COMPOSE_DEV) --profile admin up -d ui-admin
+	$(COMPOSE_DEV) --profile admin run --rm ui-admin
 
 ui-up:
 	$(COMPOSE_DEV) up -d --build ui-web
@@ -246,9 +257,27 @@ host-integration-smoke-full:
 	  --check-vectorvue
 
 vectorvue-rabbitmq-sync:
-	PYTHONPATH=src .venv/bin/python -m pkg.integration.vectorvue.sync_from_rabbitmq
+	@docker compose --env-file $(LOCAL_FED_ENV) -f docker-compose.dev.yml -f $(LOCAL_FED_OVERRIDE) exec -T rabbitmq sh -lc '\
+		BOOT_USER="$$(cat /run/secrets/rabbitmq_user)"; \
+		BOOT_PASS="$$(cat /run/secrets/rabbitmq_password)"; \
+		if rabbitmqctl list_users | awk "{print \$$1}" | grep -qx "$$BOOT_USER"; then \
+			rabbitmqctl change_password "$$BOOT_USER" "$$BOOT_PASS"; \
+		else \
+			rabbitmqctl add_user "$$BOOT_USER" "$$BOOT_PASS"; \
+		fi; \
+		rabbitmqctl set_permissions -p / "$$BOOT_USER" ".*" ".*" ".*" >/dev/null; \
+	'
+	docker compose --env-file $(LOCAL_FED_ENV) -f docker-compose.dev.yml -f $(LOCAL_FED_OVERRIDE) run --rm \
+		-v "$$(cd ../VectorVue/deploy/certs && pwd):/vectorvue-certs:ro" \
+		-e VECTORVUE_FEDERATION_URL=https://vectorvue.local \
+		-e RABBITMQ_USER="$$(cat docker/secrets/rabbitmq_user.txt)" \
+		-e RABBITMQ_PASSWORD="$$(cat docker/secrets/rabbitmq_password.txt)" \
+		-e VECTORVUE_VERIFY_TLS_CA_FILE=/vectorvue-certs/ca.crt \
+		-e VECTORVUE_FEDERATION_MTLS_CERT_FILE=/vectorvue-certs/client.crt \
+		-e VECTORVUE_FEDERATION_MTLS_KEY_FILE=/vectorvue-certs/client.key \
+		app python -m pkg.integration.vectorvue.sync_from_rabbitmq
 
-local-federation-up:
+local-federation-prepare:
 	@mkdir -p local_federation/certs
 	@if [ ! -f "$(LOCAL_FED_ENV)" ]; then \
 		printf '%s\n' \
@@ -256,7 +285,7 @@ local-federation-up:
 		"HOST_INTEGRATION_ACTOR=op-001" \
 		"SPECTRASTRIKE_TENANT_ID=10000000-0000-0000-0000-000000000001" \
 		"SPECTRASTRIKE_WRAPPER_SIGNING_KEY_PATH=/home/xoce/Workspace/VectorVue/deploy/certs/spectrastrike_ed25519.key" \
-		"VECTORVUE_FEDERATION_URL=https://127.0.0.1" \
+		"VECTORVUE_FEDERATION_URL=https://vectorvue.local" \
 		"VECTORVUE_USERNAME=acme_viewer" \
 		"VECTORVUE_PASSWORD=AcmeView3r!" \
 		"VECTORVUE_TENANT_ID=10000000-0000-0000-0000-000000000001" \
@@ -277,8 +306,18 @@ local-federation-up:
 		"      - ./local_federation/.env.spectrastrike.local" \
 		"    volumes:" \
 		"      - ./local_federation/certs:/opt/spectrastrike/local_federation/certs:ro" \
+		"    networks:" \
+		"      - core_net" \
+		"      - edge_net" \
+		"      - vectorvue_bridge" \
+		"networks:" \
+		"  vectorvue_bridge:" \
+		"    external: true" \
+		"    name: vectorvue_default" \
 		> "$(LOCAL_FED_OVERRIDE)"; \
 	fi
+
+local-federation-up: local-federation-prepare
 	@$(MAKE) -C ../VectorVue local-federation-up
 	docker compose --env-file $(LOCAL_FED_ENV) -f docker-compose.dev.yml -f $(LOCAL_FED_OVERRIDE) up -d --build
 	@echo ""
@@ -301,6 +340,16 @@ local-federation-up:
 	@echo "     - SpectraStrike/docs/FIRST_RUN_GUIDED_DEMO.md"
 	@echo "     - VectorVue/docs/FIRST_RUN_GUIDED_DEMO.md"
 
+local-federation-up-fast: local-federation-prepare
+	@$(MAKE) -C ../VectorVue local-federation-up-fast
+	docker compose --env-file $(LOCAL_FED_ENV) -f docker-compose.dev.yml -f $(LOCAL_FED_OVERRIDE) up -d
+	@echo ""
+	@echo "Local federation is up (fast mode, no rebuild)."
+	@echo "SpectraStrike UI URLs:"
+	@echo "  - https://127.0.0.1:18443"
+	@echo "VectorVue UI URLs:"
+	@echo "  - https://127.0.0.1"
+
 full-regression: qa security-gate
 
 backup-postgres:
@@ -322,19 +371,31 @@ reset-db:
 	'
 
 demo-seed:
-	@if [ "$${SKIP_VECTORVUE_SEED:-0}" != "1" ]; then \
-		echo "Seeding VectorVue tenant datasets (ACME + Globex)..."; \
-		$(MAKE) -C ../VectorVue seed-clients; \
-	fi
+	@mkdir -p ../VectorVue/local_federation/seed
+	@$(COMPOSE_DEV) up -d ui-web nginx
 	@echo "Seeding SpectraStrike runtime demo datasets..."
-	@.venv/bin/python scripts/seed_demo_runtime.py
+	@$(COMPOSE_DEV) run --rm \
+		-v "$$(cd ../VectorVue && pwd)/local_federation/seed:/seed-export" \
+		-e SPECTRASTRIKE_VECTORVUE_SEED_EXPORT=/seed-export/spectrastrike_seed_contract.json \
+		app python scripts/seed_demo_runtime.py --base-url https://nginx:8443/ui/api
+	@if [ "$${SKIP_VECTORVUE_SEED:-0}" != "1" ]; then \
+		echo "Seeding VectorVue tenant datasets (ACME + Globex) using SpectraStrike seed contract..."; \
+		$(MAKE) -C ../VectorVue seed-clients; \
+		echo "Syncing live SpectraStrike telemetry into VectorVue federation API..."; \
+		$(MAKE) vectorvue-rabbitmq-sync || echo "WARNING: vectorvue-rabbitmq-sync failed; seeded federation contract data remains available."; \
+	fi
 	@echo "Demo seed complete."
+	@echo "SpectraStrike Web UI:"
+	@echo "  URL: https://127.0.0.1:18443/ui/login"
+	@echo "  Username: $${UI_AUTH_BOOTSTRAP_USERNAME:-operator}"
+	@echo "  Password: $${UI_AUTH_BOOTSTRAP_PASSWORD:-Operator!ChangeMe123}"
 
 demo-reset:
 	@echo "Resetting SpectraStrike database..."
 	@$(MAKE) reset-db
+	@$(COMPOSE_DEV) up -d ui-web nginx
 	@echo "Resetting SpectraStrike runtime demo stores..."
-	@.venv/bin/python scripts/reset_demo_runtime.py || true
+	@$(COMPOSE_DEV) run --rm app python scripts/reset_demo_runtime.py --base-url https://nginx:8443/ui/api
 	@if [ "$${SKIP_VECTORVUE_RESET:-0}" != "1" ]; then \
 		echo "Resetting VectorVue PostgreSQL schema..."; \
 		$(MAKE) -C ../VectorVue pg-reset; \

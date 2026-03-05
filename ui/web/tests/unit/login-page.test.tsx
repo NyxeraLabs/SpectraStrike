@@ -16,6 +16,7 @@ Sell derived competing products
 
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import React from "react";
 import { vi } from "vitest";
 
 const pushMock = vi.fn();

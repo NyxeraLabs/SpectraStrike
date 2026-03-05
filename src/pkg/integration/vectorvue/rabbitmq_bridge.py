@@ -188,6 +188,17 @@ class PikaVectorVueBridge:
         try:
             channel = connection.channel()
             queue_name = self._routing.queue
+            channel.exchange_declare(
+                exchange=self._routing.exchange,
+                exchange_type="topic",
+                durable=True,
+            )
+            channel.queue_declare(queue=queue_name, durable=True)
+            channel.queue_bind(
+                exchange=self._routing.exchange,
+                queue=queue_name,
+                routing_key=self._routing.routing_key,
+            )
             for _ in range(limit):
                 method_frame, _, body = channel.basic_get(queue=queue_name, auto_ack=False)
                 if method_frame is None:

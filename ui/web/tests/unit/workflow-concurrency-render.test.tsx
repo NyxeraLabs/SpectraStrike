@@ -52,6 +52,6 @@ describe("Workflow concurrent execution rendering stress test", () => {
     expect(screen.getByText(/Node-Link Execution Canvas/i)).toBeInTheDocument();
     expect(screen.getByText(/Execution Queue \+ Live Stream/i)).toBeInTheDocument();
     expect(screen.getByText(/Telemetry \+ Federation Diagnostics/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Execute Queue/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Run Execution/i })).toBeInTheDocument();
   });
 });

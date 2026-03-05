@@ -14,11 +14,34 @@ Offer as a commercial service
 Sell derived competing products
 */
 
-import { addEdge, applyEdgeChanges, applyNodeChanges, type Connection, type Edge, type EdgeChange, type Node, type NodeChange } from "reactflow";
+import {
+  addEdge,
+  applyEdgeChanges,
+  applyNodeChanges,
+  type Connection,
+  type Edge,
+  type EdgeChange,
+  type Node,
+  type NodeChange,
+} from "reactflow";
 import { create } from "zustand";
 
-import { nextDemoStep, SPECTRA_DEMO_STEPS, type SpectraDemoStep } from "./demo-mode";
-import { dequeueNode, defaultWorkflowGraph, enqueueNode, reorderQueue, type RuntimeExecutionState, type WorkflowEdge, type WorkflowNode } from "./workflow-graph";
+import {
+  canAdvanceSpectraStep,
+  nextDemoStep,
+  SPECTRA_DEMO_STEPS,
+  type SpectraDemoAction,
+  type SpectraDemoStep,
+} from "./demo-mode";
+import {
+  defaultWorkflowGraph,
+  dequeueNode,
+  enqueueNode,
+  reorderQueue,
+  type RuntimeExecutionState,
+  type WorkflowEdge,
+  type WorkflowNode,
+} from "./workflow-graph";
 import type { WrapperDescriptor } from "./wrapper-registry";
 
 export type TelemetryEvent = {
@@ -44,6 +67,10 @@ export type FlowNodeData = {
   technique: string;
   nodeType: WorkflowNode["nodeType"];
   wrapperKey?: string;
+  config?: {
+    target?: string;
+    profile?: string;
+  };
 };
 
 export type FlowEdgeData = {
@@ -64,23 +91,32 @@ type WorkflowStoreState = {
   edgeBranch: WorkflowEdge["branchCondition"];
   spectraDemoActive: boolean;
   spectraDemoStep: SpectraDemoStep;
+  completedDemoActions: SpectraDemoAction[];
   setFromBackend: (payload: { nodes: WorkflowNode[]; edges: WorkflowEdge[]; queue: string[] }) => void;
   setWrappers: (wrappers: WrapperDescriptor[]) => void;
   setTelemetry: (items: TelemetryEvent[]) => void;
-  setExecutionStatus: (status: Record<string, RuntimeExecutionState> | ((prev: Record<string, RuntimeExecutionState>) => Record<string, RuntimeExecutionState>)) => void;
+  setExecutionStatus: (
+    status:
+      | Record<string, RuntimeExecutionState>
+      | ((prev: Record<string, RuntimeExecutionState>) => Record<string, RuntimeExecutionState>)
+  ) => void;
   setStatusMessage: (message: string) => void;
   setEdgeBranch: (branch: WorkflowEdge["branchCondition"]) => void;
   seedDemoPlaybook: () => void;
   nextDemoStep: () => void;
+  registerDemoAction: (action: SpectraDemoAction) => void;
   dismissDemo: () => void;
   enableDemo: () => void;
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
   addWrapperNode: (wrapper: WrapperDescriptor) => void;
+  addWrapperNodeAt: (wrapper: WrapperDescriptor, x: number, y: number) => void;
+  updateNodeConfig: (nodeId: string, config: NonNullable<FlowNodeData["config"]>) => void;
   addPrivilegeLiftNode: () => void;
   duplicateNode: (nodeId: string) => void;
   removeNode: (nodeId: string) => void;
+  removeNodes: (nodeIds: string[]) => void;
   queueNode: (nodeId: string) => void;
   removeQueuedNode: (nodeId: string) => void;
   moveQueueUp: (nodeId: string) => void;
@@ -141,6 +177,29 @@ function flowToGraphEdges(edges: FlowEdge[]): WorkflowEdge[] {
   }));
 }
 
+function addWrapper(state: WorkflowStoreState, wrapper: WrapperDescriptor, position?: { x: number; y: number }) {
+  return {
+    nodes: [
+      ...state.nodes,
+      {
+        id: `n-${Date.now()}-${wrapper.key}`,
+        position: position ?? defaultPosition(state.nodes.length),
+        data: {
+          label: wrapper.label,
+          technique: "T0000",
+          nodeType: wrapper.nodeType,
+          wrapperKey: wrapper.key,
+          config: {
+            profile: "default",
+            target: "127.0.0.1",
+          },
+        },
+        type: "default",
+      },
+    ],
+  };
+}
+
 const defaultGraph = defaultWorkflowGraph();
 
 export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
@@ -153,7 +212,8 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
   statusMessage: "Loading playbook...",
   edgeBranch: "always",
   spectraDemoActive: false,
-  spectraDemoStep: "intro",
+  spectraDemoStep: "welcome",
+  completedDemoActions: [],
 
   setFromBackend: (payload) =>
     set({
@@ -170,24 +230,39 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
   setStatusMessage: (statusMessage) => set({ statusMessage }),
   setEdgeBranch: (edgeBranch) => set({ edgeBranch }),
 
-  enableDemo: () => set({ spectraDemoActive: true, spectraDemoStep: "intro" }),
+  enableDemo: () =>
+    set({
+      spectraDemoActive: true,
+      spectraDemoStep: "welcome",
+      completedDemoActions: [],
+    }),
   seedDemoPlaybook: () =>
     set({
-      nodes: graphToFlowNodes([
-        { id: "demo-initial", label: "Demo Initial Access", technique: "T1566", nodeType: "initial_access", wrapperKey: "nmap" },
-        { id: "demo-priv", label: "Demo Priv Esc", technique: "T1068", nodeType: "privilege_escalation", wrapperKey: "metasploit" },
-        { id: "demo-lateral", label: "Demo Lateral", technique: "T1021.002", nodeType: "lateral_movement", wrapperKey: "impacket_psexec" },
-        { id: "demo-exfil", label: "Demo Exfil", technique: "T1041", nodeType: "exfiltration", wrapperKey: "scp" },
-      ]),
-      edges: graphToFlowEdges([
-        { id: "demo-e1", sourceId: "demo-initial", targetId: "demo-priv", branchCondition: "on_success" },
-        { id: "demo-e2", sourceId: "demo-priv", targetId: "demo-lateral", branchCondition: "on_success" },
-        { id: "demo-e3", sourceId: "demo-lateral", targetId: "demo-exfil", branchCondition: "always" },
-      ]),
-      queue: ["demo-initial", "demo-priv", "demo-lateral", "demo-exfil"],
+      nodes: graphToFlowNodes([]),
+      edges: graphToFlowEdges([]),
+      queue: [],
     }),
-  nextDemoStep: () => set((state) => ({ spectraDemoStep: nextDemoStep(SPECTRA_DEMO_STEPS, state.spectraDemoStep) })),
-  dismissDemo: () => set({ spectraDemoActive: false }),
+  nextDemoStep: () =>
+    set((state) => ({
+      spectraDemoStep: nextDemoStep(SPECTRA_DEMO_STEPS, state.spectraDemoStep),
+    })),
+  registerDemoAction: (action) =>
+    set((state) => {
+      if (!canAdvanceSpectraStep(state.spectraDemoStep, action)) {
+        return {
+          completedDemoActions: [...state.completedDemoActions, action],
+        };
+      }
+      return {
+        completedDemoActions: [...state.completedDemoActions, action],
+        spectraDemoStep: nextDemoStep(SPECTRA_DEMO_STEPS, state.spectraDemoStep),
+      };
+    }),
+  dismissDemo: () =>
+    set({
+      spectraDemoActive: false,
+      spectraDemoStep: "complete",
+    }),
 
   onNodesChange: (changes) =>
     set((state) => ({
@@ -211,22 +286,21 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
       };
     }),
 
-  addWrapperNode: (wrapper) =>
+  addWrapperNode: (wrapper) => set((state) => addWrapper(state, wrapper)),
+  addWrapperNodeAt: (wrapper, x, y) => set((state) => addWrapper(state, wrapper, { x, y })),
+  updateNodeConfig: (nodeId, config) =>
     set((state) => ({
-      nodes: [
-        ...state.nodes,
-        {
-          id: `n-${Date.now()}-${wrapper.key}`,
-          position: defaultPosition(state.nodes.length),
-          data: {
-            label: wrapper.label,
-            technique: "T0000",
-            nodeType: wrapper.nodeType,
-            wrapperKey: wrapper.key,
-          },
-          type: "default",
-        },
-      ],
+      nodes: state.nodes.map((node) =>
+        node.id === nodeId
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                config,
+              },
+            }
+          : node,
+      ),
     })),
   addPrivilegeLiftNode: () =>
     set((state) => ({
@@ -240,6 +314,10 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
             technique: "T1068",
             nodeType: "privilege_escalation",
             wrapperKey: "metasploit",
+            config: {
+              profile: "priv-lift",
+              target: "127.0.0.1",
+            },
           },
           type: "default",
         },
@@ -262,49 +340,73 @@ export const useWorkflowStore = create<WorkflowStoreState>((set, get) => ({
     }),
   removeNode: (nodeId) =>
     set((state) => ({
-      nodes: state.nodes.filter((node) => node.id !== nodeId),
+      nodes: state.nodes.filter((item) => item.id !== nodeId),
       edges: state.edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId),
-      queue: state.queue.filter((id) => id !== nodeId),
+      queue: dequeueNode(state.queue, nodeId),
     })),
-  queueNode: (nodeId) => set((state) => ({ queue: enqueueNode(state.queue, nodeId) })),
-  removeQueuedNode: (nodeId) => set((state) => ({ queue: dequeueNode(state.queue, nodeId) })),
+  removeNodes: (nodeIds) =>
+    set((state) => {
+      const toRemove = new Set(nodeIds);
+      return {
+        nodes: state.nodes.filter((item) => !toRemove.has(item.id)),
+        edges: state.edges.filter((edge) => !toRemove.has(edge.source) && !toRemove.has(edge.target)),
+        queue: state.queue.filter((nodeId) => !toRemove.has(nodeId)),
+      };
+    }),
+  queueNode: (nodeId) =>
+    set((state) => ({
+      queue: enqueueNode(state.queue, nodeId),
+    })),
+  removeQueuedNode: (nodeId) =>
+    set((state) => ({
+      queue: dequeueNode(state.queue, nodeId),
+    })),
   moveQueueUp: (nodeId) =>
     set((state) => {
-      const idx = state.queue.indexOf(nodeId);
-      if (idx <= 0) return {};
-      return { queue: reorderQueue(state.queue, nodeId, state.queue[idx - 1]) };
+      const index = state.queue.indexOf(nodeId);
+      if (index <= 0) return {};
+      return {
+        queue: reorderQueue(state.queue, nodeId, state.queue[index - 1]),
+      };
     }),
   moveQueueDown: (nodeId) =>
     set((state) => {
-      const idx = state.queue.indexOf(nodeId);
-      if (idx < 0 || idx >= state.queue.length - 1) return {};
-      return { queue: reorderQueue(state.queue, nodeId, state.queue[idx + 1]) };
+      const index = state.queue.indexOf(nodeId);
+      if (index < 0 || index + 1 >= state.queue.length) return {};
+      return {
+        queue: reorderQueue(state.queue, nodeId, state.queue[index + 1]),
+      };
     }),
   addManualEdge: (sourceId, targetId) =>
     set((state) => {
-      if (!sourceId || !targetId || sourceId === targetId) return {};
+      if (!sourceId || !targetId || sourceId === targetId) {
+        return {};
+      }
+      const exists = state.edges.some((edge) => edge.source === sourceId && edge.target === targetId);
+      if (exists) {
+        return {};
+      }
       const edge: FlowEdge = {
-        id: `e-${Date.now()}`,
+        id: `manual-${Date.now()}-${sourceId}-${targetId}`,
         source: sourceId,
         target: targetId,
-        label: state.edgeBranch,
         data: { branchCondition: state.edgeBranch },
+        label: state.edgeBranch,
       };
       return {
-        edges: addEdge(edge, state.edges),
+        edges: [...state.edges, edge],
       };
     }),
   removeEdge: (edgeId) =>
     set((state) => ({
       edges: state.edges.filter((edge) => edge.id !== edgeId),
     })),
-
   getPersistencePayload: () => {
     const state = get();
     return {
       nodes: flowToGraphNodes(state.nodes),
       edges: flowToGraphEdges(state.edges),
-      queue: state.queue,
+      queue: [...state.queue],
     };
   },
 }));

@@ -19,9 +19,7 @@ Sell derived competing products
 import React from "react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 
-import { buildVectorVueDemoUrl, isDemoQuery, NEXUS_DEMO_STEPS, nextDemoStep, type NexusDemoStep } from "../lib/demo-mode";
 import {
   buildNexusContext,
   buildExecutionActivities,
@@ -58,12 +56,9 @@ function downloadReport(content: string, filename: string): void {
 }
 
 export function NexusWorkbench({ tenantName, tenantId, role, vectorVueBaseUrl }: NexusWorkbenchProps) {
-  const params = useSearchParams();
-  const demoQueryActive = isDemoQuery(params.toString());
   const [campaignId, setCampaignId] = useState("cmp-001");
   const [findingId, setFindingId] = useState("fnd-184");
   const [query, setQuery] = useState("");
-  const [nexusDemoStep, setNexusDemoStep] = useState<NexusDemoStep>("intro");
   const [activities, setActivities] = useState<NexusActivity[]>([]);
   const [federationDiagnostics, setFederationDiagnostics] = useState<FederationDiagnostic[]>([]);
   const [liveStatus, setLiveStatus] = useState("Loading execution and telemetry surfaces...");
@@ -111,38 +106,12 @@ export function NexusWorkbench({ tenantName, tenantId, role, vectorVueBaseUrl }:
 
   const unifiedFeed = useMemo(() => mergeUnifiedActivities(activities), [activities]);
   const filteredFeed = useMemo(() => searchUnifiedActivities(unifiedFeed, query), [query, unifiedFeed]);
-  const vectorVueLink = useMemo(() => {
-    if (demoQueryActive) return buildVectorVueDemoUrl();
-    return buildVectorVueDeepLink(vectorVueBaseUrl, context);
-  }, [context, demoQueryActive, vectorVueBaseUrl]);
+  const vectorVueLink = useMemo(() => buildVectorVueDeepLink(vectorVueBaseUrl, context), [context, vectorVueBaseUrl]);
 
   const drilldownHref = `/dashboard/workflow?campaign_id=${encodeURIComponent(campaignId)}&finding_id=${encodeURIComponent(findingId)}`;
 
   return (
     <section className="grid gap-4">
-      {demoQueryActive ? (
-        <article className="spectra-panel p-5">
-          <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">Nexus Assisted Demo</h2>
-          <p className="mt-2 text-sm text-slate-300">
-            Demo step: <span className="spectra-mono">{nexusDemoStep}</span>
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="spectra-button-primary px-3 py-2 text-sm font-semibold"
-              onClick={() => setNexusDemoStep((current) => nextDemoStep(NEXUS_DEMO_STEPS, current))}
-            >
-              Next Demo Step
-            </button>
-            {(nexusDemoStep === "open_vectorvue" || nexusDemoStep === "complete") ? (
-              <a href={buildVectorVueDemoUrl()} className="spectra-button-secondary px-3 py-2 text-sm font-semibold">
-                Validate in VectorVue
-              </a>
-            ) : null}
-          </div>
-        </article>
-      ) : null}
-
       <article className="spectra-panel p-5">
         <h2 className="text-sm uppercase tracking-[0.2em] text-telemetry">Unified Navigation Shell</h2>
         <p className="mt-2 text-sm text-slate-300">

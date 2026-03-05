@@ -27,6 +27,7 @@ vi.mock("next/navigation", () => ({
     push: pushMock,
     refresh: refreshMock,
   }),
+  usePathname: () => "/dashboard/workflow",
 }));
 
 import { TopNav } from "../../app/components/top-nav";

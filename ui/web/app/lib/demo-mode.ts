@@ -17,16 +17,22 @@ Sell derived competing products
 import { getNexusUrl, getVectorVueUrl } from "./cross-app-links";
 
 export const SPECTRA_ONBOARDED_KEY = "spectrastrike_onboarded";
+export const VECTORVUE_ONBOARDED_KEY = "vectorvue_onboarded";
+export const NYXERA_DEMO_SESSION_KEY = "nyxera_demo_session";
 
 export type SpectraDemoStep =
-  | "intro"
-  | "canvas_intro"
-  | "auto_build_playbook"
-  | "link_nodes"
-  | "queue_nodes"
-  | "execute_demo"
+  | "welcome"
+  | "palette_intro"
+  | "drag_first_node"
+  | "connect_nodes"
+  | "configure_wrapper"
+  | "add_to_queue"
+  | "reorder_queue"
+  | "run_execution"
+  | "inspect_logs"
   | "inspect_telemetry"
-  | "open_nexus"
+  | "inspect_signature"
+  | "federation_success"
   | "complete";
 
 export type NexusDemoStep =
@@ -40,24 +46,42 @@ export type NexusDemoStep =
   | "complete";
 
 export type VectorVueDemoStep =
-  | "intro"
-  | "envelope_intake"
-  | "signature_check"
-  | "attestation_verification"
-  | "measurement_hash"
-  | "policy_validation"
-  | "return_to_spectrastrike"
+  | "welcome"
+  | "execution_list_intro"
+  | "open_execution"
+  | "signature_validation"
+  | "attestation_review"
+  | "policy_status"
+  | "export_report"
   | "complete";
 
+export type SpectraDemoAction =
+  | "welcome_ack"
+  | "palette_seen"
+  | "node_dragged"
+  | "nodes_connected"
+  | "wrapper_configured"
+  | "queued"
+  | "queue_reordered"
+  | "execution_started"
+  | "logs_opened"
+  | "telemetry_opened"
+  | "signature_opened"
+  | "federation_checked";
+
 export const SPECTRA_DEMO_STEPS: SpectraDemoStep[] = [
-  "intro",
-  "canvas_intro",
-  "auto_build_playbook",
-  "link_nodes",
-  "queue_nodes",
-  "execute_demo",
+  "welcome",
+  "palette_intro",
+  "drag_first_node",
+  "connect_nodes",
+  "configure_wrapper",
+  "add_to_queue",
+  "reorder_queue",
+  "run_execution",
+  "inspect_logs",
   "inspect_telemetry",
-  "open_nexus",
+  "inspect_signature",
+  "federation_success",
   "complete",
 ];
 
@@ -73,13 +97,13 @@ export const NEXUS_DEMO_STEPS: NexusDemoStep[] = [
 ];
 
 export const VECTORVUE_DEMO_STEPS: VectorVueDemoStep[] = [
-  "intro",
-  "envelope_intake",
-  "signature_check",
-  "attestation_verification",
-  "measurement_hash",
-  "policy_validation",
-  "return_to_spectrastrike",
+  "welcome",
+  "execution_list_intro",
+  "open_execution",
+  "signature_validation",
+  "attestation_review",
+  "policy_status",
+  "export_report",
   "complete",
 ];
 
@@ -107,4 +131,23 @@ export function nextDemoStep<T extends string>(steps: readonly T[], current: T):
   const idx = steps.indexOf(current);
   if (idx < 0 || idx + 1 >= steps.length) return steps[steps.length - 1];
   return steps[idx + 1];
+}
+
+export function canAdvanceSpectraStep(step: SpectraDemoStep, action: SpectraDemoAction): boolean {
+  const guard: Record<SpectraDemoStep, SpectraDemoAction | null> = {
+    welcome: "welcome_ack",
+    palette_intro: "palette_seen",
+    drag_first_node: "node_dragged",
+    connect_nodes: "nodes_connected",
+    configure_wrapper: "wrapper_configured",
+    add_to_queue: "queued",
+    reorder_queue: "queue_reordered",
+    run_execution: "execution_started",
+    inspect_logs: "logs_opened",
+    inspect_telemetry: "telemetry_opened",
+    inspect_signature: "signature_opened",
+    federation_success: "federation_checked",
+    complete: null,
+  };
+  return guard[step] === action;
 }

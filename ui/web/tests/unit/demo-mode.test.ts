@@ -46,7 +46,7 @@ describe("demo mode contracts", () => {
   });
 
   it("advances demo state machines deterministically", () => {
-    expect(nextDemoStep(SPECTRA_DEMO_STEPS, "intro")).toBe("canvas_intro");
+    expect(nextDemoStep(SPECTRA_DEMO_STEPS, "welcome")).toBe("palette_intro");
     expect(nextDemoStep(NEXUS_DEMO_STEPS, "open_vectorvue")).toBe("complete");
     expect(nextDemoStep(VECTORVUE_DEMO_STEPS, "complete")).toBe("complete");
   });
