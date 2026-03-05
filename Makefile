@@ -257,7 +257,12 @@ host-integration-smoke-full:
 	  --check-vectorvue
 
 vectorvue-rabbitmq-sync:
-	PYTHONPATH=src .venv/bin/python -m pkg.integration.vectorvue.sync_from_rabbitmq
+	$(COMPOSE_DEV) run --rm \
+		-v "$$(cd ../VectorVue/deploy/certs && pwd):/vectorvue-certs:ro" \
+		-e VECTORVUE_VERIFY_TLS_CA_FILE=/vectorvue-certs/ca.crt \
+		-e VECTORVUE_FEDERATION_MTLS_CERT_FILE=/vectorvue-certs/client.crt \
+		-e VECTORVUE_FEDERATION_MTLS_KEY_FILE=/vectorvue-certs/client.key \
+		app python -m pkg.integration.vectorvue.sync_from_rabbitmq
 
 local-federation-prepare:
 	@mkdir -p local_federation/certs
@@ -355,6 +360,8 @@ demo-seed:
 	@if [ "$${SKIP_VECTORVUE_SEED:-0}" != "1" ]; then \
 		echo "Seeding VectorVue tenant datasets (ACME + Globex) using SpectraStrike seed contract..."; \
 		$(MAKE) -C ../VectorVue seed-clients; \
+		echo "Syncing live SpectraStrike telemetry into VectorVue federation API..."; \
+		$(MAKE) vectorvue-rabbitmq-sync || echo "WARNING: vectorvue-rabbitmq-sync failed; seeded federation contract data remains available."; \
 	fi
 	@echo "Demo seed complete."
 	@echo "SpectraStrike Web UI:"

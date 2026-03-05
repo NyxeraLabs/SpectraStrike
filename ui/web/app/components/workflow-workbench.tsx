@@ -96,8 +96,8 @@ const DEFAULT_TENANTS: TenantOption[] = [
     id: "10000000-0000-0000-0000-000000000001",
     label: "ACME Industries",
     campaigns: [
-      { id: "cmp-acme-initial-ops", label: "ACME Initial Ops" },
-      { id: "cmp-acme-lateral-sim", label: "ACME Lateral Simulation" },
+      { id: "OP_ACME_REDWOLF_2026", label: "OP_ACME_REDWOLF_2026" },
+      { id: "OP_ACME_NIGHTGLASS_2026", label: "OP_ACME_NIGHTGLASS_2026" },
     ],
   },
 ];

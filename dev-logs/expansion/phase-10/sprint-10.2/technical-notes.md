@@ -9,3 +9,5 @@
   - `SPECTRASTRIKE_VECTORVUE_SEED_EXPORT` env var override.
   - Default: sibling VectorVue repo `local_federation/seed/spectrastrike_seed_contract.json`.
 - Deterministic IDs generated via UUIDv5 for reproducibility across repeated seeds.
+- Campaign parity note:
+  - Seed payload and workflow defaults now emit/use `OP_*_2026` campaign IDs to match VectorVue seeded campaign catalog.

@@ -164,6 +164,12 @@ def _seed_tenant(
     target_prefix: str,
 ) -> tuple[int, list[dict[str, object]], list[dict[str, object]]]:
     sample = wrappers[:12]
+    if tenant_id.startswith("10000000-"):
+        campaign_cycle = ["OP_ACME_REDWOLF_2026", "OP_ACME_NIGHTGLASS_2026"]
+    elif tenant_id.startswith("20000000-"):
+        campaign_cycle = ["OP_GLOBEX_REDWOLF_2026", "OP_GLOBEX_NIGHTGLASS_2026"]
+    else:
+        campaign_cycle = [f"seeded-campaign-{tenant_id[:8]}"]
     nodes = []
     edges = []
     queue: list[str] = []
@@ -214,12 +220,13 @@ def _seed_tenant(
     for idx, wrapper in enumerate(sample):
         random_suffix = "".join(random.choice(string.ascii_lowercase) for _ in range(4))
         target = f"{target_prefix}.{idx+10}.{random_suffix}.corp.local"
+        campaign_id = campaign_cycle[idx % len(campaign_cycle)]
         payload = {
             "tenant_id": tenant_id,
             "tool": wrapper.key,
             "target": target,
             "parameters": {
-                "campaign": f"seeded-campaign-{tenant_id[:8]}",
+                "campaign": campaign_id,
                 "demoMode": True,
                 "technique": f"T{1000 + idx}",
             },
@@ -285,7 +292,7 @@ def _seed_tenant(
                     "task_id": task_id,
                     "tool": wrapper.key,
                     "technique": f"T{1000 + idx}",
-                    "campaign_id": f"seeded-campaign-{tenant_id[:8]}",
+                    "campaign_id": campaign_id,
                     "envelope_id": envelope_id,
                     "signature_state": "verified",
                     "attestation_measurement_hash": attestation_hash,
@@ -298,32 +305,32 @@ def _seed_tenant(
                 },
             }
         )
-        if idx % 4 == 0:
-            seeded_findings.append(
-                {
-                    "request_id": request_id,
-                    "finding_uid": f"fnd-{tenant_id[:8]}-{idx+1:03d}",
-                    "title": f"Telemetry finding: {wrapper.label}",
-                    "description": f"Derived from seeded task {task_id} ({wrapper.key})",
-                    "severity": severity,
-                    "status": "open" if severity in {"critical", "high"} else "triaged",
-                    "first_seen": occurred_at,
-                    "last_seen": occurred_at,
-                    "asset_ref": target,
-                    "recommendation": "Review execution telemetry and validate control coverage.",
-                    "metadata_json": {
-                        "tenant_id": tenant_id,
-                        "event_uid": event_uid,
-                        "task_id": task_id,
-                        "envelope_id": envelope_id,
-                    },
-                    "raw_payload": {
-                        "tool": wrapper.key,
-                        "target": target,
-                        "status": status,
-                    },
-                }
-            )
+        seeded_findings.append(
+            {
+                "request_id": request_id,
+                "finding_uid": f"fnd-{tenant_id[:8]}-{idx+1:03d}",
+                "title": f"Telemetry finding: {wrapper.label}",
+                "description": f"Derived from seeded task {task_id} ({wrapper.key})",
+                "severity": severity,
+                "status": "open" if severity in {"critical", "high"} else "triaged",
+                "first_seen": occurred_at,
+                "last_seen": occurred_at,
+                "asset_ref": target,
+                "recommendation": "Review execution telemetry and validate control coverage.",
+                "metadata_json": {
+                    "tenant_id": tenant_id,
+                    "event_uid": event_uid,
+                    "task_id": task_id,
+                    "envelope_id": envelope_id,
+                    "campaign_id": campaign_id,
+                },
+                "raw_payload": {
+                    "tool": wrapper.key,
+                    "target": target,
+                    "status": status,
+                },
+            }
+        )
 
     return failures, seeded_events, seeded_findings
 
