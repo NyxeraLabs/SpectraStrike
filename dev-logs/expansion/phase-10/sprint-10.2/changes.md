@@ -47,3 +47,6 @@ Demo seed produces cross-platform federation artifacts with tenant-scoped event/
   - Background/map surfaces are intentionally darker in dark mode and brighter in light mode.
 - CI install reliability hardening:
   - relaxed invalid hard pins in `requirements.txt` for `certifi` and `cryptography` to compatible ranges.
+
+## 2026-03-05 License Hotfix Addendum
+- Fixed all currently failing license-header checks in files reported by `scripts/check_license_headers.py`.

@@ -20,3 +20,5 @@
 - [x] `npm --prefix ui/web run test:unit`
 - [x] Workflow canvas dark/light map + node switch validated in build/test output.
 - [x] ASM canvas dark/light map + node switch validated in build/test output.
+- [x] `scripts/check_license_headers.py` passes.
+- [x] `npm --prefix ui/web run test:unit -- tests/unit/bootstrap-store.test.ts`.
