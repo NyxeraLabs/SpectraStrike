@@ -55,6 +55,33 @@ describe("WorkflowWorkbench UI state consistency", () => {
             ),
           );
         }
+        if (url.includes("/ui/api/execution/context")) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                tenants: [
+                  {
+                    id: "10000000-0000-0000-0000-000000000001",
+                    label: "ACME Industries",
+                    campaigns: [
+                      { id: "cmp-acme-initial-ops", label: "ACME Initial Ops" },
+                      { id: "cmp-acme-lateral-sim", label: "ACME Lateral Simulation" },
+                    ],
+                  },
+                  {
+                    id: "20000000-0000-0000-0000-000000000002",
+                    label: "Globex Corporation",
+                    campaigns: [
+                      { id: "cmp-globex-cloud-audit", label: "Globex Cloud Audit" },
+                    ],
+                  },
+                ],
+                scope: "all",
+              }),
+              { status: 200 },
+            ),
+          );
+        }
         if (url.includes("/ui/api/execution/playbook")) {
           return Promise.resolve(new Response(JSON.stringify({ nodes: [], edges: [], queue: [] }), { status: 200 }));
         }
@@ -99,12 +126,15 @@ describe("WorkflowWorkbench UI state consistency", () => {
     });
   });
 
-  it("renders campaign selector with seeded tenant options", async () => {
+  it("renders tenant and campaign selectors with scoped options", async () => {
     render(<WorkflowWorkbench />);
-    const selector = await screen.findByLabelText(/Active Campaign/i);
-    expect(selector).toHaveValue("10000000-0000-0000-0000-000000000001");
-    expect(screen.getByRole("option", { name: /ACME Campaign/i })).toBeInTheDocument();
-    expect(screen.getByRole("option", { name: /Globex Campaign/i })).toBeInTheDocument();
+    const tenantSelector = await screen.findByLabelText(/^Tenant$/i);
+    const campaignSelector = await screen.findByLabelText(/^Campaign$/i);
+    expect(tenantSelector).toHaveValue("10000000-0000-0000-0000-000000000001");
+    expect(campaignSelector).toHaveValue("cmp-acme-initial-ops");
+    expect(screen.getByRole("option", { name: /ACME Industries/i })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Globex Corporation/i })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /ACME Initial Ops/i })).toBeInTheDocument();
   });
 
   it("requests fullscreen API and applies true fullscreen mode", async () => {

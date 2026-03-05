@@ -12,6 +12,8 @@ import random
 import string
 import time
 from dataclasses import dataclass
+from pathlib import Path
+from uuid import NAMESPACE_URL, uuid5
 
 import requests
 from urllib3.exceptions import InsecureRequestWarning
@@ -24,6 +26,16 @@ class Wrapper:
     key: str
     label: str
     node_type: str
+
+
+def _default_export_path() -> Path:
+    explicit = os.getenv("SPECTRASTRIKE_VECTORVUE_SEED_EXPORT", "").strip()
+    if explicit:
+        return Path(explicit).expanduser()
+    cwd = Path.cwd()
+    if (cwd / "scripts").exists():
+        return cwd / "local_federation" / "seed" / "spectrastrike_seed_contract.json"
+    return Path("/tmp") / "spectrastrike_seed_contract.json"
 
 
 def _accept_legal(session: requests.Session, api_base: str) -> None:
@@ -150,7 +162,7 @@ def _seed_tenant(
     tenant_id: str,
     wrappers: list[Wrapper],
     target_prefix: str,
-) -> int:
+) -> tuple[int, list[dict[str, object]], list[dict[str, object]]]:
     sample = wrappers[:12]
     nodes = []
     edges = []
@@ -197,6 +209,8 @@ def _seed_tenant(
     pb.raise_for_status()
 
     failures = 0
+    seeded_events: list[dict[str, object]] = []
+    seeded_findings: list[dict[str, object]] = []
     for idx, wrapper in enumerate(sample):
         random_suffix = "".join(random.choice(string.ascii_lowercase) for _ in range(4))
         target = f"{target_prefix}.{idx+10}.{random_suffix}.corp.local"
@@ -212,6 +226,7 @@ def _seed_tenant(
         }
         submitted = False
         last_error = "unknown"
+        task_body: dict[str, object] = {}
         for attempt in range(1, 13):
             try:
                 task = session.post(
@@ -230,6 +245,8 @@ def _seed_tenant(
                     time.sleep(min(1.6 * attempt, 8.0))
                     continue
                 task.raise_for_status()
+                parsed = task.json()
+                task_body = parsed if isinstance(parsed, dict) else {}
                 submitted = True
                 break
             except Exception as exc:  # noqa: BLE001
@@ -241,8 +258,121 @@ def _seed_tenant(
                 f"WARNING: task seed failed tenant={tenant_id} tool={wrapper.key} "
                 f"target={target} error={last_error}"
             )
+            continue
 
-    return failures
+        task_id = str(task_body.get("task_id", "")).strip() or f"seed-task-{tenant_id[:8]}-{idx+1}"
+        status = str(task_body.get("status", "queued")).strip().lower() or "queued"
+        severity = "critical" if idx % 9 == 0 else "high" if idx % 3 == 0 else "medium"
+        envelope_id = f"env-{task_id}"
+        attestation_hash = uuid5(NAMESPACE_URL, f"{tenant_id}:{task_id}:attestation").hex
+        policy_hash = uuid5(NAMESPACE_URL, f"{tenant_id}:{task_id}:policy").hex
+        occurred_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - ((len(sample) - idx) * 11)))
+        event_uid = f"evt-{tenant_id[:8]}-{idx+1:03d}"
+        request_id = str(uuid5(NAMESPACE_URL, f"spectrastrike-seed:{tenant_id}:{idx+1}"))
+
+        seeded_events.append(
+            {
+                "request_id": request_id,
+                "event_uid": event_uid,
+                "source_system": "spectrastrike",
+                "event_type": f"task.{status}",
+                "occurred_at": occurred_at,
+                "severity": severity,
+                "asset_ref": target,
+                "message": f"{wrapper.label} dispatched to {target}",
+                "metadata_json": {
+                    "tenant_id": tenant_id,
+                    "task_id": task_id,
+                    "tool": wrapper.key,
+                    "technique": f"T{1000 + idx}",
+                    "campaign_id": f"seeded-campaign-{tenant_id[:8]}",
+                    "envelope_id": envelope_id,
+                    "signature_state": "verified",
+                    "attestation_measurement_hash": attestation_hash,
+                    "policy_decision_hash": policy_hash,
+                    "status": status,
+                },
+                "raw_payload": {
+                    "task_submission": payload,
+                    "task_response": task_body,
+                },
+            }
+        )
+        if idx % 4 == 0:
+            seeded_findings.append(
+                {
+                    "request_id": request_id,
+                    "finding_uid": f"fnd-{tenant_id[:8]}-{idx+1:03d}",
+                    "title": f"Telemetry finding: {wrapper.label}",
+                    "description": f"Derived from seeded task {task_id} ({wrapper.key})",
+                    "severity": severity,
+                    "status": "open" if severity in {"critical", "high"} else "triaged",
+                    "first_seen": occurred_at,
+                    "last_seen": occurred_at,
+                    "asset_ref": target,
+                    "recommendation": "Review execution telemetry and validate control coverage.",
+                    "metadata_json": {
+                        "tenant_id": tenant_id,
+                        "event_uid": event_uid,
+                        "task_id": task_id,
+                        "envelope_id": envelope_id,
+                    },
+                    "raw_payload": {
+                        "tool": wrapper.key,
+                        "target": target,
+                        "status": status,
+                    },
+                }
+            )
+
+    return failures, seeded_events, seeded_findings
+
+
+def _write_seed_contract(
+    *,
+    export_path: Path,
+    tenant_a: str,
+    tenant_b: str,
+    events_a: list[dict[str, object]],
+    events_b: list[dict[str, object]],
+    findings_a: list[dict[str, object]],
+    findings_b: list[dict[str, object]],
+) -> Path:
+    payload = {
+        "schema_version": "spectrastrike.demo.seed.v1",
+        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "tenants": [
+            {
+                "tenant_id": tenant_a,
+                "events": events_a,
+                "findings": findings_a,
+            },
+            {
+                "tenant_id": tenant_b,
+                "events": events_b,
+                "findings": findings_b,
+            },
+        ],
+    }
+    body = json.dumps(payload, indent=2)
+    candidates = [export_path, Path("/tmp") / "spectrastrike_seed_contract.json"]
+    last_error: Exception | None = None
+    for candidate in candidates:
+        try:
+            candidate.parent.mkdir(parents=True, exist_ok=True)
+            candidate.write_text(body, encoding="utf-8")
+            if candidate != export_path:
+                print(
+                    f"WARNING: unable to write seed contract to {export_path}; "
+                    f"used fallback {candidate}"
+                )
+            return candidate
+        except OSError as exc:
+            last_error = exc
+            continue
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("unable to persist seed contract")
 
 
 def main() -> int:
@@ -251,6 +381,7 @@ def main() -> int:
     parser.add_argument("--tenant-a", default="10000000-0000-0000-0000-000000000001")
     parser.add_argument("--tenant-b", default="20000000-0000-0000-0000-000000000002")
     parser.add_argument("--strict", action="store_true", help="Fail when all task submissions fail for a tenant.")
+    parser.add_argument("--export-contract", default=str(_default_export_path()))
     args = parser.parse_args()
 
     session = requests.Session()
@@ -259,8 +390,8 @@ def main() -> int:
     if not wrappers:
         raise RuntimeError("wrapper registry is empty; cannot seed demo runtime")
 
-    failures_a = _seed_tenant(session, resolved_base, token, args.tenant_a, wrappers, "acme")
-    failures_b = _seed_tenant(session, resolved_base, token, args.tenant_b, wrappers, "globex")
+    failures_a, events_a, findings_a = _seed_tenant(session, resolved_base, token, args.tenant_a, wrappers, "acme")
+    failures_b, events_b, findings_b = _seed_tenant(session, resolved_base, token, args.tenant_b, wrappers, "globex")
 
     total = min(12, len(wrappers))
     if failures_a:
@@ -271,6 +402,19 @@ def main() -> int:
     if args.strict and (failures_a >= total or failures_b >= total):
         raise RuntimeError("strict mode: at least one tenant failed all task submissions")
 
+    export_path = _write_seed_contract(
+        export_path=Path(args.export_contract).expanduser(),
+        tenant_a=args.tenant_a,
+        tenant_b=args.tenant_b,
+        events_a=events_a,
+        events_b=events_b,
+        findings_a=findings_a,
+        findings_b=findings_b,
+    )
+    print(
+        "Seed contract written for VectorVue federation import: "
+        f"{export_path} (events={len(events_a) + len(events_b)}, findings={len(findings_a) + len(findings_b)})"
+    )
     print("SpectraStrike demo runtime seeded for two tenants (with resilient fallback).")
     return 0
 

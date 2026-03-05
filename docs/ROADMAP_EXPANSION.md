@@ -490,6 +490,8 @@ Modern, enterprise-grade UX maturity.
 * [x] feat(spectrastrike-ui): add workflow campaign selector for tenant-scoped playbook context (ACME/Globex)
 * [x] feat(spectrastrike-runtime): print SpectraStrike Web UI credentials after `make demo-seed`
 * [x] feat(spectrastrike-ui): add campaign timeline load/unload bar for workflow playbook steps
+* [x] feat(spectrastrike-ui): replace static campaign dropdown with permission-scoped tenant selector + per-tenant campaign selector
+* [x] feat(spectrastrike-ui): add `/ui/api/execution/context` to resolve role-based tenant visibility and tenant campaign catalog
 
 ---
 

@@ -44,3 +44,10 @@
 - [x] `Unload` hides timeline steps and shows explicit unloaded hint.
 - [x] `Load All` restores all visible timeline steps.
 - [x] `vitest`: timeline load/unload behavior covered in `workflow-workbench.test.tsx`.
+
+## Tenant + Campaign Selector Validation
+- [x] Workflow renders separate Tenant and Campaign selectors.
+- [x] Campaign options are scoped by selected tenant.
+- [x] Workflow playbook fetch includes both `tenant_id` and `campaign_id`.
+- [x] Playbook local fallback storage is scoped by `tenant::campaign`.
+- [x] `vitest`: workflow selector coverage updated and passing.

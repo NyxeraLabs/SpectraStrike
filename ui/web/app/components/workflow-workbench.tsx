@@ -78,16 +78,40 @@ type SpectraBootstrapStatus = {
   platform_onboarded: boolean;
 };
 
-const CAMPAIGN_STORAGE_KEY = "spectrastrike_campaign_id";
-const CAMPAIGN_OPTIONS: Array<{ id: string; label: string }> = [
-  { id: "10000000-0000-0000-0000-000000000001", label: "ACME Campaign" },
-  { id: "20000000-0000-0000-0000-000000000002", label: "Globex Campaign" },
-];
-const DEFAULT_CAMPAIGN_ID = CAMPAIGN_OPTIONS[0].id;
+type CampaignOption = {
+  id: string;
+  label: string;
+};
 
-function normalizeCampaignId(candidate: string | null): string {
-  if (!candidate) return DEFAULT_CAMPAIGN_ID;
-  return CAMPAIGN_OPTIONS.some((item) => item.id === candidate) ? candidate : DEFAULT_CAMPAIGN_ID;
+type TenantOption = {
+  id: string;
+  label: string;
+  campaigns: CampaignOption[];
+};
+
+const TENANT_STORAGE_KEY = "spectrastrike_tenant_id";
+const CAMPAIGN_STORAGE_KEY = "spectrastrike_campaign_id";
+const DEFAULT_TENANTS: TenantOption[] = [
+  {
+    id: "10000000-0000-0000-0000-000000000001",
+    label: "ACME Industries",
+    campaigns: [
+      { id: "cmp-acme-initial-ops", label: "ACME Initial Ops" },
+      { id: "cmp-acme-lateral-sim", label: "ACME Lateral Simulation" },
+    ],
+  },
+];
+
+function normalizeTenantId(candidate: string | null, options: TenantOption[]): string {
+  if (options.length === 0) return "";
+  if (!candidate) return options[0].id;
+  return options.some((item) => item.id === candidate) ? candidate : options[0].id;
+}
+
+function normalizeCampaignId(candidate: string | null, campaigns: CampaignOption[]): string {
+  if (campaigns.length === 0) return "";
+  if (!candidate) return campaigns[0].id;
+  return campaigns.some((item) => item.id === candidate) ? candidate : campaigns[0].id;
 }
 
 const PICKER_SECTIONS: { key: string; title: string }[] = [
@@ -186,7 +210,10 @@ export function WorkflowWorkbench() {
   const [wizardWorkspace, setWizardWorkspace] = useState("spectra-workspace");
   const [wizardWrappers, setWizardWrappers] = useState<string[]>(["nmap", "metasploit", "sliver"]);
   const [wizardFederationEndpoint, setWizardFederationEndpoint] = useState("http://localhost:8000");
-  const [campaignId, setCampaignId] = useState(() => normalizeCampaignId(safeLocalStorageGet(CAMPAIGN_STORAGE_KEY)));
+  const [tenantOptions, setTenantOptions] = useState<TenantOption[]>(DEFAULT_TENANTS);
+  const [tenantScope, setTenantScope] = useState<"single" | "restricted" | "all">("single");
+  const [tenantId, setTenantId] = useState(() => normalizeTenantId(safeLocalStorageGet(TENANT_STORAGE_KEY), DEFAULT_TENANTS));
+  const [campaignId, setCampaignId] = useState(() => normalizeCampaignId(safeLocalStorageGet(CAMPAIGN_STORAGE_KEY), DEFAULT_TENANTS[0].campaigns));
   const [timelineVisibleSteps, setTimelineVisibleSteps] = useState(0);
 
   const canvasHostRef = useRef<HTMLDivElement | null>(null);
@@ -208,19 +235,76 @@ export function WorkflowWorkbench() {
   }, [setStatusMessage]);
 
   useEffect(() => {
+    safeLocalStorageSet(TENANT_STORAGE_KEY, tenantId);
+  }, [tenantId]);
+
+  useEffect(() => {
     safeLocalStorageSet(CAMPAIGN_STORAGE_KEY, campaignId);
   }, [campaignId]);
 
+  const selectedTenant = useMemo(
+    () => tenantOptions.find((tenant) => tenant.id === tenantId) ?? tenantOptions[0] ?? null,
+    [tenantId, tenantOptions],
+  );
+
   useEffect(() => {
-    setTimelineVisibleSteps(0);
-  }, [campaignId]);
+    if (!selectedTenant) return;
+    setCampaignId((current) => normalizeCampaignId(current, selectedTenant.campaigns));
+  }, [selectedTenant]);
 
   useEffect(() => {
     let active = true;
-    const encodedTenantId = encodeURIComponent(campaignId);
+    fetch("/ui/api/execution/context", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((body) => {
+        if (!active) return;
+        const rawTenants = Array.isArray(body?.tenants) ? body.tenants : [];
+        const tenants: TenantOption[] = rawTenants
+          .filter(isRecord)
+          .map((tenant: Record<string, unknown>) => {
+            const campaigns = Array.isArray(tenant.campaigns)
+              ? tenant.campaigns
+                  .filter(isRecord)
+                  .map((campaign: Record<string, unknown>) => ({
+                    id: String(campaign.id ?? "").trim(),
+                    label: String(campaign.label ?? campaign.id ?? "").trim(),
+                  }))
+                  .filter((campaign: CampaignOption) => campaign.id.length > 0 && campaign.label.length > 0)
+              : [];
+            return {
+              id: String(tenant.id ?? "").trim(),
+              label: String(tenant.label ?? tenant.id ?? "").trim(),
+              campaigns,
+            };
+          })
+          .filter((tenant: TenantOption) => tenant.id.length > 0 && tenant.label.length > 0 && tenant.campaigns.length > 0);
+        const nextOptions = tenants.length > 0 ? tenants : DEFAULT_TENANTS;
+        const nextTenantId = normalizeTenantId(safeLocalStorageGet(TENANT_STORAGE_KEY) ?? tenantId, nextOptions);
+        const nextTenant = nextOptions.find((tenant) => tenant.id === nextTenantId) ?? nextOptions[0];
+        setTenantOptions(nextOptions);
+        const scopeRaw = String(body?.scope ?? "");
+        setTenantScope(scopeRaw === "all" || scopeRaw === "restricted" ? scopeRaw : "single");
+        setTenantId(nextTenantId);
+        setCampaignId(normalizeCampaignId(safeLocalStorageGet(CAMPAIGN_STORAGE_KEY) ?? campaignId, nextTenant.campaigns));
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    setTimelineVisibleSteps(0);
+  }, [tenantId, campaignId]);
+
+  useEffect(() => {
+    if (!tenantId || !campaignId) return;
+    let active = true;
+    const encodedTenantId = encodeURIComponent(tenantId);
+    const encodedCampaignId = encodeURIComponent(campaignId);
     Promise.all([
       fetch("/ui/api/execution/wrappers").then((res) => res.json()),
-      fetch(`/ui/api/execution/playbook?tenant_id=${encodedTenantId}`).then((res) => res.json()),
+      fetch(`/ui/api/execution/playbook?tenant_id=${encodedTenantId}&campaign_id=${encodedCampaignId}`).then((res) => res.json()),
       fetch("/ui/api/execution/queue?limit=50").then((res) => res.json()),
       fetch("/ui/api/telemetry/events?limit=25").then((res) => res.json()),
       fetch("/ui/api/bootstrap/status").then((res) => res.json()).catch(() => null),
@@ -235,7 +319,7 @@ export function WorkflowWorkbench() {
             edges: playbookBody.edges,
             queue: playbookBody.queue,
           });
-          setStatusMessage("Playbook loaded from backend.");
+          setStatusMessage(`Playbook loaded for tenant=${tenantId} campaign=${campaignId}.`);
         }
 
         const queueItems = Array.isArray(queueBody.items) ? queueBody.items : [];
@@ -278,7 +362,7 @@ export function WorkflowWorkbench() {
     return () => {
       active = false;
     };
-  }, [campaignId, setExecutionStatus, setFromBackend, setStatusMessage, setTelemetry, setWrappers]);
+  }, [campaignId, tenantId, setExecutionStatus, setFromBackend, setStatusMessage, setTelemetry, setWrappers]);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.EventSource === "undefined") {
@@ -332,12 +416,13 @@ export function WorkflowWorkbench() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           ...payload,
-          tenant_id: campaignId,
+          tenant_id: tenantId,
+          campaign_id: campaignId,
         }),
       }).catch(() => undefined);
     }, 350);
     return () => clearTimeout(id);
-  }, [campaignId, nodes, edges, queue, getPersistencePayload]);
+  }, [campaignId, tenantId, nodes, edges, queue, getPersistencePayload]);
 
   useEffect(() => {
     setTimelineVisibleSteps((current) => {
@@ -428,6 +513,7 @@ export function WorkflowWorkbench() {
             parameters: {
               technique: node.data.technique,
               profile: node.data.config?.profile ?? "default",
+              campaign_id: campaignId,
             },
           }),
         });
@@ -494,22 +580,37 @@ export function WorkflowWorkbench() {
     <section className="grid gap-4 xl:grid-cols-[320px_1fr]" data-testid="workflow-workbench-root">
       <article className="spectra-panel p-4 xl:col-span-2">
         <div className="flex flex-wrap items-center gap-3">
-          <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">Campaign Context</h2>
+          <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">Tenant & Campaign Context</h2>
           <label className="text-xs text-slate-400">
-            Active Campaign
+            Tenant
             <select
-              value={campaignId}
-              onChange={(event) => setCampaignId(event.target.value)}
+              value={tenantId}
+              onChange={(event) => setTenantId(event.target.value)}
               className="ml-2 rounded border border-borderSubtle bg-slate-950 px-2 py-1 text-xs text-slate-100"
             >
-              {CAMPAIGN_OPTIONS.map((option) => (
+              {tenantOptions.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.label}
                 </option>
               ))}
             </select>
           </label>
-          <span className="spectra-mono text-xs text-slate-500">{campaignId}</span>
+          <label className="text-xs text-slate-400">
+            Campaign
+            <select
+              value={campaignId}
+              onChange={(event) => setCampaignId(event.target.value)}
+              className="ml-2 rounded border border-borderSubtle bg-slate-950 px-2 py-1 text-xs text-slate-100"
+            >
+              {(selectedTenant?.campaigns ?? []).map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="text-xs text-slate-500">Scope: {tenantScope}</span>
+          <span className="spectra-mono text-xs text-slate-500">{tenantId} / {campaignId}</span>
         </div>
       </article>
       {wizardOpen ? (

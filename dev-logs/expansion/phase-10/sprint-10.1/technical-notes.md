@@ -88,3 +88,17 @@
   - `Unload` action
 - Playbook step rendering now uses `timelineNodes = nodes.slice(0, timelineVisibleSteps)`.
 - On campaign change, timeline resets and then auto-loads once the campaign playbook is present.
+
+## Tenant + Campaign Context API and Wiring
+- New route: `app/api/execution/context/route.ts`
+  - returns role-scoped tenant visibility and campaign lists.
+  - supports optional env overrides:
+    - `SPECTRASTRIKE_TENANT_CAMPAIGNS_JSON`
+    - `SPECTRASTRIKE_ROLE_TENANT_MAP` (`role:tenantA|tenantB,...`)
+- Workflow context flow:
+  - fetch tenant/campaign context from `/ui/api/execution/context`
+  - normalize persisted tenant/campaign IDs against visible options
+  - render tenant selector + campaign selector
+- Playbook route updated to scope by `tenant_id + campaign_id`:
+  - local fallback key: `tenant::campaign`
+  - upstream includes `campaign_id` query/body field for compatibility.

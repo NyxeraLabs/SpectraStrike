@@ -55,3 +55,11 @@
 ## Decision 14: Timeline Visibility Must Be Operator-Controlled
 - Added explicit load/unload controls for campaign timeline steps in workflow UI.
 - Rationale: allow fast narrowing or full expansion of campaign timeline without mutating the underlying graph.
+
+## Decision 15: Tenant Selection and Campaign Selection Are Separate Controls
+- Workflow now separates tenant scope from campaign selection.
+- Rationale: one tenant can own many campaigns; campaign selection must be contextual to selected tenant.
+
+## Decision 16: Tenant Visibility Is Role-Scoped
+- Context route returns one/many/all tenants based on assigned roles and configured role-to-tenant mapping.
+- Rationale: align SpectraStrike UX with permission-based tenant visibility expected in VectorVue.

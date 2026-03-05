@@ -21,6 +21,7 @@ import { proxyToOrchestrator } from "../../../lib/orchestrator-proxy";
 
 type PlaybookPayload = {
   tenant_id?: string;
+  campaign_id?: string;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   queue: string[];
@@ -28,6 +29,14 @@ type PlaybookPayload = {
 
 function resolveTenantId(request: Request, payloadTenant?: string): string {
   return payloadTenant ?? process.env.SPECTRASTRIKE_TENANT_ID ?? "tenant-a";
+}
+
+function resolveCampaignId(payloadCampaign?: string): string {
+  return payloadCampaign ?? "default-campaign";
+}
+
+function playbookScopeKey(tenantId: string, campaignId: string): string {
+  return `${tenantId}::${campaignId}`;
 }
 
 export async function GET(request: Request) {
@@ -39,20 +48,25 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const tenantId = resolveTenantId(request, url.searchParams.get("tenant_id") ?? undefined);
-  const upstream = await proxyToOrchestrator(`/api/v1/execution/playbook?tenant_id=${encodeURIComponent(tenantId)}`, { method: "GET" });
+  const campaignId = resolveCampaignId(url.searchParams.get("campaign_id") ?? undefined);
+  const upstream = await proxyToOrchestrator(
+    `/api/v1/execution/playbook?tenant_id=${encodeURIComponent(tenantId)}&campaign_id=${encodeURIComponent(campaignId)}`,
+    { method: "GET" },
+  );
   if (upstream && upstream.ok) {
     const body = await upstream.json();
     return Response.json(body, { status: 200, headers: { "cache-control": "no-store" } });
   }
 
-  const local = getPlaybook(tenantId);
+  const local = getPlaybook(playbookScopeKey(tenantId, campaignId));
   if (local) {
-    return Response.json({ tenant_id: tenantId, ...local, source: "ui_local_store" }, { status: 200 });
+    return Response.json({ tenant_id: tenantId, campaign_id: campaignId, ...local, source: "ui_local_store" }, { status: 200 });
   }
   const fallback = defaultWorkflowGraph();
   return Response.json(
     {
       tenant_id: tenantId,
+      campaign_id: campaignId,
       nodes: fallback.nodes,
       edges: fallback.edges,
       queue: [],
@@ -72,6 +86,7 @@ export async function PUT(request: Request) {
 
   const payload = (await request.json()) as PlaybookPayload;
   const tenantId = resolveTenantId(request, payload.tenant_id);
+  const campaignId = resolveCampaignId(payload.campaign_id);
   if (!Array.isArray(payload.nodes) || !Array.isArray(payload.edges) || !Array.isArray(payload.queue)) {
     return Response.json({ error: "invalid_playbook_payload" }, { status: 400 });
   }
@@ -80,6 +95,7 @@ export async function PUT(request: Request) {
     method: "PUT",
     body: JSON.stringify({
       tenant_id: tenantId,
+      campaign_id: campaignId,
       nodes: payload.nodes,
       edges: payload.edges,
       queue: payload.queue,
@@ -90,10 +106,10 @@ export async function PUT(request: Request) {
     return Response.json(body, { status: 200, headers: { "cache-control": "no-store" } });
   }
 
-  const persisted = setPlaybook(tenantId, {
+  const persisted = setPlaybook(playbookScopeKey(tenantId, campaignId), {
     nodes: payload.nodes,
     edges: payload.edges,
     queue: payload.queue,
   });
-  return Response.json({ tenant_id: tenantId, ...persisted, source: "ui_local_store" }, { status: 200 });
+  return Response.json({ tenant_id: tenantId, campaign_id: campaignId, ...persisted, source: "ui_local_store" }, { status: 200 });
 }

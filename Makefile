@@ -345,13 +345,17 @@ reset-db:
 	'
 
 demo-seed:
-	@if [ "$${SKIP_VECTORVUE_SEED:-0}" != "1" ]; then \
-		echo "Seeding VectorVue tenant datasets (ACME + Globex)..."; \
-		$(MAKE) -C ../VectorVue seed-clients; \
-	fi
+	@mkdir -p ../VectorVue/local_federation/seed
 	@$(COMPOSE_DEV) up -d ui-web nginx
 	@echo "Seeding SpectraStrike runtime demo datasets..."
-	@$(COMPOSE_DEV) run --rm app python scripts/seed_demo_runtime.py --base-url https://nginx:8443/ui/api
+	@$(COMPOSE_DEV) run --rm \
+		-v "$$(cd ../VectorVue && pwd)/local_federation/seed:/seed-export" \
+		-e SPECTRASTRIKE_VECTORVUE_SEED_EXPORT=/seed-export/spectrastrike_seed_contract.json \
+		app python scripts/seed_demo_runtime.py --base-url https://nginx:8443/ui/api
+	@if [ "$${SKIP_VECTORVUE_SEED:-0}" != "1" ]; then \
+		echo "Seeding VectorVue tenant datasets (ACME + Globex) using SpectraStrike seed contract..."; \
+		$(MAKE) -C ../VectorVue seed-clients; \
+	fi
 	@echo "Demo seed complete."
 	@echo "SpectraStrike Web UI:"
 	@echo "  URL: https://127.0.0.1:18443/ui/login"

@@ -67,3 +67,11 @@
   - `Unload` button
 - Timeline list now renders only the loaded subset (`nodes.slice(0, loadedCount)`).
 - Added empty-state hint when timeline is explicitly unloaded while nodes exist.
+
+## Incremental UX - Permission-Scoped Tenant + Campaign Selectors
+- Replaced static workflow campaign dropdown with:
+  - Tenant selector (role/permission scoped)
+  - Campaign selector scoped to selected tenant
+- Added new API route `GET /ui/api/execution/context` to supply visible tenants and their campaigns.
+- Updated workflow playbook load/save to send both `tenant_id` and `campaign_id`.
+- Updated task execution payload to keep `tenant_id` explicit and include `campaign_id` in parameters.
