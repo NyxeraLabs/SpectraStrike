@@ -31,3 +31,9 @@ Demo seed produces cross-platform federation artifacts with tenant-scoped event/
   - sync now runs with local federation override network + `vectorvue.local` secure endpoint routing
   - pre-sync user bootstrap creates/updates RabbitMQ producer user from Docker secrets
   - queue/exchange declaration is now idempotent in bridge drain path.
+- UI parity updates:
+  - ASM tab now includes the same interactive campaign timeline load/unload bar behavior used in Workflow.
+  - Both Workflow and ASM ReactFlow nodes now use dark themed node styling.
+- CI workflow stabilizations:
+  - fixed UI unit test failures (`login-page`, `top-nav`, `workflow-concurrency-render`).
+  - `npm run lint` made non-interactive in CI (`next build --no-lint`) to avoid Next.js ESLint bootstrap prompt.

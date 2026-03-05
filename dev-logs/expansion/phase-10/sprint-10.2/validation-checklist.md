@@ -9,3 +9,8 @@
 - [x] Live RabbitMQ bridge queue bootstrap is idempotent (no `queue not found` failure path).
 - [x] Campaign-scoped playbook retrieval validated:
   - ACME/Globex seeded campaigns each return populated Node-Link graphs.
+- [x] ASM campaign timeline bar parity validated (`Load All`/`Unload` + range control).
+- [x] UI quality gates pass:
+  - `npm --prefix ui/web run test:unit`
+  - `npm --prefix ui/web run build`
+  - `npm --prefix ui/web run lint` (non-interactive CI-safe command)

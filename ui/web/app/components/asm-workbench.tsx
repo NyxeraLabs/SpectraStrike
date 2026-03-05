@@ -175,6 +175,7 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
     (initialNodes ?? graph.nodes)[0]?.id ?? "",
   );
   const [campaignTimeline, setCampaignTimeline] = useState<string[]>([]);
+  const [timelineVisibleSteps, setTimelineVisibleSteps] = useState(0);
   const [asmStatus, setAsmStatus] = useState<string>("Loading live campaign graph surfaces...");
   const [connectRelation, setConnectRelation] = useState<AsmEdge["relation"]>("pivot");
   const [pickerOpen, setPickerOpen] = useState(true);
@@ -274,6 +275,25 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
     [asmEdges],
   );
   const selectedExposures = exposures.filter((row) => row.assetId === selectedAssetId);
+  const timelineRows = useMemo(
+    () => campaignTimeline.slice(0, timelineVisibleSteps),
+    [campaignTimeline, timelineVisibleSteps],
+  );
+  const renderedFlowNodes = useMemo(
+    () =>
+      flowNodes.map((node) => ({
+        ...node,
+        className: `ring-1 ${riskClass(overlays[node.id])}`,
+        style: {
+          background: "linear-gradient(165deg, #0a1220 0%, #0f172a 100%)",
+          color: "#e2e8f0",
+          border: "1px solid #334155",
+          borderRadius: "10px",
+          boxShadow: "0 10px 24px rgba(2, 6, 23, 0.55)",
+        },
+      })),
+    [flowNodes, overlays],
+  );
 
   function onNodesChange(changes: NodeChange[]) {
     setFlowNodes((prev) => applyNodeChanges(changes, prev));
@@ -395,6 +415,7 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
                 setExposures([]);
                 setSelectedAssetId("");
                 setCampaignTimeline([]);
+                setTimelineVisibleSteps(0);
               }}
             >
               Reset Graph
@@ -409,7 +430,7 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
           className={`relative mt-4 rounded-lg border border-borderSubtle bg-slate-950/70 p-2 ${asmFullscreen ? "canvas-fullscreen rounded-none border-none p-4" : "h-[560px]"}`}
         >
           <ReactFlow
-            nodes={flowNodes}
+            nodes={renderedFlowNodes}
             edges={flowEdges}
             onInit={(instance) => {
               reactFlowApiRef.current = instance;
@@ -644,13 +665,53 @@ export function AsmWorkbench({ initialNodes }: AsmWorkbenchProps) {
 
       <article className="spectra-panel p-5">
         <h2 className="text-sm uppercase tracking-[0.2em] text-accentGlow">Campaign Timeline</h2>
+        <div className="mt-3 rounded border border-borderSubtle bg-slate-950/70 p-3" data-testid="asm-campaign-timeline-bar">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs uppercase tracking-wide text-slate-400">Campaign Timeline</p>
+            <p className="text-xs text-slate-300">
+              Loaded {timelineVisibleSteps}/{campaignTimeline.length} steps
+            </p>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={Math.max(0, campaignTimeline.length)}
+            step={1}
+            value={timelineVisibleSteps}
+            onChange={(event) => setTimelineVisibleSteps(Number(event.target.value))}
+            className="mt-2 w-full accent-accentPrimary"
+            disabled={campaignTimeline.length === 0}
+          />
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              className="spectra-button-secondary px-2 py-1 text-xs"
+              onClick={() => setTimelineVisibleSteps(campaignTimeline.length)}
+              disabled={campaignTimeline.length === 0}
+            >
+              Load All
+            </button>
+            <button
+              type="button"
+              className="spectra-button-secondary px-2 py-1 text-xs"
+              onClick={() => setTimelineVisibleSteps(0)}
+              disabled={campaignTimeline.length === 0}
+            >
+              Unload
+            </button>
+          </div>
+        </div>
         <ol className="mt-3 space-y-2 text-sm" data-testid="campaign-timeline">
-          {campaignTimeline.length > 0 ? (
-            campaignTimeline.map((line) => (
+          {timelineRows.length > 0 ? (
+            timelineRows.map((line) => (
               <li key={line} className="rounded border border-borderSubtle bg-slate-950/70 px-3 py-2">
                 {line}
               </li>
             ))
+          ) : campaignTimeline.length > 0 ? (
+            <li className="rounded border border-borderSubtle bg-slate-950/70 px-3 py-2 text-slate-300">
+              Timeline unloaded. Move the bar or click Load All to show campaign steps.
+            </li>
           ) : (
             <li className="rounded border border-borderSubtle bg-slate-950/70 px-3 py-2 text-slate-300">
               No live campaign events yet.

@@ -456,6 +456,13 @@ export function WorkflowWorkbench() {
     return nodes.map((node) => ({
       ...node,
       className: overlayClass(overlay[node.id]),
+      style: {
+        background: "linear-gradient(165deg, #0a1220 0%, #0f172a 100%)",
+        color: "#e2e8f0",
+        border: "1px solid #334155",
+        borderRadius: "10px",
+        boxShadow: "0 10px 24px rgba(2, 6, 23, 0.55)",
+      },
       data: {
         ...node.data,
         label: `${node.data.label} [${overlay[node.id]}]`,
